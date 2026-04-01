@@ -1,5 +1,4 @@
 import { state } from "./core/state.js";
-import { state } from "./core/state.js";
 import { getConfig, saveConfig } from "./core/storage.js";
 import { escapeHtml } from "./core/utils.js";
 
