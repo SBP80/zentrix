@@ -1,134 +1,66 @@
 const app = document.getElementById("app");
 
-// ---------- LOGIN ----------
 function renderLogin() {
   app.innerHTML = `
-    <div class="login-page">
-      <div class="login-card">
-        <h1>Zentryx</h1>
-        <h2>Acceso</h2>
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#eef3f8;padding:24px;">
+      <div style="width:100%;max-width:420px;background:white;border-radius:20px;padding:24px;box-shadow:0 12px 30px rgba(0,0,0,0.08);">
+        <h1 style="margin:0 0 8px 0;">Zentryx</h1>
+        <p style="margin:0 0 20px 0;color:#64748b;">Versión prueba panel lateral</p>
 
-        <input id="email" placeholder="admin">
-        <input id="password" type="password" placeholder="1234">
+        <input id="email" placeholder="admin" style="width:100%;height:48px;margin-bottom:12px;padding:0 14px;border:1px solid #dbe3ec;border-radius:12px;" />
+        <input id="password" type="password" placeholder="1234" style="width:100%;height:48px;margin-bottom:12px;padding:0 14px;border:1px solid #dbe3ec;border-radius:12px;" />
 
-        <button id="loginBtn">Entrar</button>
-        <div id="loginMessage"></div>
+        <button id="loginBtn" style="width:100%;height:48px;border:none;border-radius:12px;background:#2563eb;color:white;font-weight:700;">
+          Entrar
+        </button>
+
+        <p id="msg" style="color:#b91c1c;"></p>
       </div>
     </div>
   `;
 
   document.getElementById("loginBtn").onclick = () => {
-    const email = document.getElementById("email").value;
-    const pass = document.getElementById("password").value;
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
 
-    if (email === "admin" && pass === "1234") {
+    if (email === "admin" && password === "1234") {
       localStorage.setItem("auth", "ok");
-
-      if (!localStorage.getItem("empresa")) {
-        renderSetup();
-      } else {
-        renderApp();
-      }
+      renderApp();
     } else {
-      document.getElementById("loginMessage").innerText = "Datos incorrectos";
+      document.getElementById("msg").innerText = "Datos incorrectos";
     }
   };
 }
 
-// ---------- SETUP ----------
-function renderSetup() {
-  app.innerHTML = `
-    <div class="setup-shell">
-      <div class="setup-card">
-        <h1>Configuración inicial</h1>
-
-        <input id="empresa" placeholder="Nombre empresa">
-
-        <button id="saveSetup">Continuar</button>
-      </div>
-    </div>
-  `;
-
-  document.getElementById("saveSetup").onclick = () => {
-    const empresa = document.getElementById("empresa").value;
-
-    if (!empresa) return;
-
-    localStorage.setItem("empresa", empresa);
-    renderApp();
-  };
-}
-
-// ---------- APP PRINCIPAL ----------
 function renderApp() {
-  const empresa = localStorage.getItem("empresa");
-
   app.innerHTML = `
-    <div class="app-layout">
-      
-      <aside class="sidebar">
-        <h2>${empresa}</h2>
-
-        <button onclick="navigate('inicio')">Inicio</button>
-        <button onclick="navigate('clientes')">Clientes</button>
-        <button onclick="navigate('obras')">Obras</button>
-        <button onclick="navigate('material')">Material</button>
-        <button onclick="navigate('vehiculos')">Vehículos</button>
-        <button onclick="navigate('config')">Configuración</button>
-
-        <button onclick="logout()" class="logout">Cerrar sesión</button>
+    <div style="min-height:100vh;display:flex;background:#eef3f8;">
+      <aside style="width:260px;background:#0f172a;color:white;padding:20px;">
+        <h2 style="margin-top:0;">MENÚ ZENTRYX</h2>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button style="height:44px;border:none;border-radius:10px;background:#2563eb;color:white;">Inicio</button>
+          <button style="height:44px;border:none;border-radius:10px;background:#1e293b;color:white;">Clientes</button>
+          <button style="height:44px;border:none;border-radius:10px;background:#1e293b;color:white;">Obras</button>
+          <button style="height:44px;border:none;border-radius:10px;background:#1e293b;color:white;">Material</button>
+          <button style="height:44px;border:none;border-radius:10px;background:#dc2626;color:white;" onclick="logout()">Cerrar sesión</button>
+        </div>
       </aside>
 
-      <main id="content"></main>
-
+      <main style="flex:1;padding:24px;">
+        <h1 style="margin-top:0;">PANEL NUEVO OK</h1>
+        <p>Si ves MENÚ ZENTRYX a la izquierda, ya está actualizado.</p>
+      </main>
     </div>
   `;
-
-  navigate("inicio");
 }
 
-// ---------- NAVEGACIÓN ----------
-function navigate(view) {
-  const content = document.getElementById("content");
-
-  if (view === "inicio") {
-    content.innerHTML = `<h1>Inicio</h1><p>Panel principal profesional</p>`;
-  }
-
-  if (view === "clientes") {
-    content.innerHTML = `<h1>Clientes</h1><p>Aquí irá el CRM</p>`;
-  }
-
-  if (view === "obras") {
-    content.innerHTML = `<h1>Obras</h1>`;
-  }
-
-  if (view === "material") {
-    content.innerHTML = `<h1>Material</h1>`;
-  }
-
-  if (view === "vehiculos") {
-    content.innerHTML = `<h1>Vehículos</h1>`;
-  }
-
-  if (view === "config") {
-    content.innerHTML = `<h1>Configuración</h1>`;
-  }
-}
-
-// ---------- LOGOUT ----------
 function logout() {
-  localStorage.clear();
+  localStorage.removeItem("auth");
   renderLogin();
 }
 
-// ---------- INIT ----------
 if (localStorage.getItem("auth") === "ok") {
-  if (!localStorage.getItem("empresa")) {
-    renderSetup();
-  } else {
-    renderApp();
-  }
+  renderApp();
 } else {
   renderLogin();
 }
