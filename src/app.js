@@ -1,69 +1,96 @@
-const app = document.getElementById("app");
-
-// LOGIN
-function renderLogin() {
-  app.innerHTML = `
-    <div class="login-page">
-      <div class="login-card">
-        <h1>Zentryx</h1>
-        <p>Sistema modular de gestión</p>
-
-        <h2>Acceso</h2>
-
-        <input id="email" placeholder="correo@empresa.com" />
-        <input id="password" type="password" placeholder="Contraseña" />
-
-        <button id="loginBtn">Entrar</button>
-
-        <p id="loginMessage" style="color:red;"></p>
-      </div>
-    </div>
-  `;
-
-  document.getElementById("loginBtn").onclick = () => {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-
-    if (email === "admin" && password === "1234") {
-      renderDashboard();
-    } else {
-      document.getElementById("loginMessage").innerText = "Datos incorrectos";
-    }
-  };
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f5f7fa;
 }
 
-// PANEL
-function renderDashboard() {
-  app.innerHTML = `
-    <div class="dashboard-layout">
+/* LOGIN */
 
-      <aside class="sidebar">
-        <h2>Zentryx</h2>
-        <ul>
-          <li>Panel</li>
-          <li>Clientes</li>
-          <li>Obras</li>
-          <li>Material</li>
-          <li>Agenda</li>
-        </ul>
-      </aside>
-
-      <main class="main-content">
-        <header class="topbar">
-          <button id="logoutBtn">Cerrar sesión</button>
-        </header>
-
-        <section class="content">
-          <h1>Panel principal</h1>
-          <p>Base profesional de la app</p>
-        </section>
-      </main>
-
-    </div>
-  `;
-
-  document.getElementById("logoutBtn").onclick = renderLogin;
+.login-page {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-// ARRANQUE
-renderLogin();
+.login-card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  width: 300px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.login-card input {
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px;
+}
+
+.login-card button {
+  width: 100%;
+  padding: 12px;
+  background: #3b5ed7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+}
+
+/* DASHBOARD */
+
+.dashboard-layout {
+  display: flex;
+  height: 100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar {
+  width: 220px;
+  background: #1e293b;
+  color: white;
+  padding: 20px;
+}
+
+.sidebar h2 {
+  margin-bottom: 20px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.sidebar li:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* MAIN */
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* TOPBAR */
+
+.topbar {
+  background: white;
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* CONTENT */
+
+.content {
+  padding: 20px;
+}
