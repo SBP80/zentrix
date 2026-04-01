@@ -1,295 +1,974 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>ALLCALOR - Calculadora de circuitos</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>ALLCALOR · Calculadora de Circuitos</title>
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif}
-body{min-height:100vh}
-.wrap{max-width:1100px;margin:0 auto;padding:14px}
-h1{margin:0 0 12px 0;font-size:24px}
-.card{background:#1b1b1b;border:1px solid #333;border-radius:12px;padding:12px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-@media (max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-label{display:block;font-size:13px;margin-bottom:6px;color:#ddd}
-input,select,button{width:100%;padding:11px 12px;border:none;border-radius:10px;font-size:16px}
-input,select{background:#fff;color:#111}
-button{background:#f0842f;color:#fff;font-weight:700}
-button.sec{background:#5a616c}
-button.green{background:#2f8f46}
-.row{display:flex;gap:10px;flex-wrap:wrap}
-.row > *{flex:1 1 180px}
-.room{border:1px solid #353535;border-radius:12px;padding:12px;margin-bottom:10px;background:#161616}
-.room h3{margin:0 0 10px 0;font-size:17px}
-.small{font-size:13px;color:#bbb}
-.tableWrap{overflow:auto}
-table{width:100%;border-collapse:collapse;background:#161616}
-th,td{padding:10px;border-bottom:1px solid #2d2d2d;text-align:left;font-size:14px}
-th{background:#202020}
-.total{font-size:18px;font-weight:700}
-.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#2a2a2a;font-size:12px}
-.note{font-size:13px;color:#ccc;line-height:1.4}
-hr{border:none;border-top:1px solid #333;margin:12px 0}
+  :root{
+    --bg:#0b1220;
+    --panel:#111a2b;
+    --panel2:#182338;
+    --line:#2c3b57;
+    --text:#eef4ff;
+    --muted:#9fb0cf;
+    --ok:#3ddc97;
+    --warn:#ffcc66;
+    --bad:#ff6b6b;
+    --accent:#68a0ff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+  body{min-height:100vh}
+  .app{
+    display:grid;
+    grid-template-columns: 380px 1fr;
+    min-height:100vh;
+  }
+  .sidebar{
+    background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border-right:1px solid var(--line);
+    padding:14px;
+    overflow:auto;
+  }
+  .main{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+  }
+  .topbar{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    padding:12px;
+    border-bottom:1px solid var(--line);
+    background:#0e1727;
+    position:sticky;
+    top:0;
+    z-index:10;
+  }
+  .canvasWrap{
+    position:relative;
+    flex:1;
+    min-height:60vh;
+    background:
+      linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size:20px 20px;
+    overflow:hidden;
+  }
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+    touch-action:none;
+    cursor:crosshair;
+  }
+  h1{
+    font-size:18px;
+    margin:0 0 12px 0;
+  }
+  h2{
+    font-size:14px;
+    margin:18px 0 8px 0;
+    color:#dbe7ff;
+  }
+  .card{
+    background:rgba(255,255,255,.03);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+    margin-bottom:12px;
+  }
+  .row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .row3{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin:0 0 5px 0;
+  }
+  input,select,button,textarea{
+    width:100%;
+    border:none;
+    border-radius:10px;
+    padding:11px 12px;
+    background:#0d1524;
+    color:var(--text);
+    border:1px solid #253554;
+    font-size:14px;
+  }
+  textarea{min-height:88px;resize:vertical}
+  button{
+    background:#13203a;
+    font-weight:600;
+  }
+  button.primary{background:#1c3b73}
+  button.ok{background:#124c37}
+  button.warn{background:#5a4212}
+  button.bad{background:#5a1f24}
+  button.ghost{background:#0d1524}
+  .hint{
+    font-size:12px;
+    color:var(--muted);
+    line-height:1.35;
+  }
+  .small{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .roomItem{
+    border:1px solid var(--line);
+    background:#0d1524;
+    border-radius:12px;
+    padding:10px;
+  }
+  .roomItem.active{
+    outline:2px solid var(--accent);
+  }
+  .roomTop{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .pill{
+    display:inline-block;
+    padding:4px 8px;
+    border-radius:999px;
+    font-size:11px;
+    background:#16233a;
+    color:#dce7ff;
+    border:1px solid #28406a;
+  }
+  .metrics{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px 10px;
+    font-size:12px;
+  }
+  .metric{
+    background:#111b2f;
+    border:1px solid #22304f;
+    border-radius:10px;
+    padding:8px;
+  }
+  .metric b{display:block;font-size:15px;color:#fff;margin-top:2px}
+  .footerSummary{
+    padding:12px;
+    border-top:1px solid var(--line);
+    background:#0e1727;
+  }
+  .summaryGrid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+  }
+  .summaryBox{
+    background:#111b2f;
+    border:1px solid #22304f;
+    border-radius:12px;
+    padding:10px;
+  }
+  .summaryBox strong{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .summaryBox span{
+    font-size:20px;
+    font-weight:700;
+  }
+  .status{
+    position:absolute;
+    left:12px;
+    bottom:12px;
+    background:rgba(5,10,20,.82);
+    backdrop-filter:blur(8px);
+    border:1px solid #2d3a55;
+    color:#dce7ff;
+    padding:8px 10px;
+    border-radius:10px;
+    font-size:12px;
+    pointer-events:none;
+  }
+  @media (max-width: 980px){
+    .app{grid-template-columns:1fr}
+    .sidebar{border-right:none;border-bottom:1px solid var(--line)}
+    .summaryGrid{grid-template-columns:1fr 1fr}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>ALLCALOR · Calculadora de circuitos</h1>
+<div class="app">
+  <aside class="sidebar">
+    <h1>ALLCALOR · Circuitos</h1>
 
-  <div class="card">
-    <div class="grid">
-      <div>
-        <label>Separación por defecto</label>
-        <select id="sepGlobal">
-          <option value="0.10">10 cm</option>
-          <option value="0.125">12,5 cm</option>
-          <option value="0.15" selected>15 cm</option>
-          <option value="0.20">20 cm</option>
-        </select>
+    <div class="card">
+      <h2>Proyecto</h2>
+      <div class="row">
+        <div>
+          <label>Nombre del proyecto</label>
+          <input id="projectName" placeholder="Vivienda Calle..." />
+        </div>
+        <div>
+          <label>Escala</label>
+          <input id="scaleInput" type="number" min="1" step="1" value="50" />
+        </div>
       </div>
-      <div>
-        <label>Longitud máxima por circuito</label>
-        <input id="maxCircuito" type="number" step="1" value="100">
+      <p class="hint">Escala actual: 1 m = <span id="scaleLabel">50</span> px. Cambia este valor si necesitas más precisión visual.</p>
+    </div>
+
+    <div class="card">
+      <h2>Nueva estancia</h2>
+      <div class="row">
+        <div>
+          <label>Nombre</label>
+          <input id="roomName" placeholder="Salón" />
+        </div>
+        <div>
+          <label>Tipo</label>
+          <select id="roomType">
+            <option value="general">General</option>
+            <option value="bano">Baño</option>
+            <option value="cocina">Cocina</option>
+            <option value="pasillo">Pasillo</option>
+            <option value="dormitorio">Dormitorio</option>
+          </select>
+        </div>
       </div>
-      <div>
-        <label>Factor de corrección tubo</label>
-        <input id="factor" type="number" step="0.01" value="1.08">
+
+      <div class="row3" style="margin-top:8px">
+        <div>
+          <label>Paso</label>
+          <select id="spacingMode">
+            <option value="auto">Auto</option>
+            <option value="5">5 cm</option>
+            <option value="10">10 cm</option>
+            <option value="15">15 cm</option>
+          </select>
+        </div>
+        <div>
+          <label>Distancia al colector (m)</label>
+          <input id="collectorDistance" type="number" min="0" step="0.1" value="2" />
+        </div>
+        <div>
+          <label>Margen extra (%)</label>
+          <input id="extraPercent" type="number" min="0" step="1" value="8" />
+        </div>
       </div>
-      <div>
-        <label>Tipo de tubo</label>
-        <select id="tubo">
-          <option value="16" selected>16x2</option>
-          <option value="17">17x2</option>
-          <option value="20">20x2</option>
-        </select>
+
+      <div style="margin-top:10px" class="row">
+        <button id="startDrawBtn" class="primary">Empezar a dibujar</button>
+        <button id="finishRoomBtn" class="ok">Cerrar estancia</button>
       </div>
-      <div>
-        <label>Temperatura / uso</label>
-        <select id="uso">
-          <option value="calor" selected>Suelo radiante</option>
-          <option value="frio">Suelo refrescante</option>
-        </select>
+      <div style="margin-top:8px" class="row">
+        <button id="cancelRoomBtn" class="ghost">Cancelar dibujo</button>
+        <button id="clearAllBtn" class="bad">Borrar todo</button>
       </div>
-      <div>
-        <label>Acción</label>
-        <button class="green" id="btnCalcular">Calcular</button>
+      <p class="hint" style="margin-top:10px">
+        Pulsa en el plano para ir marcando vértices. Para cerrar la estancia necesitas al menos 3 puntos.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Ajustes de cálculo</h2>
+      <div class="row">
+        <div>
+          <label>Longitud máxima por circuito (m)</label>
+          <input id="maxCircuit" type="number" min="50" max="120" step="1" value="90" />
+        </div>
+        <div>
+          <label>Longitud mínima deseada (m)</label>
+          <input id="minCircuit" type="number" min="20" max="120" step="1" value="60" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="recalcBtn" class="primary">Recalcular</button>
+        <button id="demoBtn" class="warn">Cargar demo</button>
       </div>
     </div>
-    <hr>
-    <div class="row">
-      <button id="btnNueva">Añadir estancia</button>
-      <button class="sec" id="btnEjemplo">Cargar ejemplo</button>
-      <button class="sec" id="btnLimpiar">Vaciar todo</button>
+
+    <div class="card">
+      <h2>Proyecto JSON</h2>
+      <div class="row">
+        <button id="exportBtn">Exportar</button>
+        <button id="importBtn">Importar</button>
+      </div>
+      <textarea id="jsonBox" placeholder="Aquí aparece el JSON del proyecto"></textarea>
     </div>
-  </div>
 
-  <div class="card">
-    <div id="rooms"></div>
-  </div>
-
-  <div class="card">
-    <div class="tableWrap">
-      <table id="tablaResultados">
-        <thead>
-          <tr>
-            <th>Estancia</th>
-            <th>Superficie útil</th>
-            <th>Separación</th>
-            <th>Tubo estimado</th>
-            <th>Circuitos</th>
-            <th>m/circuito</th>
-            <th>Recomendación</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <div class="card">
+      <h2>Estancias</h2>
+      <div id="roomsList" class="list"></div>
     </div>
-  </div>
+  </aside>
 
-  <div class="card">
-    <div id="resumen" class="note">Sin calcular.</div>
-  </div>
+  <main class="main">
+    <div class="topbar">
+      <button id="selectModeBtn" class="ghost">Modo seleccionar</button>
+      <button id="drawModeBtn" class="primary">Modo dibujar</button>
+      <button id="deleteSelectedBtn" class="bad">Borrar seleccionada</button>
+      <div class="small">Toque corto: añadir punto. Arrastre de punto: mover vértice de estancia seleccionada.</div>
+    </div>
+
+    <div class="canvasWrap" id="canvasWrap">
+      <canvas id="planCanvas"></canvas>
+      <div class="status" id="statusBox">Listo</div>
+    </div>
+
+    <div class="footerSummary">
+      <div class="summaryGrid">
+        <div class="summaryBox">
+          <strong>Estancias</strong>
+          <span id="sumRooms">0</span>
+        </div>
+        <div class="summaryBox">
+          <strong>Superficie total</strong>
+          <span id="sumArea">0.00 m²</span>
+        </div>
+        <div class="summaryBox">
+          <strong>Tubo total</strong>
+          <span id="sumTube">0 m</span>
+        </div>
+        <div class="summaryBox">
+          <strong>Circuitos totales</strong>
+          <span id="sumCircuits">0</span>
+        </div>
+      </div>
+    </div>
+  </main>
 </div>
 
 <script>
-const roomsEl = document.getElementById("rooms");
-const tbody = document.querySelector("#tablaResultados tbody");
-const resumenEl = document.getElementById("resumen");
+(() => {
+  const canvas = document.getElementById("planCanvas");
+  const wrap = document.getElementById("canvasWrap");
+  const ctx = canvas.getContext("2d");
 
-let roomId = 0;
+  const el = {
+    projectName: document.getElementById("projectName"),
+    scaleInput: document.getElementById("scaleInput"),
+    scaleLabel: document.getElementById("scaleLabel"),
+    roomName: document.getElementById("roomName"),
+    roomType: document.getElementById("roomType"),
+    spacingMode: document.getElementById("spacingMode"),
+    collectorDistance: document.getElementById("collectorDistance"),
+    extraPercent: document.getElementById("extraPercent"),
+    maxCircuit: document.getElementById("maxCircuit"),
+    minCircuit: document.getElementById("minCircuit"),
+    roomsList: document.getElementById("roomsList"),
+    statusBox: document.getElementById("statusBox"),
+    jsonBox: document.getElementById("jsonBox"),
+    sumRooms: document.getElementById("sumRooms"),
+    sumArea: document.getElementById("sumArea"),
+    sumTube: document.getElementById("sumTube"),
+    sumCircuits: document.getElementById("sumCircuits"),
+  };
 
-function nuevaEstancia(data = {}) {
-  roomId++;
-  const div = document.createElement("div");
-  div.className = "room";
-  div.dataset.id = roomId;
-  div.innerHTML = `
-    <h3>Estancia <span class="badge">#${roomId}</span></h3>
-    <div class="grid">
-      <div>
-        <label>Nombre</label>
-        <input class="nombre" type="text" value="${data.nombre || ""}" placeholder="Salón">
-      </div>
-      <div>
-        <label>Largo (m)</label>
-        <input class="largo" type="number" step="0.01" value="${data.largo ?? ""}" placeholder="5.20">
-      </div>
-      <div>
-        <label>Ancho (m)</label>
-        <input class="ancho" type="number" step="0.01" value="${data.ancho ?? ""}" placeholder="4.10">
-      </div>
-      <div>
-        <label>Superficie no calefactable (m²)</label>
-        <input class="noCalef" type="number" step="0.01" value="${data.noCalef ?? 0}">
-      </div>
-      <div>
-        <label>Separación</label>
-        <select class="sep">
-          <option value="">Usar global</option>
-          <option value="0.10">10 cm</option>
-          <option value="0.125">12,5 cm</option>
-          <option value="0.15">15 cm</option>
-          <option value="0.20">20 cm</option>
-        </select>
-      </div>
-      <div>
-        <label>m extra ida/vuelta hasta colector</label>
-        <input class="extra" type="number" step="0.01" value="${data.extra ?? 4}">
-      </div>
-    </div>
-    <div style="margin-top:10px">
-      <button class="sec borrar">Borrar esta estancia</button>
-    </div>
-  `;
-  div.querySelector(".sep").value = data.sep ?? "";
-  div.querySelector(".borrar").addEventListener("click", () => {
-    div.remove();
-    recalcular();
-  });
-  div.querySelectorAll("input,select").forEach(el => {
-    el.addEventListener("input", recalcular);
-    el.addEventListener("change", recalcular);
-  });
-  roomsEl.appendChild(div);
-}
+  const state = {
+    projectName: "",
+    scalePxPerM: 50,
+    rooms: [],
+    drawing: false,
+    drawPoints: [],
+    selectedRoomId: null,
+    mode: "draw",
+    dragPoint: null,
+    pointerDown: false,
+  };
 
-function leerNumero(el) {
-  const v = String(el.value).replace(",", ".").trim();
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
+  function uid() {
+    return Math.random().toString(36).slice(2, 10);
+  }
 
-function formato(n, dec = 2) {
-  return n.toFixed(dec).replace(".", ",");
-}
+  function setStatus(text) {
+    el.statusBox.textContent = text;
+  }
 
-function recomendar(estancia, circuitos, mPorCircuito, sep) {
-  const nombre = estancia.nombre.toLowerCase();
-  if (sep <= 0.10) return "Zona exigente / perímetro frío";
-  if (nombre.includes("baño")) return "Baño: separación cerrada";
-  if (mPorCircuito > 95) return "Conviene partir mejor";
-  if (circuitos === 1) return "Un solo circuito";
-  return "Reparto correcto";
-}
+  function resizeCanvas() {
+    const rect = wrap.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(rect.width * ratio);
+    canvas.height = Math.floor(rect.height * ratio);
+    canvas.style.width = rect.width + "px";
+    canvas.style.height = rect.height + "px";
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    draw();
+  }
 
-function recalcular() {
-  const sepGlobal = leerNumero(document.getElementById("sepGlobal"));
-  const maxCircuito = leerNumero(document.getElementById("maxCircuito")) || 100;
-  const factor = leerNumero(document.getElementById("factor")) || 1.08;
-  const tubo = document.getElementById("tubo").value;
-  const uso = document.getElementById("uso").value;
-
-  const rooms = [...document.querySelectorAll(".room")].map(room => {
-    const nombre = room.querySelector(".nombre").value.trim() || `Estancia ${room.dataset.id}`;
-    const largo = leerNumero(room.querySelector(".largo"));
-    const ancho = leerNumero(room.querySelector(".ancho"));
-    const noCalef = leerNumero(room.querySelector(".noCalef"));
-    const sep = leerNumero(room.querySelector(".sep")) || sepGlobal;
-    const extra = leerNumero(room.querySelector(".extra"));
-
-    const supBruta = largo * ancho;
-    const supUtil = Math.max(0, supBruta - noCalef);
-
-    const tuboPorM2 = sep > 0 ? 1 / sep : 0;
-    const tuboEstimado = supUtil * tuboPorM2 * factor + extra;
-    const circuitos = tuboEstimado > 0 ? Math.max(1, Math.ceil(tuboEstimado / maxCircuito)) : 0;
-    const mPorCircuito = circuitos > 0 ? tuboEstimado / circuitos : 0;
-
+  function getMousePos(evt) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
     return {
-      nombre, largo, ancho, noCalef, sep, extra,
-      supBruta, supUtil, tuboEstimado, circuitos, mPorCircuito
+      x: clientX - rect.left,
+      y: clientY - rect.top
     };
+  }
+
+  function polygonArea(points) {
+    let sum = 0;
+    for (let i = 0; i < points.length; i++) {
+      const a = points[i];
+      const b = points[(i + 1) % points.length];
+      sum += a.x * b.y - b.x * a.y;
+    }
+    return Math.abs(sum) / 2;
+  }
+
+  function polygonCentroid(points) {
+    let x = 0, y = 0;
+    for (const p of points) {
+      x += p.x;
+      y += p.y;
+    }
+    return { x: x / points.length, y: y / points.length };
+  }
+
+  function pxToM(px) {
+    return px / state.scalePxPerM;
+  }
+
+  function areaPxToM2(areaPx) {
+    return areaPx / (state.scalePxPerM * state.scalePxPerM);
+  }
+
+  function autoSpacingByType(type) {
+    if (type === "bano") return 0.05;
+    return 0.10;
+  }
+
+  function labelType(type) {
+    const map = {
+      general: "General",
+      bano: "Baño",
+      cocina: "Cocina",
+      pasillo: "Pasillo",
+      dormitorio: "Dormitorio"
+    };
+    return map[type] || type;
+  }
+
+  function spacingValueFromInput(mode, type) {
+    if (mode === "auto") return autoSpacingByType(type);
+    return Number(mode) / 100;
+  }
+
+  function calculateRoom(room) {
+    const areaPx = polygonArea(room.points);
+    const areaM2 = areaPxToM2(areaPx);
+    const spacingM = spacingValueFromInput(room.spacingMode, room.type);
+    const extraFactor = 1 + (room.extraPercent / 100);
+
+    let tubeM = areaM2 / spacingM;
+    tubeM += room.collectorDistance * 2;
+    tubeM *= extraFactor;
+
+    const maxCircuit = Number(el.maxCircuit.value) || 90;
+    const minCircuit = Number(el.minCircuit.value) || 60;
+
+    let circuits = Math.ceil(tubeM / maxCircuit);
+    if (circuits < 1) circuits = 1;
+
+    let perCircuit = tubeM / circuits;
+
+    while (circuits > 1 && perCircuit < minCircuit) {
+      circuits -= 1;
+      perCircuit = tubeM / circuits;
+      if (perCircuit > maxCircuit) {
+        circuits += 1;
+        perCircuit = tubeM / circuits;
+        break;
+      }
+    }
+
+    room.areaM2 = round(areaM2, 2);
+    room.spacingM = spacingM;
+    room.tubeM = round(tubeM, 1);
+    room.circuits = circuits;
+    room.perCircuitM = round(perCircuit, 1);
+  }
+
+  function recalcAll() {
+    for (const room of state.rooms) calculateRoom(room);
+    renderRoomsList();
+    updateSummary();
+    draw();
+  }
+
+  function pointNear(a, b, dist = 12) {
+    return Math.hypot(a.x - b.x, a.y - b.y) <= dist;
+  }
+
+  function roomAtPoint(pt) {
+    for (let i = state.rooms.length - 1; i >= 0; i--) {
+      const room = state.rooms[i];
+      if (pointInPolygon(pt, room.points)) return room;
+    }
+    return null;
+  }
+
+  function pointInPolygon(point, vs) {
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+      const xi = vs[i].x, yi = vs[i].y;
+      const xj = vs[j].x, yj = vs[j].y;
+      const intersect =
+        ((yi > point.y) !== (yj > point.y)) &&
+        (point.x < (xj - xi) * (point.y - yi) / ((yj - yi) || 0.000001) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  function vertexHit(pt, room) {
+    for (let i = 0; i < room.points.length; i++) {
+      if (pointNear(pt, room.points[i], 14)) return i;
+    }
+    return -1;
+  }
+
+  function addPointToDrawing(pt) {
+    state.drawPoints.push(pt);
+    draw();
+    setStatus(`Puntos: ${state.drawPoints.length}`);
+  }
+
+  function finishRoom() {
+    if (state.drawPoints.length < 3) {
+      setStatus("Necesitas al menos 3 puntos");
+      return;
+    }
+    const room = {
+      id: uid(),
+      name: el.roomName.value.trim() || `Estancia ${state.rooms.length + 1}`,
+      type: el.roomType.value,
+      spacingMode: el.spacingMode.value,
+      collectorDistance: Number(el.collectorDistance.value) || 0,
+      extraPercent: Number(el.extraPercent.value) || 0,
+      points: JSON.parse(JSON.stringify(state.drawPoints)),
+      areaM2: 0,
+      spacingM: 0,
+      tubeM: 0,
+      circuits: 0,
+      perCircuitM: 0
+    };
+    calculateRoom(room);
+    state.rooms.push(room);
+    state.selectedRoomId = room.id;
+    state.drawPoints = [];
+    state.drawing = false;
+    renderRoomsList();
+    updateSummary();
+    draw();
+    setStatus(`Estancia creada: ${room.name}`);
+  }
+
+  function startDraw() {
+    state.mode = "draw";
+    state.drawing = true;
+    state.drawPoints = [];
+    state.selectedRoomId = null;
+    draw();
+    renderRoomsList();
+    setStatus("Modo dibujo activo");
+  }
+
+  function cancelDraw() {
+    state.drawing = false;
+    state.drawPoints = [];
+    draw();
+    setStatus("Dibujo cancelado");
+  }
+
+  function deleteSelectedRoom() {
+    if (!state.selectedRoomId) {
+      setStatus("No hay estancia seleccionada");
+      return;
+    }
+    state.rooms = state.rooms.filter(r => r.id !== state.selectedRoomId);
+    state.selectedRoomId = null;
+    renderRoomsList();
+    updateSummary();
+    draw();
+    setStatus("Estancia borrada");
+  }
+
+  function clearAll() {
+    state.rooms = [];
+    state.drawPoints = [];
+    state.selectedRoomId = null;
+    state.drawing = false;
+    renderRoomsList();
+    updateSummary();
+    draw();
+    setStatus("Proyecto vacío");
+  }
+
+  function roomColor(type) {
+    if (type === "bano") return "rgba(61,220,151,.22)";
+    if (type === "cocina") return "rgba(255,204,102,.20)";
+    if (type === "pasillo") return "rgba(104,160,255,.20)";
+    if (type === "dormitorio") return "rgba(188,140,255,.20)";
+    return "rgba(255,255,255,.12)";
+  }
+
+  function roomStroke(type) {
+    if (type === "bano") return "#3ddc97";
+    if (type === "cocina") return "#ffcc66";
+    if (type === "pasillo") return "#68a0ff";
+    if (type === "dormitorio") return "#bc8cff";
+    return "#dfe8ff";
+  }
+
+  function drawGridScale() {
+    ctx.fillStyle = "rgba(255,255,255,.55)";
+    ctx.font = "12px -apple-system, sans-serif";
+    ctx.fillText(`Escala: 1 m = ${state.scalePxPerM} px`, 14, 22);
+  }
+
+  function drawRoom(room) {
+    const active = room.id === state.selectedRoomId;
+    ctx.beginPath();
+    room.points.forEach((p, i) => {
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = roomColor(room.type);
+    ctx.fill();
+    ctx.lineWidth = active ? 3 : 2;
+    ctx.strokeStyle = active ? "#ffffff" : roomStroke(room.type);
+    ctx.stroke();
+
+    const c = polygonCentroid(room.points);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "600 14px -apple-system, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(room.name, c.x, c.y - 10);
+    ctx.font = "12px -apple-system, sans-serif";
+    ctx.fillStyle = "#d6e2ff";
+    ctx.fillText(`${room.areaM2.toFixed(2)} m² · ${room.circuits} circ · ${room.tubeM.toFixed(1)} m`, c.x, c.y + 10);
+
+    if (active) {
+      room.points.forEach((p, i) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.strokeStyle = "#244278";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "#0b1220";
+        ctx.font = "10px -apple-system, sans-serif";
+        ctx.fillText(String(i + 1), p.x, p.y - 10);
+      });
+    }
+  }
+
+  function drawCurrentPath() {
+    if (!state.drawPoints.length) return;
+    ctx.beginPath();
+    state.drawPoints.forEach((p, i) => {
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.strokeStyle = "#68a0ff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    state.drawPoints.forEach((p, i) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = i === 0 ? "#3ddc97" : "#68a0ff";
+      ctx.fill();
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGridScale();
+    state.rooms.forEach(drawRoom);
+    drawCurrentPath();
+  }
+
+  function round(n, d = 2) {
+    const p = Math.pow(10, d);
+    return Math.round(n * p) / p;
+  }
+
+  function updateSummary() {
+    let area = 0;
+    let tube = 0;
+    let circuits = 0;
+    state.rooms.forEach(r => {
+      area += r.areaM2 || 0;
+      tube += r.tubeM || 0;
+      circuits += r.circuits || 0;
+    });
+    el.sumRooms.textContent = String(state.rooms.length);
+    el.sumArea.textContent = `${round(area, 2).toFixed(2)} m²`;
+    el.sumTube.textContent = `${round(tube, 1).toFixed(1)} m`;
+    el.sumCircuits.textContent = String(circuits);
+  }
+
+  function renderRoomsList() {
+    el.roomsList.innerHTML = "";
+    if (!state.rooms.length) {
+      el.roomsList.innerHTML = `<div class="small">Aún no hay estancias.</div>`;
+      return;
+    }
+
+    state.rooms.forEach(room => {
+      const item = document.createElement("div");
+      item.className = "roomItem" + (room.id === state.selectedRoomId ? " active" : "");
+      item.innerHTML = `
+        <div class="roomTop">
+          <div>
+            <strong>${escapeHtml(room.name)}</strong><br>
+            <span class="pill">${labelType(room.type)}</span>
+          </div>
+          <button data-id="${room.id}" class="ghost selectBtn" style="width:auto;padding:8px 10px">Ver</button>
+        </div>
+        <div class="metrics">
+          <div class="metric">Superficie<b>${room.areaM2.toFixed(2)} m²</b></div>
+          <div class="metric">Paso<b>${Math.round(room.spacingM * 100)} cm</b></div>
+          <div class="metric">Tubo<b>${room.tubeM.toFixed(1)} m</b></div>
+          <div class="metric">Circuitos<b>${room.circuits}</b></div>
+          <div class="metric">Por circuito<b>${room.perCircuitM.toFixed(1)} m</b></div>
+          <div class="metric">Colector<b>${room.collectorDistance.toFixed(1)} m</b></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button data-edit="${room.id}" class="ghost editBtn">Editar</button>
+          <button data-del="${room.id}" class="bad delBtn">Borrar</button>
+        </div>
+      `;
+      el.roomsList.appendChild(item);
+    });
+
+    el.roomsList.querySelectorAll(".selectBtn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.selectedRoomId = btn.dataset.id;
+        renderRoomsList();
+        draw();
+      });
+    });
+
+    el.roomsList.querySelectorAll(".delBtn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.rooms = state.rooms.filter(r => r.id !== btn.dataset.del);
+        if (state.selectedRoomId === btn.dataset.del) state.selectedRoomId = null;
+        recalcAll();
+        setStatus("Estancia borrada");
+      });
+    });
+
+    el.roomsList.querySelectorAll(".editBtn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const room = state.rooms.find(r => r.id === btn.dataset.edit);
+        if (!room) return;
+        const newName = prompt("Nombre de la estancia", room.name);
+        if (newName === null) return;
+        room.name = newName.trim() || room.name;
+
+        const newCollector = prompt("Distancia al colector en metros", room.collectorDistance);
+        if (newCollector !== null) room.collectorDistance = Number(newCollector) || room.collectorDistance;
+
+        const newExtra = prompt("Margen extra en %", room.extraPercent);
+        if (newExtra !== null) room.extraPercent = Number(newExtra) || room.extraPercent;
+
+        calculateRoom(room);
+        renderRoomsList();
+        updateSummary();
+        draw();
+        setStatus("Estancia actualizada");
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, s => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      "\"":"&quot;",
+      "'":"&#039;"
+    }[s]));
+  }
+
+  function selectedRoom() {
+    return state.rooms.find(r => r.id === state.selectedRoomId) || null;
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    state.pointerDown = true;
+    const pt = getMousePos(e);
+
+    if (state.mode === "draw" && state.drawing) {
+      addPointToDrawing(pt);
+      return;
+    }
+
+    const room = roomAtPoint(pt);
+    if (room) {
+      state.selectedRoomId = room.id;
+      const idx = vertexHit(pt, room);
+      if (idx >= 0) {
+        state.dragPoint = { roomId: room.id, pointIndex: idx };
+      }
+      renderRoomsList();
+      draw();
+    } else {
+      state.selectedRoomId = null;
+      renderRoomsList();
+      draw();
+    }
   });
 
-  tbody.innerHTML = "";
-  let totalSup = 0;
-  let totalTubo = 0;
-  let totalCircuitos = 0;
+  canvas.addEventListener("pointermove", (e) => {
+    const pt = getMousePos(e);
 
-  for (const r of rooms) {
-    totalSup += r.supUtil;
-    totalTubo += r.tuboEstimado;
-    totalCircuitos += r.circuitos;
+    if (state.dragPoint && state.pointerDown) {
+      const room = state.rooms.find(r => r.id === state.dragPoint.roomId);
+      if (!room) return;
+      room.points[state.dragPoint.pointIndex] = pt;
+      calculateRoom(room);
+      renderRoomsList();
+      updateSummary();
+      draw();
+      return;
+    }
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${r.nombre}</td>
-      <td>${formato(r.supUtil)} m²</td>
-      <td>${formato(r.sep * 100, 1)} cm</td>
-      <td>${formato(r.tuboEstimado)} m</td>
-      <td>${r.circuitos}</td>
-      <td>${formato(r.mPorCircuito)} m</td>
-      <td>${recomendar(r, r.circuitos, r.mPorCircuito, r.sep)}</td>
-    `;
-    tbody.appendChild(tr);
-  }
+    const xM = pxToM(pt.x).toFixed(2);
+    const yM = pxToM(pt.y).toFixed(2);
+    setStatus(`X ${xM} m · Y ${yM} m`);
+  });
 
-  if (rooms.length === 0) {
-    resumenEl.textContent = "Sin calcular.";
-    return;
-  }
+  canvas.addEventListener("pointerup", () => {
+    state.pointerDown = false;
+    state.dragPoint = null;
+  });
 
-  resumenEl.innerHTML = `
-    <div class="total">Resumen general</div>
-    <div class="note">
-      Superficie útil total: <b>${formato(totalSup)} m²</b><br>
-      Tubo total estimado: <b>${formato(totalTubo)} m</b><br>
-      Circuitos totales: <b>${totalCircuitos}</b><br>
-      Tubo: <b>${tubo}x2</b><br>
-      Uso: <b>${uso === "calor" ? "Suelo radiante" : "Suelo refrescante"}</b><br><br>
-      Cálculo orientativo basado en superficie útil, separación y factor de corrección.
-    </div>
-  `;
-}
+  canvas.addEventListener("pointerleave", () => {
+    state.pointerDown = false;
+    state.dragPoint = null;
+  });
 
-document.getElementById("btnNueva").addEventListener("click", () => {
-  nuevaEstancia();
-});
+  document.getElementById("startDrawBtn").addEventListener("click", startDraw);
+  document.getElementById("finishRoomBtn").addEventListener("click", finishRoom);
+  document.getElementById("cancelRoomBtn").addEventListener("click", cancelDraw);
+  document.getElementById("clearAllBtn").addEventListener("click", clearAll);
+  document.getElementById("deleteSelectedBtn").addEventListener("click", deleteSelectedRoom);
 
-document.getElementById("btnEjemplo").addEventListener("click", () => {
-  roomsEl.innerHTML = "";
-  nuevaEstancia({ nombre: "Salón", largo: 6.20, ancho: 4.80, noCalef: 0.00, sep: "0.15", extra: 6 });
-  nuevaEstancia({ nombre: "Cocina", largo: 4.20, ancho: 3.40, noCalef: 2.10, sep: "0.15", extra: 5 });
-  nuevaEstancia({ nombre: "Baño", largo: 2.60, ancho: 2.20, noCalef: 1.20, sep: "0.10", extra: 4 });
-  recalcular();
-});
+  document.getElementById("drawModeBtn").addEventListener("click", () => {
+    state.mode = "draw";
+    state.drawing = true;
+    setStatus("Modo dibujo");
+  });
 
-document.getElementById("btnLimpiar").addEventListener("click", () => {
-  roomsEl.innerHTML = "";
-  tbody.innerHTML = "";
-  resumenEl.textContent = "Sin calcular.";
-});
+  document.getElementById("selectModeBtn").addEventListener("click", () => {
+    state.mode = "select";
+    state.drawing = false;
+    setStatus("Modo seleccionar");
+  });
 
-document.getElementById("btnCalcular").addEventListener("click", recalcular);
-document.querySelectorAll("#sepGlobal,#maxCircuito,#factor,#tubo,#uso").forEach(el => {
-  el.addEventListener("input", recalcular);
-  el.addEventListener("change", recalcular);
-});
+  document.getElementById("recalcBtn").addEventListener("click", recalcAll);
 
-nuevaEstancia({ nombre: "Salón", largo: 5.00, ancho: 4.00, noCalef: 0, sep: "0.15", extra: 5 });
-recalcular();
+  el.scaleInput.addEventListener("input", () => {
+    state.scalePxPerM = Number(el.scaleInput.value) || 50;
+    el.scaleLabel.textContent = state.scalePxPerM;
+    recalcAll();
+    draw();
+  });
+
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    const data = {
+      projectName: el.projectName.value.trim(),
+      scalePxPerM: state.scalePxPerM,
+      maxCircuit: Number(el.maxCircuit.value) || 90,
+      minCircuit: Number(el.minCircuit.value) || 60,
+      rooms: state.rooms
+    };
+    el.jsonBox.value = JSON.stringify(data, null, 2);
+    setStatus("Proyecto exportado a JSON");
+  });
+
+  document.getElementById("importBtn").addEventListener("click", () => {
+    try {
+      const data = JSON.parse(el.jsonBox.value);
+      state.rooms = Array.isArray(data.rooms) ? data.rooms : [];
+      state.scalePxPerM = Number(data.scalePxPerM) || 50;
+      el.scaleInput.value = state.scalePxPerM;
+      el.scaleLabel.textContent = state.scalePxPerM;
+      el.projectName.value = data.projectName || "";
+      if (data.maxCircuit) el.maxCircuit.value = data.maxCircuit;
+      if (data.minCircuit) el.minCircuit.value = data.minCircuit;
+      recalcAll();
+      setStatus("Proyecto importado");
+    } catch {
+      setStatus("JSON no válido");
+    }
+  });
+
+  document.getElementById("demoBtn").addEventListener("click", () => {
+    state.rooms = [
+      {
+        id: uid(),
+        name: "Salón",
+        type: "general",
+        spacingMode: "10",
+        collectorDistance: 4,
+        extraPercent: 8,
+        points: [{x:120,y:120},{x:420,y:120},{x:420,y:320},{x:120,y:320}]
+      },
+      {
+        id: uid(),
+        name: "Baño",
+        type: "bano",
+        spacingMode: "auto",
+        collectorDistance: 3,
+        extraPercent: 8,
+        points: [{x:470,y:120},{x:590,y:120},{x:590,y:230},{x:470,y:230}]
+      },
+      {
+        id: uid(),
+        name: "Dormitorio",
+        type: "dormitorio",
+        spacingMode: "10",
+        collectorDistance: 5,
+        extraPercent: 8,
+        points: [{x:470,y:260},{x:700,y:260},{x:700,y:430},{x:470,y:430}]
+      }
+    ];
+    state.selectedRoomId = null;
+    recalcAll();
+    setStatus("Demo cargada");
+  });
+
+  window.addEventListener("resize", resizeCanvas);
+
+  resizeCanvas();
+  renderRoomsList();
+  updateSummary();
+  draw();
+})();
 </script>
 </body>
 </html>
