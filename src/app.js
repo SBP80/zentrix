@@ -36,10 +36,57 @@ function renderLogin() {
 
 function renderDashboard() {
   app.innerHTML = `
-    <div style="padding:20px;">
-      <h1>Panel principal</h1>
-      <p>Esto es la base de la app.</p>
-      <button id="logoutBtn">Cerrar sesión</button>
+    <div class="dashboard-layout">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-mark">Z</div>
+          <div>
+            <div class="sidebar-brand-title">Zentryx</div>
+            <div class="sidebar-brand-subtitle">Panel principal</div>
+          </div>
+        </div>
+
+        <nav class="sidebar-menu">
+          <button class="sidebar-btn active">Inicio</button>
+          <button class="sidebar-btn">Clientes</button>
+          <button class="sidebar-btn">Obras</button>
+          <button class="sidebar-btn">Suelo radiante</button>
+          <button class="sidebar-btn">Material</button>
+          <button class="sidebar-btn">Vehículos</button>
+          <button class="sidebar-btn">Ajustes</button>
+        </nav>
+
+        <button id="logoutBtn" class="sidebar-logout">Cerrar sesión</button>
+      </aside>
+
+      <main class="dashboard-main">
+        <header class="dashboard-header">
+          <h1>Panel principal</h1>
+          <p>Base visual inicial del sistema.</p>
+        </header>
+
+        <section class="dashboard-cards">
+          <div class="dashboard-card">
+            <h3>Clientes</h3>
+            <p>Gestión de fichas, contactos y direcciones.</p>
+          </div>
+
+          <div class="dashboard-card">
+            <h3>Obras</h3>
+            <p>Seguimiento de instalaciones y estados.</p>
+          </div>
+
+          <div class="dashboard-card">
+            <h3>Suelo radiante</h3>
+            <p>Zona reservada para cálculo y planos.</p>
+          </div>
+
+          <div class="dashboard-card">
+            <h3>Material</h3>
+            <p>Control básico de stock y almacén.</p>
+          </div>
+        </section>
+      </main>
     </div>
   `;
 
