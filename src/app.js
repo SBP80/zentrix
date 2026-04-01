@@ -39,7 +39,6 @@ function renderDashboard() {
     <div style="padding:20px;">
       <h1>Panel principal</h1>
       <p>Esto es la base de la app.</p>
-
       <button id="logoutBtn">Cerrar sesión</button>
     </div>
   `;
@@ -49,5 +48,4 @@ function renderDashboard() {
   });
 }
 
-// Inicio
 renderLogin();
