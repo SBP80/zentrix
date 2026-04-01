@@ -1,13 +1,295 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zentryx</title>
-  <link rel="stylesheet" href="./src/styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ALLCALOR - Calculadora de circuitos</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:#111;color:#fff;font-family:Arial,Helvetica,sans-serif}
+body{min-height:100vh}
+.wrap{max-width:1100px;margin:0 auto;padding:14px}
+h1{margin:0 0 12px 0;font-size:24px}
+.card{background:#1b1b1b;border:1px solid #333;border-radius:12px;padding:12px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+label{display:block;font-size:13px;margin-bottom:6px;color:#ddd}
+input,select,button{width:100%;padding:11px 12px;border:none;border-radius:10px;font-size:16px}
+input,select{background:#fff;color:#111}
+button{background:#f0842f;color:#fff;font-weight:700}
+button.sec{background:#5a616c}
+button.green{background:#2f8f46}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row > *{flex:1 1 180px}
+.room{border:1px solid #353535;border-radius:12px;padding:12px;margin-bottom:10px;background:#161616}
+.room h3{margin:0 0 10px 0;font-size:17px}
+.small{font-size:13px;color:#bbb}
+.tableWrap{overflow:auto}
+table{width:100%;border-collapse:collapse;background:#161616}
+th,td{padding:10px;border-bottom:1px solid #2d2d2d;text-align:left;font-size:14px}
+th{background:#202020}
+.total{font-size:18px;font-weight:700}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#2a2a2a;font-size:12px}
+.note{font-size:13px;color:#ccc;line-height:1.4}
+hr{border:none;border-top:1px solid #333;margin:12px 0}
+</style>
 </head>
 <body>
-  <div id="app"></div>
-  <script type="module" src="./src/app.js"></script>
+<div class="wrap">
+  <h1>ALLCALOR · Calculadora de circuitos</h1>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label>Separación por defecto</label>
+        <select id="sepGlobal">
+          <option value="0.10">10 cm</option>
+          <option value="0.125">12,5 cm</option>
+          <option value="0.15" selected>15 cm</option>
+          <option value="0.20">20 cm</option>
+        </select>
+      </div>
+      <div>
+        <label>Longitud máxima por circuito</label>
+        <input id="maxCircuito" type="number" step="1" value="100">
+      </div>
+      <div>
+        <label>Factor de corrección tubo</label>
+        <input id="factor" type="number" step="0.01" value="1.08">
+      </div>
+      <div>
+        <label>Tipo de tubo</label>
+        <select id="tubo">
+          <option value="16" selected>16x2</option>
+          <option value="17">17x2</option>
+          <option value="20">20x2</option>
+        </select>
+      </div>
+      <div>
+        <label>Temperatura / uso</label>
+        <select id="uso">
+          <option value="calor" selected>Suelo radiante</option>
+          <option value="frio">Suelo refrescante</option>
+        </select>
+      </div>
+      <div>
+        <label>Acción</label>
+        <button class="green" id="btnCalcular">Calcular</button>
+      </div>
+    </div>
+    <hr>
+    <div class="row">
+      <button id="btnNueva">Añadir estancia</button>
+      <button class="sec" id="btnEjemplo">Cargar ejemplo</button>
+      <button class="sec" id="btnLimpiar">Vaciar todo</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="rooms"></div>
+  </div>
+
+  <div class="card">
+    <div class="tableWrap">
+      <table id="tablaResultados">
+        <thead>
+          <tr>
+            <th>Estancia</th>
+            <th>Superficie útil</th>
+            <th>Separación</th>
+            <th>Tubo estimado</th>
+            <th>Circuitos</th>
+            <th>m/circuito</th>
+            <th>Recomendación</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="resumen" class="note">Sin calcular.</div>
+  </div>
+</div>
+
+<script>
+const roomsEl = document.getElementById("rooms");
+const tbody = document.querySelector("#tablaResultados tbody");
+const resumenEl = document.getElementById("resumen");
+
+let roomId = 0;
+
+function nuevaEstancia(data = {}) {
+  roomId++;
+  const div = document.createElement("div");
+  div.className = "room";
+  div.dataset.id = roomId;
+  div.innerHTML = `
+    <h3>Estancia <span class="badge">#${roomId}</span></h3>
+    <div class="grid">
+      <div>
+        <label>Nombre</label>
+        <input class="nombre" type="text" value="${data.nombre || ""}" placeholder="Salón">
+      </div>
+      <div>
+        <label>Largo (m)</label>
+        <input class="largo" type="number" step="0.01" value="${data.largo ?? ""}" placeholder="5.20">
+      </div>
+      <div>
+        <label>Ancho (m)</label>
+        <input class="ancho" type="number" step="0.01" value="${data.ancho ?? ""}" placeholder="4.10">
+      </div>
+      <div>
+        <label>Superficie no calefactable (m²)</label>
+        <input class="noCalef" type="number" step="0.01" value="${data.noCalef ?? 0}">
+      </div>
+      <div>
+        <label>Separación</label>
+        <select class="sep">
+          <option value="">Usar global</option>
+          <option value="0.10">10 cm</option>
+          <option value="0.125">12,5 cm</option>
+          <option value="0.15">15 cm</option>
+          <option value="0.20">20 cm</option>
+        </select>
+      </div>
+      <div>
+        <label>m extra ida/vuelta hasta colector</label>
+        <input class="extra" type="number" step="0.01" value="${data.extra ?? 4}">
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <button class="sec borrar">Borrar esta estancia</button>
+    </div>
+  `;
+  div.querySelector(".sep").value = data.sep ?? "";
+  div.querySelector(".borrar").addEventListener("click", () => {
+    div.remove();
+    recalcular();
+  });
+  div.querySelectorAll("input,select").forEach(el => {
+    el.addEventListener("input", recalcular);
+    el.addEventListener("change", recalcular);
+  });
+  roomsEl.appendChild(div);
+}
+
+function leerNumero(el) {
+  const v = String(el.value).replace(",", ".").trim();
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formato(n, dec = 2) {
+  return n.toFixed(dec).replace(".", ",");
+}
+
+function recomendar(estancia, circuitos, mPorCircuito, sep) {
+  const nombre = estancia.nombre.toLowerCase();
+  if (sep <= 0.10) return "Zona exigente / perímetro frío";
+  if (nombre.includes("baño")) return "Baño: separación cerrada";
+  if (mPorCircuito > 95) return "Conviene partir mejor";
+  if (circuitos === 1) return "Un solo circuito";
+  return "Reparto correcto";
+}
+
+function recalcular() {
+  const sepGlobal = leerNumero(document.getElementById("sepGlobal"));
+  const maxCircuito = leerNumero(document.getElementById("maxCircuito")) || 100;
+  const factor = leerNumero(document.getElementById("factor")) || 1.08;
+  const tubo = document.getElementById("tubo").value;
+  const uso = document.getElementById("uso").value;
+
+  const rooms = [...document.querySelectorAll(".room")].map(room => {
+    const nombre = room.querySelector(".nombre").value.trim() || `Estancia ${room.dataset.id}`;
+    const largo = leerNumero(room.querySelector(".largo"));
+    const ancho = leerNumero(room.querySelector(".ancho"));
+    const noCalef = leerNumero(room.querySelector(".noCalef"));
+    const sep = leerNumero(room.querySelector(".sep")) || sepGlobal;
+    const extra = leerNumero(room.querySelector(".extra"));
+
+    const supBruta = largo * ancho;
+    const supUtil = Math.max(0, supBruta - noCalef);
+
+    const tuboPorM2 = sep > 0 ? 1 / sep : 0;
+    const tuboEstimado = supUtil * tuboPorM2 * factor + extra;
+    const circuitos = tuboEstimado > 0 ? Math.max(1, Math.ceil(tuboEstimado / maxCircuito)) : 0;
+    const mPorCircuito = circuitos > 0 ? tuboEstimado / circuitos : 0;
+
+    return {
+      nombre, largo, ancho, noCalef, sep, extra,
+      supBruta, supUtil, tuboEstimado, circuitos, mPorCircuito
+    };
+  });
+
+  tbody.innerHTML = "";
+  let totalSup = 0;
+  let totalTubo = 0;
+  let totalCircuitos = 0;
+
+  for (const r of rooms) {
+    totalSup += r.supUtil;
+    totalTubo += r.tuboEstimado;
+    totalCircuitos += r.circuitos;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.nombre}</td>
+      <td>${formato(r.supUtil)} m²</td>
+      <td>${formato(r.sep * 100, 1)} cm</td>
+      <td>${formato(r.tuboEstimado)} m</td>
+      <td>${r.circuitos}</td>
+      <td>${formato(r.mPorCircuito)} m</td>
+      <td>${recomendar(r, r.circuitos, r.mPorCircuito, r.sep)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  if (rooms.length === 0) {
+    resumenEl.textContent = "Sin calcular.";
+    return;
+  }
+
+  resumenEl.innerHTML = `
+    <div class="total">Resumen general</div>
+    <div class="note">
+      Superficie útil total: <b>${formato(totalSup)} m²</b><br>
+      Tubo total estimado: <b>${formato(totalTubo)} m</b><br>
+      Circuitos totales: <b>${totalCircuitos}</b><br>
+      Tubo: <b>${tubo}x2</b><br>
+      Uso: <b>${uso === "calor" ? "Suelo radiante" : "Suelo refrescante"}</b><br><br>
+      Cálculo orientativo basado en superficie útil, separación y factor de corrección.
+    </div>
+  `;
+}
+
+document.getElementById("btnNueva").addEventListener("click", () => {
+  nuevaEstancia();
+});
+
+document.getElementById("btnEjemplo").addEventListener("click", () => {
+  roomsEl.innerHTML = "";
+  nuevaEstancia({ nombre: "Salón", largo: 6.20, ancho: 4.80, noCalef: 0.00, sep: "0.15", extra: 6 });
+  nuevaEstancia({ nombre: "Cocina", largo: 4.20, ancho: 3.40, noCalef: 2.10, sep: "0.15", extra: 5 });
+  nuevaEstancia({ nombre: "Baño", largo: 2.60, ancho: 2.20, noCalef: 1.20, sep: "0.10", extra: 4 });
+  recalcular();
+});
+
+document.getElementById("btnLimpiar").addEventListener("click", () => {
+  roomsEl.innerHTML = "";
+  tbody.innerHTML = "";
+  resumenEl.textContent = "Sin calcular.";
+});
+
+document.getElementById("btnCalcular").addEventListener("click", recalcular);
+document.querySelectorAll("#sepGlobal,#maxCircuito,#factor,#tubo,#uso").forEach(el => {
+  el.addEventListener("input", recalcular);
+  el.addEventListener("change", recalcular);
+});
+
+nuevaEstancia({ nombre: "Salón", largo: 5.00, ancho: 4.00, noCalef: 0, sep: "0.15", extra: 5 });
+recalcular();
+</script>
 </body>
 </html>
