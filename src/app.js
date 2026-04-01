@@ -1,66 +1,160 @@
 const app = document.getElementById("app");
 
+const state = {
+  logged: false,
+  view: "inicio",
+};
+
+// ---------- LOGIN ----------
 function renderLogin() {
   app.innerHTML = `
-    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#eef3f8;padding:24px;">
-      <div style="width:100%;max-width:420px;background:white;border-radius:20px;padding:24px;box-shadow:0 12px 30px rgba(0,0,0,0.08);">
-        <h1 style="margin:0 0 8px 0;">Zentryx</h1>
-        <p style="margin:0 0 20px 0;color:#64748b;">Versión prueba panel lateral</p>
-
-        <input id="email" placeholder="admin" style="width:100%;height:48px;margin-bottom:12px;padding:0 14px;border:1px solid #dbe3ec;border-radius:12px;" />
-        <input id="password" type="password" placeholder="1234" style="width:100%;height:48px;margin-bottom:12px;padding:0 14px;border:1px solid #dbe3ec;border-radius:12px;" />
-
-        <button id="loginBtn" style="width:100%;height:48px;border:none;border-radius:12px;background:#2563eb;color:white;font-weight:700;">
-          Entrar
-        </button>
-
-        <p id="msg" style="color:#b91c1c;"></p>
+    <div class="center">
+      <div class="card">
+        <h1>Zentryx</h1>
+        <input id="user" placeholder="admin">
+        <input id="pass" type="password" placeholder="1234">
+        <button id="login">Entrar</button>
       </div>
     </div>
   `;
 
-  document.getElementById("loginBtn").onclick = () => {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
-
-    if (email === "admin" && password === "1234") {
-      localStorage.setItem("auth", "ok");
-      renderApp();
-    } else {
-      document.getElementById("msg").innerText = "Datos incorrectos";
+  document.getElementById("login").onclick = () => {
+    if (
+      document.getElementById("user").value === "admin" &&
+      document.getElementById("pass").value === "1234"
+    ) {
+      state.logged = true;
+      render();
     }
   };
 }
 
+// ---------- APP ----------
 function renderApp() {
   app.innerHTML = `
-    <div style="min-height:100vh;display:flex;background:#eef3f8;">
-      <aside style="width:260px;background:#0f172a;color:white;padding:20px;">
-        <h2 style="margin-top:0;">MENÚ ZENTRYX</h2>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <button style="height:44px;border:none;border-radius:10px;background:#2563eb;color:white;">Inicio</button>
-          <button style="height:44px;border:none;border-radius:10px;background:#1e293b;color:white;">Clientes</button>
-          <button style="height:44px;border:none;border-radius:10px;background:#1e293b;color:white;">Obras</button>
-          <button style="height:44px;border:none;border-radius:10px;background:#1e293b;color:white;">Material</button>
-          <button style="height:44px;border:none;border-radius:10px;background:#dc2626;color:white;" onclick="logout()">Cerrar sesión</button>
-        </div>
+    <div class="layout">
+      
+      <aside class="sidebar">
+        <h2>Zentryx</h2>
+
+        <button onclick="go('inicio')">Inicio</button>
+        <button onclick="go('clientes')">Clientes</button>
+        <button onclick="go('obras')">Obras</button>
+        <button onclick="go('instalaciones')">Instalaciones</button>
+        <button onclick="go('material')">Material</button>
+        <button onclick="go('vehiculos')">Vehículos</button>
+        <button onclick="go('personal')">Personal</button>
+        <button onclick="go('tareas')">Tareas</button>
+        <button onclick="go('agenda')">Agenda</button>
+        <button onclick="go('documentos')">Documentación</button>
+        <button onclick="go('config')">Configuración</button>
+
+        <button class="logout" onclick="logout()">Salir</button>
       </aside>
 
-      <main style="flex:1;padding:24px;">
-        <h1 style="margin-top:0;">PANEL NUEVO OK</h1>
-        <p>Si ves MENÚ ZENTRYX a la izquierda, ya está actualizado.</p>
+      <main class="main">
+        <div id="content"></div>
       </main>
+
     </div>
   `;
+
+  go(state.view);
 }
 
+// ---------- VISTAS ----------
+function go(view) {
+  state.view = view;
+
+  const c = document.getElementById("content");
+
+  if (view === "inicio") {
+    c.innerHTML = `
+      <div class="top">
+        <h1 id="clock"></h1>
+        <p id="date"></p>
+      </div>
+
+      <div class="grid">
+        ${["Clientes","Obras","Instalaciones","Material","Personal","Tareas"]
+          .map(m => `<div class="box">${m}</div>`).join("")}
+      </div>
+
+      <h2>Notas rápidas</h2>
+      <div id="notes"></div>
+
+      <button onclick="addNote()">+ Añadir nota</button>
+    `;
+
+    startClock();
+    loadNotes();
+  }
+
+  if (view !== "inicio") {
+    c.innerHTML = `<h1>${view.toUpperCase()}</h1>`;
+  }
+}
+
+// ---------- RELOJ ----------
+function startClock() {
+  function update() {
+    const now = new Date();
+
+    document.getElementById("clock").innerText =
+      now.toLocaleTimeString();
+
+    document.getElementById("date").innerText =
+      now.toLocaleDateString();
+  }
+
+  update();
+  setInterval(update, 1000);
+}
+
+// ---------- NOTAS ----------
+function loadNotes() {
+  const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+
+  const container = document.getElementById("notes");
+  container.innerHTML = "";
+
+  notes.forEach((n, i) => {
+    const div = document.createElement("div");
+    div.className = "note";
+    div.innerText = n;
+    div.onclick = () => removeNote(i);
+    container.appendChild(div);
+  });
+}
+
+function addNote() {
+  const text = prompt("Nueva nota:");
+  if (!text) return;
+
+  const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+  notes.push(text);
+  localStorage.setItem("notes", JSON.stringify(notes));
+
+  loadNotes();
+}
+
+function removeNote(i) {
+  const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+  notes.splice(i, 1);
+  localStorage.setItem("notes", JSON.stringify(notes));
+  loadNotes();
+}
+
+// ---------- OTROS ----------
 function logout() {
-  localStorage.removeItem("auth");
-  renderLogin();
+  state.logged = false;
+  render();
 }
 
-if (localStorage.getItem("auth") === "ok") {
-  renderApp();
-} else {
-  renderLogin();
+// ---------- INIT ----------
+function render() {
+  if (!state.logged) renderLogin();
+  else renderApp();
 }
+
+render();
