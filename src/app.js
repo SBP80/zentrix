@@ -1,98 +1,69 @@
 const app = document.getElementById("app");
 
+// LOGIN
 function renderLogin() {
   app.innerHTML = `
     <div class="login-page">
       <div class="login-card">
-        <div class="brand-block">
-          <div class="brand-mark">Z</div>
-          <div class="brand-text">
-            <h1>Zentryx</h1>
-            <p>Sistema modular de gestión</p>
-          </div>
-        </div>
+        <h1>Zentryx</h1>
+        <p>Sistema modular de gestión</p>
 
-        <div class="login-form">
-          <h2>Acceso</h2>
+        <h2>Acceso</h2>
 
-          <label>Correo</label>
-          <input id="email" type="email" placeholder="correo@empresa.com" />
+        <input id="email" placeholder="correo@empresa.com" />
+        <input id="password" type="password" placeholder="Contraseña" />
 
-          <label>Contraseña</label>
-          <input id="password" type="password" placeholder="••••••••" />
+        <button id="loginBtn">Entrar</button>
 
-          <button id="loginBtn" class="primary-btn">Entrar</button>
-
-          <div id="loginMessage" class="login-message"></div>
-        </div>
+        <p id="loginMessage" style="color:red;"></p>
       </div>
     </div>
   `;
 
-  document.getElementById("loginBtn").addEventListener("click", () => {
-    renderDashboard();
-  });
+  document.getElementById("loginBtn").onclick = () => {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    if (email === "admin" && password === "1234") {
+      renderDashboard();
+    } else {
+      document.getElementById("loginMessage").innerText = "Datos incorrectos";
+    }
+  };
 }
 
+// PANEL
 function renderDashboard() {
   app.innerHTML = `
     <div class="dashboard-layout">
+
       <aside class="sidebar">
-        <div class="sidebar-brand">
-          <div class="sidebar-brand-mark">Z</div>
-          <div>
-            <div class="sidebar-brand-title">Zentryx</div>
-            <div class="sidebar-brand-subtitle">Panel principal</div>
-          </div>
-        </div>
-
-        <nav class="sidebar-menu">
-          <button class="sidebar-btn active">Inicio</button>
-          <button class="sidebar-btn">Clientes</button>
-          <button class="sidebar-btn">Obras</button>
-          <button class="sidebar-btn">Suelo radiante</button>
-          <button class="sidebar-btn">Material</button>
-          <button class="sidebar-btn">Vehículos</button>
-          <button class="sidebar-btn">Ajustes</button>
-        </nav>
-
-        <button id="logoutBtn" class="sidebar-logout">Cerrar sesión</button>
+        <h2>Zentryx</h2>
+        <ul>
+          <li>Panel</li>
+          <li>Clientes</li>
+          <li>Obras</li>
+          <li>Material</li>
+          <li>Agenda</li>
+        </ul>
       </aside>
 
-      <main class="dashboard-main">
-        <header class="dashboard-header">
-          <h1>Panel principal</h1>
-          <p>Base visual inicial del sistema.</p>
+      <main class="main-content">
+        <header class="topbar">
+          <button id="logoutBtn">Cerrar sesión</button>
         </header>
 
-        <section class="dashboard-cards">
-          <div class="dashboard-card">
-            <h3>Clientes</h3>
-            <p>Gestión de fichas, contactos y direcciones.</p>
-          </div>
-
-          <div class="dashboard-card">
-            <h3>Obras</h3>
-            <p>Seguimiento de instalaciones y estados.</p>
-          </div>
-
-          <div class="dashboard-card">
-            <h3>Suelo radiante</h3>
-            <p>Zona reservada para cálculo y planos.</p>
-          </div>
-
-          <div class="dashboard-card">
-            <h3>Material</h3>
-            <p>Control básico de stock y almacén.</p>
-          </div>
+        <section class="content">
+          <h1>Panel principal</h1>
+          <p>Base profesional de la app</p>
         </section>
       </main>
+
     </div>
   `;
 
-  document.getElementById("logoutBtn").addEventListener("click", () => {
-    renderLogin();
-  });
+  document.getElementById("logoutBtn").onclick = renderLogin;
 }
 
+// ARRANQUE
 renderLogin();
