@@ -1,151 +1,134 @@
 const app = document.getElementById("app");
 
-const state = {
-  loggedIn: false,
-  configured: false,
-  currentView: "inicio",
-  menuOpen: false,
-  empresa: "",
-};
-
-function render() {
-  if (!state.loggedIn) {
-    renderLogin();
-    return;
-  }
-
-  if (!state.configured) {
-    renderSetup();
-    return;
-  }
-
-  renderDashboard();
-}
-
-/* LOGIN */
-
+// ---------- LOGIN ----------
 function renderLogin() {
   app.innerHTML = `
-    <div class="auth-shell">
-      <div class="auth-container">
+    <div class="login-page">
+      <div class="login-card">
+        <h1>Zentryx</h1>
+        <h2>Acceso</h2>
 
-        <section class="auth-hero">
-          <div class="auth-hero-badge">Z</div>
-          <div class="auth-hero-text">
-            <h1>Zentryx</h1>
-            <p>Gestión profesional de instalaciones</p>
-          </div>
-        </section>
+        <input id="email" placeholder="admin">
+        <input id="password" type="password" placeholder="1234">
 
-        <section class="auth-card">
-          <h2>Acceso</h2>
-
-          <input id="email" placeholder="admin" />
-          <input id="password" type="password" placeholder="1234" />
-
-          <button id="loginBtn" class="btn btn-primary btn-full">Entrar</button>
-
-          <p id="loginMessage" class="form-message"></p>
-        </section>
+        <button id="loginBtn">Entrar</button>
+        <div id="loginMessage"></div>
       </div>
     </div>
   `;
 
   document.getElementById("loginBtn").onclick = () => {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
+    const email = document.getElementById("email").value;
+    const pass = document.getElementById("password").value;
 
-    if (email === "admin" && password === "1234") {
-      state.loggedIn = true;
-      render();
+    if (email === "admin" && pass === "1234") {
+      localStorage.setItem("auth", "ok");
+
+      if (!localStorage.getItem("empresa")) {
+        renderSetup();
+      } else {
+        renderApp();
+      }
     } else {
       document.getElementById("loginMessage").innerText = "Datos incorrectos";
     }
   };
 }
 
-/* SETUP */
-
+// ---------- SETUP ----------
 function renderSetup() {
   app.innerHTML = `
     <div class="setup-shell">
       <div class="setup-card">
-
         <h1>Configuración inicial</h1>
-        <p>Antes de empezar, introduce los datos básicos.</p>
 
-        <div class="field-group">
-          <label>Nombre de la empresa</label>
-          <input id="empresa" placeholder="Ej: Allcalor" />
-        </div>
+        <input id="empresa" placeholder="Nombre empresa">
 
-        <button id="saveSetup" class="btn btn-primary btn-full">
-          Continuar
-        </button>
-
+        <button id="saveSetup">Continuar</button>
       </div>
     </div>
   `;
 
   document.getElementById("saveSetup").onclick = () => {
-    const empresa = document.getElementById("empresa").value.trim();
+    const empresa = document.getElementById("empresa").value;
 
     if (!empresa) return;
 
-    state.empresa = empresa;
-    state.configured = true;
-
-    render();
+    localStorage.setItem("empresa", empresa);
+    renderApp();
   };
 }
 
-/* DASHBOARD */
+// ---------- APP PRINCIPAL ----------
+function renderApp() {
+  const empresa = localStorage.getItem("empresa");
 
-function renderDashboard() {
   app.innerHTML = `
-    <div class="app-shell">
+    <div class="app-layout">
+      
+      <aside class="sidebar">
+        <h2>${empresa}</h2>
 
-      <aside class="sidebar ${state.menuOpen ? "open" : ""}">
-        <h2>${state.empresa}</h2>
+        <button onclick="navigate('inicio')">Inicio</button>
+        <button onclick="navigate('clientes')">Clientes</button>
+        <button onclick="navigate('obras')">Obras</button>
+        <button onclick="navigate('material')">Material</button>
+        <button onclick="navigate('vehiculos')">Vehículos</button>
+        <button onclick="navigate('config')">Configuración</button>
 
-        <button onclick="go('inicio')">Inicio</button>
-        <button onclick="go('clientes')">Clientes</button>
-        <button onclick="logout()">Cerrar sesión</button>
+        <button onclick="logout()" class="logout">Cerrar sesión</button>
       </aside>
 
-      <main class="main-area">
-        <header class="topbar">
-          <button onclick="toggleMenu()">☰</button>
-          <h1>${state.currentView}</h1>
-        </header>
-
-        <section class="content-area">
-          <p>Base lista</p>
-        </section>
-      </main>
+      <main id="content"></main>
 
     </div>
   `;
+
+  navigate("inicio");
 }
 
-/* FUNCIONES */
+// ---------- NAVEGACIÓN ----------
+function navigate(view) {
+  const content = document.getElementById("content");
 
-function go(view) {
-  state.currentView = view;
-  render();
+  if (view === "inicio") {
+    content.innerHTML = `<h1>Inicio</h1><p>Panel principal profesional</p>`;
+  }
+
+  if (view === "clientes") {
+    content.innerHTML = `<h1>Clientes</h1><p>Aquí irá el CRM</p>`;
+  }
+
+  if (view === "obras") {
+    content.innerHTML = `<h1>Obras</h1>`;
+  }
+
+  if (view === "material") {
+    content.innerHTML = `<h1>Material</h1>`;
+  }
+
+  if (view === "vehiculos") {
+    content.innerHTML = `<h1>Vehículos</h1>`;
+  }
+
+  if (view === "config") {
+    content.innerHTML = `<h1>Configuración</h1>`;
+  }
 }
 
-function toggleMenu() {
-  state.menuOpen = !state.menuOpen;
-  render();
-}
-
+// ---------- LOGOUT ----------
 function logout() {
-  state.loggedIn = false;
-  state.configured = false;
-  render();
+  localStorage.clear();
+  renderLogin();
 }
 
-/* INICIO */
-
-render();
+// ---------- INIT ----------
+if (localStorage.getItem("auth") === "ok") {
+  if (!localStorage.getItem("empresa")) {
+    renderSetup();
+  } else {
+    renderApp();
+  }
+} else {
+  renderLogin();
+}
