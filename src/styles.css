@@ -521,3 +521,19 @@ body {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+/* SETUP */
+
+.setup-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setup-card {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+}
