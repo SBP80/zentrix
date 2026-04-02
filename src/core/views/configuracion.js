@@ -1,42 +1,18 @@
 export function renderConfiguracion() {
-  let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [
-    { id: 1, nombre: "Admin", rol: "admin" },
-    { id: 2, nombre: "Encargado", rol: "encargado" },
-    { id: 3, nombre: "Operario 1", rol: "operario" }
-  ];
+  const usuarios = getUsuarios();
 
-  function guardar() {
-    localStorage.setItem("usuarios", JSON.stringify(usuarios));
-  }
+  setTimeout(() => {
+    const btnCrear = document.getElementById("btnCrearUsuario");
+    if (btnCrear) {
+      btnCrear.onclick = crearUsuario;
+    }
 
-  function eliminarUsuario(id) {
-    usuarios = usuarios.filter(u => u.id !== id);
-    guardar();
-    refrescar();
-  }
-
-  function crearUsuario() {
-    const nombre = document.getElementById("nuevoNombre").value.trim();
-    const rol = document.getElementById("nuevoRol").value;
-
-    if (!nombre) return;
-
-    usuarios.push({
-      id: Date.now(),
-      nombre,
-      rol
+    document.querySelectorAll(".btn-eliminar-usuario").forEach((btn) => {
+      btn.onclick = () => {
+        eliminarUsuario(Number(btn.dataset.id));
+      };
     });
-
-    guardar();
-    refrescar();
-  }
-
-  function refrescar() {
-    const container = document.getElementById("viewContainer");
-    if (!container) return;
-    container.innerHTML = renderConfiguracion();
-    activarEventosConfiguracion();
-  }
+  }, 0);
 
   return `
     <div style="max-width:900px; width:100%;">
@@ -52,40 +28,51 @@ export function renderConfiguracion() {
           gap:10px;
           margin-bottom:20px;
         ">
-          <input id="nuevoNombre" placeholder="Nombre usuario" style="
-            height:46px;
-            padding:0 12px;
-            border:1px solid #cbd5e1;
-            border-radius:12px;
-          " />
+          <input
+            id="nuevoNombre"
+            placeholder="Nombre usuario"
+            style="
+              height:46px;
+              padding:0 12px;
+              border:1px solid #cbd5e1;
+              border-radius:12px;
+            "
+          />
 
-          <select id="nuevoRol" style="
-            height:46px;
-            padding:0 12px;
-            border:1px solid #cbd5e1;
-            border-radius:12px;
-          ">
+          <select
+            id="nuevoRol"
+            style="
+              height:46px;
+              padding:0 12px;
+              border:1px solid #cbd5e1;
+              border-radius:12px;
+            "
+          >
             <option value="admin">Administrador</option>
             <option value="encargado">Encargado</option>
             <option value="operario">Operario</option>
           </select>
 
-          <button id="btnCrearUsuario" type="button" style="
-            height:46px;
-            padding:0 16px;
-            border:none;
-            border-radius:12px;
-            background:#2563eb;
-            color:#fff;
-            font-weight:700;
-            cursor:pointer;
-          ">
+          <button
+            id="btnCrearUsuario"
+            type="button"
+            style="
+              height:46px;
+              padding:0 16px;
+              border:none;
+              border-radius:12px;
+              background:#2563eb;
+              color:#fff;
+              font-weight:700;
+              cursor:pointer;
+            "
+          >
             + Crear
           </button>
         </div>
 
         <div style="display:grid; gap:12px;">
-          ${usuarios.map(u => `
+          ${usuarios.map((u) => `
             <div style="
               padding:14px;
               border:1px solid #d8e1eb;
@@ -125,17 +112,56 @@ export function renderConfiguracion() {
       </div>
     </div>
   `;
+}
 
-  function activarEventosConfiguracion() {
-    const btnCrear = document.getElementById("btnCrearUsuario");
-    if (btnCrear) btnCrear.addEventListener("click", crearUsuario);
+function getUsuarios() {
+  let usuarios = [];
 
-    document.querySelectorAll(".btn-eliminar-usuario").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        eliminarUsuario(Number(btn.dataset.id));
-      });
-    });
+  try {
+    usuarios = JSON.parse(localStorage.getItem("usuarios") || "[]");
+  } catch (error) {
+    usuarios = [];
   }
+
+  if (!Array.isArray(usuarios) || !usuarios.length) {
+    usuarios = [
+      { id: 1, nombre: "Admin", rol: "admin" },
+      { id: 2, nombre: "Encargado", rol: "encargado" },
+      { id: 3, nombre: "Operario 1", rol: "operario" }
+    ];
+    localStorage.setItem("usuarios", JSON.stringify(usuarios));
+  }
+
+  return usuarios;
+}
+
+function crearUsuario() {
+  const nombre = document.getElementById("nuevoNombre")?.value.trim() || "";
+  const rol = document.getElementById("nuevoRol")?.value || "operario";
+
+  if (!nombre) return;
+
+  const usuarios = getUsuarios();
+  usuarios.push({
+    id: Date.now(),
+    nombre,
+    rol
+  });
+
+  localStorage.setItem("usuarios", JSON.stringify(usuarios));
+  refrescarConfiguracion();
+}
+
+function eliminarUsuario(id) {
+  const usuarios = getUsuarios().filter((u) => u.id !== id);
+  localStorage.setItem("usuarios", JSON.stringify(usuarios));
+  refrescarConfiguracion();
+}
+
+function refrescarConfiguracion() {
+  const container = document.getElementById("viewContainer");
+  if (!container) return;
+  container.innerHTML = renderConfiguracion();
 }
 
 function escapeHtml(texto) {
