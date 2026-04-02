@@ -1,4 +1,4 @@
-const EVENTOS_KEY = "zentrix_agenda_eventos_v3";
+const EVENTOS_KEY = "zentrix_agenda_eventos_v1";
 const USUARIO_ACTIVO_KEY = "zentrix_agenda_usuario_activo_v1";
 
 const USUARIOS = [
@@ -18,23 +18,8 @@ const USUARIOS = [
     },
   },
   {
-    id: "u_oficina",
-    nombre: "Oficina",
-    rol: "oficina",
-    personalId: "p_oficina",
-    vehiculosIds: [],
-    herramientasIds: [],
-    permisos: {
-      agendaVerTodo: true,
-      agendaCrear: true,
-      agendaEditarTodo: true,
-      agendaBorrarTodo: false,
-      agendaMarcarTodo: true,
-    },
-  },
-  {
     id: "u_jose",
-    nombre: "José",
+    nombre: "Jose",
     rol: "operario",
     personalId: "p_jose",
     vehiculosIds: ["v_furgon_1"],
@@ -66,18 +51,17 @@ const USUARIOS = [
 
 const PERSONAL = [
   { id: "p_encargado", nombre: "Encargado" },
-  { id: "p_oficina", nombre: "Oficina" },
-  { id: "p_jose", nombre: "José" },
+  { id: "p_jose", nombre: "Jose" },
   { id: "p_antonio", nombre: "Antonio" },
 ];
 
 const VEHICULOS = [
-  { id: "v_furgon_1", nombre: "Furgón 1" },
-  { id: "v_furgon_2", nombre: "Furgón 2" },
+  { id: "v_furgon_1", nombre: "Furgon 1" },
+  { id: "v_furgon_2", nombre: "Furgon 2" },
 ];
 
 const HERRAMIENTAS = [
-  { id: "h_bomba_vacio", nombre: "Bomba de vacío" },
+  { id: "h_bomba_vacio", nombre: "Bomba de vacio" },
   { id: "h_detector_fugas", nombre: "Detector de fugas" },
   { id: "h_analizador", nombre: "Analizador" },
   { id: "h_taladro", nombre: "Taladro" },
@@ -85,12 +69,11 @@ const HERRAMIENTAS = [
 
 const TIPOS_EVENTO = [
   { id: "trabajo", nombre: "Trabajo / obra" },
-  { id: "revision_vehiculo", nombre: "Revisión vehículo" },
-  { id: "revision_herramienta", nombre: "Revisión herramienta" },
+  { id: "revision_vehiculo", nombre: "Revision vehiculo" },
+  { id: "revision_herramienta", nombre: "Revision herramienta" },
   { id: "vacaciones", nombre: "Vacaciones" },
-  { id: "reunion", nombre: "Reunión" },
+  { id: "reunion", nombre: "Reunion" },
   { id: "aviso", nombre: "Aviso interno" },
-  { id: "administracion", nombre: "Administración" },
   { id: "otro", nombre: "Otro" },
 ];
 
@@ -100,15 +83,10 @@ const PRIORIDADES = [
   { id: "alta", nombre: "Alta" },
 ];
 
-const ESTADOS = [
-  { id: "pendiente", nombre: "Pendiente" },
-  { id: "hecho", nombre: "Hecho" },
-];
-
 const EVENTOS_DEMO = [
   {
     id: "e_demo_1",
-    titulo: "Instalación aerotermia casa José",
+    titulo: "Instalacion aerotermia casa Jose",
     tipo: "trabajo",
     fecha: "2026-04-03",
     horaInicio: "08:00",
@@ -116,18 +94,16 @@ const EVENTOS_DEMO = [
     personalIds: ["p_jose", "p_antonio"],
     vehiculoId: "v_furgon_1",
     herramientaIds: ["h_bomba_vacio", "h_detector_fugas"],
-    cliente: "José Martínez",
-    obra: "Chalet Pozuelo",
+    cliente: "Jose Martinez",
+    obra: "Chalet",
     prioridad: "alta",
     estado: "pendiente",
-    notas: "Llevar material de arranque y purgado.",
-    visibleParaRoles: ["encargado", "oficina"],
-    privacidad: "asignados",
+    notas: "Llevar material de arranque.",
     createdBy: "u_encargado",
   },
   {
     id: "e_demo_2",
-    titulo: "Revisión ITV Furgón 2",
+    titulo: "Revision ITV Furgon 2",
     tipo: "revision_vehiculo",
     fecha: "2026-04-03",
     horaInicio: "09:00",
@@ -139,10 +115,8 @@ const EVENTOS_DEMO = [
     obra: "",
     prioridad: "media",
     estado: "pendiente",
-    notas: "Llevar documentación.",
-    visibleParaRoles: ["encargado", "oficina"],
-    privacidad: "asignados",
-    createdBy: "u_oficina",
+    notas: "Llevar documentacion.",
+    createdBy: "u_encargado",
   },
   {
     id: "e_demo_3",
@@ -158,14 +132,12 @@ const EVENTOS_DEMO = [
     obra: "",
     prioridad: "media",
     estado: "pendiente",
-    notas: "Semana santa.",
-    visibleParaRoles: ["encargado", "oficina"],
-    privacidad: "asignados",
-    createdBy: "u_oficina",
+    notas: "Semana libre.",
+    createdBy: "u_encargado",
   },
 ];
 
-function ensureAgendaBase() {
+function ensureBase() {
   if (!localStorage.getItem(EVENTOS_KEY)) {
     localStorage.setItem(EVENTOS_KEY, JSON.stringify(EVENTOS_DEMO));
   }
@@ -176,11 +148,11 @@ function ensureAgendaBase() {
 }
 
 function readEventos() {
-  ensureAgendaBase();
+  ensureBase();
   try {
     const raw = JSON.parse(localStorage.getItem(EVENTOS_KEY));
     return Array.isArray(raw) ? raw : [];
-  } catch {
+  } catch (error) {
     return [];
   }
 }
@@ -189,50 +161,42 @@ function saveEventos(eventos) {
   localStorage.setItem(EVENTOS_KEY, JSON.stringify(eventos));
 }
 
-export function getUsuariosAgenda() {
-  ensureAgendaBase();
-  return [...USUARIOS];
-}
+export function getAgendaContexto() {
+  ensureBase();
 
-export function getPersonalAgenda() {
-  return [...PERSONAL];
-}
-
-export function getVehiculosAgenda() {
-  return [...VEHICULOS];
-}
-
-export function getHerramientasAgenda() {
-  return [...HERRAMIENTAS];
-}
-
-export function getTiposEventoAgenda() {
-  return [...TIPOS_EVENTO];
-}
-
-export function getPrioridadesAgenda() {
-  return [...PRIORIDADES];
-}
-
-export function getEstadosAgenda() {
-  return [...ESTADOS];
+  return {
+    usuarioActivo: getUsuarioActivoAgenda(),
+    usuarios: [...USUARIOS],
+    personal: [...PERSONAL],
+    vehiculos: [...VEHICULOS],
+    herramientas: [...HERRAMIENTAS],
+    tipos: [...TIPOS_EVENTO],
+    prioridades: [...PRIORIDADES],
+  };
 }
 
 export function getUsuarioActivoAgenda() {
-  ensureAgendaBase();
+  ensureBase();
   const id = localStorage.getItem(USUARIO_ACTIVO_KEY);
   return USUARIOS.find((u) => u.id === id) || USUARIOS[0];
 }
 
 export function setUsuarioActivoAgenda(userId) {
-  const existe = USUARIOS.some((u) => u.id === userId);
-  if (!existe) return;
+  const exists = USUARIOS.some((u) => u.id === userId);
+  if (!exists) return;
   localStorage.setItem(USUARIO_ACTIVO_KEY, userId);
+}
+
+export function getEventosVisiblesAgenda() {
+  const usuario = getUsuarioActivoAgenda();
+  const eventos = readEventos();
+
+  return eventos.filter((evento) => canUserSeeEvent(usuario, evento));
 }
 
 export function canCurrentUserCreateAgenda() {
   const usuario = getUsuarioActivoAgenda();
-  return Boolean(usuario?.permisos?.agendaCrear);
+  return Boolean(usuario && usuario.permisos && usuario.permisos.agendaCrear);
 }
 
 export function canCurrentUserDeleteAgenda(evento) {
@@ -246,27 +210,7 @@ export function canCurrentUserToggleAgenda(evento) {
   const usuario = getUsuarioActivoAgenda();
   if (!usuario) return false;
   if (usuario.permisos.agendaMarcarTodo) return true;
-  return evento.personalIds.includes(usuario.personalId);
-}
-
-export function getAgendaContexto() {
-  return {
-    usuarioActivo: getUsuarioActivoAgenda(),
-    usuarios: getUsuariosAgenda(),
-    personal: getPersonalAgenda(),
-    vehiculos: getVehiculosAgenda(),
-    herramientas: getHerramientasAgenda(),
-    tipos: getTiposEventoAgenda(),
-    prioridades: getPrioridadesAgenda(),
-    estados: getEstadosAgenda(),
-  };
-}
-
-export function getEventosVisiblesAgenda() {
-  const usuario = getUsuarioActivoAgenda();
-  const eventos = readEventos();
-
-  return eventos.filter((evento) => canUserSeeEvent(usuario, evento));
+  return Array.isArray(evento.personalIds) && evento.personalIds.includes(usuario.personalId);
 }
 
 export function addEventoAgenda(data) {
@@ -274,7 +218,7 @@ export function addEventoAgenda(data) {
   if (!usuario || !usuario.permisos.agendaCrear) return;
 
   const evento = {
-    id: `e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    id: "e_" + Date.now(),
     titulo: String(data.titulo || "").trim(),
     tipo: data.tipo || "otro",
     fecha: data.fecha || "",
@@ -288,8 +232,6 @@ export function addEventoAgenda(data) {
     prioridad: data.prioridad || "media",
     estado: data.estado || "pendiente",
     notas: String(data.notas || "").trim(),
-    visibleParaRoles: ["encargado", "oficina"],
-    privacidad: "asignados",
     createdBy: usuario.id,
   };
 
@@ -301,7 +243,6 @@ export function addEventoAgenda(data) {
 }
 
 export function toggleEstadoEventoAgenda(eventId) {
-  const usuario = getUsuarioActivoAgenda();
   const eventos = readEventos().map((evento) => {
     if (evento.id !== eventId) return evento;
     if (!canCurrentUserToggleAgenda(evento)) return evento;
@@ -312,7 +253,6 @@ export function toggleEstadoEventoAgenda(eventId) {
     };
   });
 
-  if (!usuario) return;
   saveEventos(eventos);
 }
 
@@ -325,18 +265,39 @@ export function deleteEventoAgenda(eventId) {
   saveEventos(eventos.filter((e) => e.id !== eventId));
 }
 
+export function getNombrePersonal(personalId) {
+  const found = PERSONAL.find((p) => p.id === personalId);
+  return found ? found.nombre : personalId;
+}
+
+export function getNombreVehiculo(vehiculoId) {
+  if (!vehiculoId) return "";
+  const found = VEHICULOS.find((v) => v.id === vehiculoId);
+  return found ? found.nombre : vehiculoId;
+}
+
+export function getNombreHerramienta(herramientaId) {
+  const found = HERRAMIENTAS.find((h) => h.id === herramientaId);
+  return found ? found.nombre : herramientaId;
+}
+
+export function getNombreTipoEvento(tipoId) {
+  const found = TIPOS_EVENTO.find((t) => t.id === tipoId);
+  return found ? found.nombre : tipoId;
+}
+
 function canUserSeeEvent(usuario, evento) {
   if (!usuario) return false;
 
   if (usuario.permisos.agendaVerTodo) return true;
 
-  if (evento.visibleParaRoles.includes(usuario.rol)) return true;
+  if (Array.isArray(evento.personalIds) && evento.personalIds.includes(usuario.personalId)) {
+    return true;
+  }
 
-  if (evento.privacidad === "general") return true;
-
-  if (evento.personalIds.includes(usuario.personalId)) return true;
-
-  if (evento.vehiculoId && usuario.vehiculosIds.includes(evento.vehiculoId)) return true;
+  if (evento.vehiculoId && usuario.vehiculosIds.includes(evento.vehiculoId)) {
+    return true;
+  }
 
   if (
     Array.isArray(evento.herramientaIds) &&
@@ -346,24 +307,7 @@ function canUserSeeEvent(usuario, evento) {
   }
 
   return false;
-}
-
-export function getNombrePersonal(personalId) {
-  return PERSONAL.find((p) => p.id === personalId)?.nombre || personalId;
-}
-
-export function getNombreVehiculo(vehiculoId) {
-  if (!vehiculoId) return "";
-  return VEHICULOS.find((v) => v.id === vehiculoId)?.nombre || vehiculoId;
-}
-
-export function getNombreHerramienta(herramientaId) {
-  return HERRAMIENTAS.find((h) => h.id === herramientaId)?.nombre || herramientaId;
-}
-
-export function getNombreTipoEvento(tipoId) {
-  return TIPOS_EVENTO.find((t) => t.id === tipoId)?.nombre || tipoId;
-  import {
+}import {
   getAgendaContexto,
   getEventosVisiblesAgenda,
   addEventoAgenda,
@@ -380,31 +324,22 @@ export function getNombreTipoEvento(tipoId) {
 } from "../agenda.js";
 
 export function renderAgenda() {
-  const {
-    usuarioActivo,
-    usuarios,
-    personal,
-    vehiculos,
-    herramientas,
-    tipos,
-    prioridades,
-  } = getAgendaContexto();
+  const contexto = getAgendaContexto();
+  const usuarioActivo = contexto.usuarioActivo;
+  const usuarios = contexto.usuarios;
+  const personal = contexto.personal;
+  const vehiculos = contexto.vehiculos;
+  const herramientas = contexto.herramientas;
+  const tipos = contexto.tipos;
+  const prioridades = contexto.prioridades;
 
   const eventos = getEventosVisiblesAgenda().sort(sortEventos);
-
   const canCreate = canCurrentUserCreateAgenda();
 
   return `
     <div style="max-width:980px; width:100%;">
       <div class="panel-card">
-        <div style="
-          display:flex;
-          flex-wrap:wrap;
-          gap:12px;
-          align-items:end;
-          justify-content:space-between;
-          margin-bottom:20px;
-        ">
+        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:end; justify-content:space-between; margin-bottom:20px;">
           <div>
             <h3 style="margin:0;">Agenda profesional</h3>
             <div style="margin-top:6px; color:#64748b; font-size:14px;">
@@ -413,177 +348,71 @@ export function renderAgenda() {
           </div>
 
           <div style="min-width:240px;">
-            <label for="agendaUsuarioActivo" style="
-              display:block;
-              margin-bottom:6px;
-              font-size:14px;
-              font-weight:700;
-              color:#0f172a;
-            ">Ver como</label>
-
-            <select
-              id="agendaUsuarioActivo"
-              onchange="cambiarUsuarioAgenda()"
-              style="
-                width:100%;
-                height:46px;
-                padding:0 12px;
-                border:1px solid #cbd5e1;
-                border-radius:12px;
-                background:#ffffff;
-                color:#0f172a;
-                font-size:15px;
-              "
-            >
-              ${usuarios.map((u) => `
-                <option value="${u.id}" ${u.id === usuarioActivo.id ? "selected" : ""}>
-                  ${escapeHtml(u.nombre)} · ${escapeHtml(u.rol)}
-                </option>
-              `).join("")}
+            <label for="agendaUsuarioActivo" style="display:block; margin-bottom:6px; font-size:14px; font-weight:700; color:#0f172a;">Ver como</label>
+            <select id="agendaUsuarioActivo" onchange="cambiarUsuarioAgenda()" style="width:100%; height:46px; padding:0 12px; border:1px solid #cbd5e1; border-radius:12px; background:#ffffff; color:#0f172a; font-size:15px;">
+              ${usuarios.map((u) => {
+                return `
+                  <option value="${u.id}" ${u.id === usuarioActivo.id ? "selected" : ""}>
+                    ${escapeHtml(u.nombre)} · ${escapeHtml(u.rol)}
+                  </option>
+                `;
+              }).join("")}
             </select>
           </div>
         </div>
 
-        <div style="
-          padding:16px;
-          border:1px solid #d8e1eb;
-          border-radius:16px;
-          background:#f8fafc;
-          margin-bottom:20px;
-        ">
-          <div style="
-            font-size:16px;
-            font-weight:700;
-            color:#0f172a;
-            margin-bottom:14px;
-          ">Nuevo evento</div>
+        <div style="padding:16px; border:1px solid #d8e1eb; border-radius:16px; background:#f8fafc; margin-bottom:20px;">
+          <div style="font-size:16px; font-weight:700; color:#0f172a; margin-bottom:14px;">Nuevo evento</div>
 
-          <div style="
-            display:grid;
-            grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
-            gap:12px;
-          ">
-            ${fieldText("Titulo", "agendaTitulo", "Ej. Instalación aerotermia", canCreate)}
-            ${fieldSelect("Tipo", "agendaTipo", tipos, "id", "nombre", canCreate)}
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+            ${fieldText("Titulo", "agendaTitulo", "Ej. Instalacion aerotermia", canCreate)}
+            ${fieldSelect("Tipo", "agendaTipo", tipos, canCreate)}
             ${fieldDate("Fecha", "agendaFecha", canCreate)}
             ${fieldTime("Hora inicio", "agendaHoraInicio", canCreate)}
             ${fieldTime("Hora fin", "agendaHoraFin", canCreate)}
             ${fieldText("Cliente", "agendaCliente", "Cliente / empresa", canCreate)}
-            ${fieldText("Obra", "agendaObra", "Obra / ubicación", canCreate)}
-            ${fieldSelect("Prioridad", "agendaPrioridad", prioridades, "id", "nombre", canCreate)}
-            ${fieldSelect("Vehículo", "agendaVehiculo", [{ id: "", nombre: "Sin vehículo" }, ...vehiculos], "id", "nombre", canCreate)}
+            ${fieldText("Obra", "agendaObra", "Obra / ubicacion", canCreate)}
+            ${fieldSelect("Prioridad", "agendaPrioridad", prioridades, canCreate)}
+            ${fieldSelect("Vehiculo", "agendaVehiculo", [{ id: "", nombre: "Sin vehiculo" }].concat(vehiculos), canCreate)}
           </div>
 
           <div style="margin-top:14px;">
-            <div style="
-              margin-bottom:8px;
-              font-size:14px;
-              font-weight:700;
-              color:#0f172a;
-            ">Personal asignado</div>
-
-            <div style="
-              display:grid;
-              grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
-              gap:8px;
-            ">
-              ${personal.map((p) => `
-                <label style="
-                  display:flex;
-                  align-items:center;
-                  gap:8px;
-                  min-height:42px;
-                  padding:0 12px;
-                  border:1px solid #d8e1eb;
-                  border-radius:12px;
-                  background:#ffffff;
-                  color:#0f172a;
-                  ${canCreate ? "" : "opacity:0.55;"}
-                ">
-                  <input type="checkbox" name="agendaPersonal" value="${p.id}" ${canCreate ? "" : "disabled"} />
-                  <span>${escapeHtml(p.nombre)}</span>
-                </label>
-              `).join("")}
+            <div style="margin-bottom:8px; font-size:14px; font-weight:700; color:#0f172a;">Personal asignado</div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px;">
+              ${personal.map((p) => {
+                return `
+                  <label style="display:flex; align-items:center; gap:8px; min-height:42px; padding:0 12px; border:1px solid #d8e1eb; border-radius:12px; background:#ffffff; color:#0f172a; ${canCreate ? "" : "opacity:0.55;"}">
+                    <input type="checkbox" name="agendaPersonal" value="${p.id}" ${canCreate ? "" : "disabled"} />
+                    <span>${escapeHtml(p.nombre)}</span>
+                  </label>
+                `;
+              }).join("")}
             </div>
           </div>
 
           <div style="margin-top:14px;">
-            <div style="
-              margin-bottom:8px;
-              font-size:14px;
-              font-weight:700;
-              color:#0f172a;
-            ">Herramientas asociadas</div>
-
-            <div style="
-              display:grid;
-              grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
-              gap:8px;
-            ">
-              ${herramientas.map((h) => `
-                <label style="
-                  display:flex;
-                  align-items:center;
-                  gap:8px;
-                  min-height:42px;
-                  padding:0 12px;
-                  border:1px solid #d8e1eb;
-                  border-radius:12px;
-                  background:#ffffff;
-                  color:#0f172a;
-                  ${canCreate ? "" : "opacity:0.55;"}
-                ">
-                  <input type="checkbox" name="agendaHerramienta" value="${h.id}" ${canCreate ? "" : "disabled"} />
-                  <span>${escapeHtml(h.nombre)}</span>
-                </label>
-              `).join("")}
+            <div style="margin-bottom:8px; font-size:14px; font-weight:700; color:#0f172a;">Herramientas asociadas</div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px;">
+              ${herramientas.map((h) => {
+                return `
+                  <label style="display:flex; align-items:center; gap:8px; min-height:42px; padding:0 12px; border:1px solid #d8e1eb; border-radius:12px; background:#ffffff; color:#0f172a; ${canCreate ? "" : "opacity:0.55;"}">
+                    <input type="checkbox" name="agendaHerramienta" value="${h.id}" ${canCreate ? "" : "disabled"} />
+                    <span>${escapeHtml(h.nombre)}</span>
+                  </label>
+                `;
+              }).join("")}
             </div>
           </div>
 
           <div style="margin-top:14px;">
-            <label for="agendaNotas" style="
-              display:block;
-              margin-bottom:6px;
-              font-size:14px;
-              font-weight:700;
-              color:#0f172a;
-            ">Notas</label>
-
-            <textarea
-              id="agendaNotas"
-              ${canCreate ? "" : "disabled"}
-              placeholder="Notas internas"
-              style="
-                width:100%;
-                min-height:96px;
-                padding:12px 14px;
-                border:1px solid #cbd5e1;
-                border-radius:12px;
-                background:#ffffff;
-                color:#0f172a;
-                font-size:15px;
-                resize:vertical;
-                ${canCreate ? "" : "opacity:0.55;"}
-              "
-            ></textarea>
+            <label for="agendaNotas" style="display:block; margin-bottom:6px; font-size:14px; font-weight:700; color:#0f172a;">Notas</label>
+            <textarea id="agendaNotas" ${canCreate ? "" : "disabled"} placeholder="Notas internas" style="width:100%; min-height:96px; padding:12px 14px; border:1px solid #cbd5e1; border-radius:12px; background:#ffffff; color:#0f172a; font-size:15px; resize:vertical; ${canCreate ? "" : "opacity:0.55;"}"></textarea>
           </div>
 
           <div style="margin-top:14px;">
-            <button
-              onclick="crearEventoAgendaUI()"
-              ${canCreate ? "" : "disabled"}
-              style="
-                width:100%;
-                min-height:48px;
-                border:none;
-                border-radius:12px;
-                background:${canCreate ? "#2563eb" : "#94a3b8"};
-                color:#ffffff;
-                font-size:16px;
-                font-weight:700;
-                cursor:${canCreate ? "pointer" : "default"};
-              "
-            >Crear evento</button>
+            <button onclick="crearEventoAgendaUI()" ${canCreate ? "" : "disabled"} style="width:100%; min-height:48px; border:none; border-radius:12px; background:${canCreate ? "#2563eb" : "#94a3b8"}; color:#ffffff; font-size:16px; font-weight:700; cursor:${canCreate ? "pointer" : "default"};">
+              Crear evento
+            </button>
           </div>
 
           ${canCreate ? "" : `
@@ -593,18 +422,9 @@ export function renderAgenda() {
           `}
         </div>
 
-        <div style="
-          display:grid;
-          gap:14px;
-        ">
+        <div style="display:grid; gap:14px;">
           ${eventos.length ? eventos.map((evento) => renderEventoCard(evento)).join("") : `
-            <div style="
-              padding:16px;
-              border:1px dashed #cbd5e1;
-              border-radius:14px;
-              background:#f8fafc;
-              color:#64748b;
-            ">
+            <div style="padding:16px; border:1px dashed #cbd5e1; border-radius:14px; background:#f8fafc; color:#64748b;">
               No hay eventos visibles para este perfil.
             </div>
           `}
@@ -616,77 +436,31 @@ export function renderAgenda() {
 
 function renderEventoCard(evento) {
   const color = getColorEvento(evento);
-  const personal = evento.personalIds.map(getNombrePersonal).join(", ") || "Sin asignar";
-  const herramientas = evento.herramientaIds.map(getNombreHerramienta).join(", ");
-  const vehiculo = getNombreVehiculo(evento.vehiculoId);
+  const personalTexto = (evento.personalIds || []).map(getNombrePersonal).join(", ") || "Sin asignar";
+  const herramientasTexto = (evento.herramientaIds || []).map(getNombreHerramienta).join(", ");
+  const vehiculoTexto = getNombreVehiculo(evento.vehiculoId);
   const canToggle = canCurrentUserToggleAgenda(evento);
   const canDelete = canCurrentUserDeleteAgenda(evento);
 
   return `
-    <div style="
-      width:100%;
-      padding:14px;
-      border:1px solid #d8e1eb;
-      border-left:8px solid ${color};
-      border-radius:14px;
-      background:#ffffff;
-      box-shadow:0 4px 12px rgba(15,23,42,0.06);
-    ">
-      <div style="
-        display:flex;
-        align-items:flex-start;
-        justify-content:space-between;
-        gap:12px;
-      ">
-        <div style="
-          display:flex;
-          align-items:flex-start;
-          gap:12px;
-          flex:1;
-          min-width:0;
-        ">
+    <div style="width:100%; padding:14px; border:1px solid #d8e1eb; border-left:8px solid ${color}; border-radius:14px; background:#ffffff; box-shadow:0 4px 12px rgba(15,23,42,0.06);">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+        <div style="display:flex; align-items:flex-start; gap:12px; flex:1; min-width:0;">
           <input
             type="checkbox"
             ${evento.estado === "hecho" ? "checked" : ""}
             ${canToggle ? "" : "disabled"}
             onclick="toggleEventoAgendaUI('${evento.id}')"
-            style="
-              width:20px;
-              height:20px;
-              margin-top:3px;
-              flex:0 0 auto;
-            "
+            style="width:20px; height:20px; margin-top:3px; flex:0 0 auto;"
           >
 
           <div style="min-width:0; flex:1;">
-            <div style="
-              display:flex;
-              flex-wrap:wrap;
-              gap:8px;
-              align-items:center;
-              margin-bottom:4px;
-            ">
-              <div style="
-                font-size:17px;
-                font-weight:700;
-                color:#0f172a;
-                line-height:1.35;
-                word-break:break-word;
-              ">
-                ${evento.estado === "hecho"
-                  ? "<s>" + escapeHtml(evento.titulo) + "</s>"
-                  : escapeHtml(evento.titulo)}
+            <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:4px;">
+              <div style="font-size:17px; font-weight:700; color:#0f172a; line-height:1.35; word-break:break-word;">
+                ${evento.estado === "hecho" ? "<s>" + escapeHtml(evento.titulo) + "</s>" : escapeHtml(evento.titulo)}
               </div>
 
-              <span style="
-                display:inline-block;
-                padding:5px 10px;
-                border-radius:999px;
-                background:${color};
-                color:#ffffff;
-                font-size:12px;
-                font-weight:700;
-              ">
+              <span style="display:inline-block; padding:5px 10px; border-radius:999px; background:${color}; color:#ffffff; font-size:12px; font-weight:700;">
                 ${escapeHtml(getNombreTipoEvento(evento.tipo))}
               </span>
             </div>
@@ -696,18 +470,18 @@ function renderEventoCard(evento) {
             </div>
 
             <div style="font-size:14px; color:#475569; margin-top:6px;">
-              <strong>Personal:</strong> ${escapeHtml(personal)}
+              <strong>Personal:</strong> ${escapeHtml(personalTexto)}
             </div>
 
-            ${vehiculo ? `
+            ${vehiculoTexto ? `
               <div style="font-size:14px; color:#475569; margin-top:4px;">
-                <strong>Vehículo:</strong> ${escapeHtml(vehiculo)}
+                <strong>Vehiculo:</strong> ${escapeHtml(vehiculoTexto)}
               </div>
             ` : ""}
 
-            ${herramientas ? `
+            ${herramientasTexto ? `
               <div style="font-size:14px; color:#475569; margin-top:4px;">
-                <strong>Herramientas:</strong> ${escapeHtml(herramientas)}
+                <strong>Herramientas:</strong> ${escapeHtml(herramientasTexto)}
               </div>
             ` : ""}
 
@@ -723,47 +497,18 @@ function renderEventoCard(evento) {
               </div>
             ` : ""}
 
-            <div style="
-              display:flex;
-              flex-wrap:wrap;
-              gap:8px;
-              margin-top:10px;
-            ">
-              <span style="
-                display:inline-block;
-                padding:5px 10px;
-                border-radius:999px;
-                background:${evento.prioridad === "alta" ? "#dc2626" : evento.prioridad === "media" ? "#d97706" : "#64748b"};
-                color:#ffffff;
-                font-size:12px;
-                font-weight:700;
-              ">
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+              <span style="display:inline-block; padding:5px 10px; border-radius:999px; background:${getPriorityColor(evento.prioridad)}; color:#ffffff; font-size:12px; font-weight:700;">
                 Prioridad ${escapeHtml(evento.prioridad)}
               </span>
 
-              <span style="
-                display:inline-block;
-                padding:5px 10px;
-                border-radius:999px;
-                background:${evento.estado === "hecho" ? "#16a34a" : "#2563eb"};
-                color:#ffffff;
-                font-size:12px;
-                font-weight:700;
-              ">
+              <span style="display:inline-block; padding:5px 10px; border-radius:999px; background:${evento.estado === "hecho" ? "#16a34a" : "#2563eb"}; color:#ffffff; font-size:12px; font-weight:700;">
                 ${evento.estado === "hecho" ? "Hecho" : "Pendiente"}
               </span>
             </div>
 
             ${evento.notas ? `
-              <div style="
-                margin-top:10px;
-                padding:10px 12px;
-                border-radius:12px;
-                background:#f8fafc;
-                color:#334155;
-                font-size:14px;
-                line-height:1.45;
-              ">
+              <div style="margin-top:10px; padding:10px 12px; border-radius:12px; background:#f8fafc; color:#334155; font-size:14px; line-height:1.45;">
                 ${escapeHtml(evento.notas)}
               </div>
             ` : ""}
@@ -773,18 +518,7 @@ function renderEventoCard(evento) {
         <button
           onclick="borrarEventoAgendaUI('${evento.id}')"
           ${canDelete ? "" : "disabled"}
-          style="
-            width:42px;
-            height:42px;
-            border:none;
-            border-radius:12px;
-            background:${canDelete ? "#dc2626" : "#cbd5e1"};
-            color:#ffffff;
-            font-size:20px;
-            font-weight:700;
-            cursor:${canDelete ? "pointer" : "default"};
-            flex:0 0 auto;
-          "
+          style="width:42px; height:42px; border:none; border-radius:12px; background:${canDelete ? "#dc2626" : "#cbd5e1"}; color:#ffffff; font-size:20px; font-weight:700; cursor:${canDelete ? "pointer" : "default"}; flex:0 0 auto;"
         >✕</button>
       </div>
     </div>
@@ -794,29 +528,12 @@ function renderEventoCard(evento) {
 function fieldText(label, id, placeholder, enabled) {
   return `
     <div>
-      <label for="${id}" style="
-        display:block;
-        margin-bottom:6px;
-        font-size:14px;
-        font-weight:700;
-        color:#0f172a;
-      ">${label}</label>
-
+      <label for="${id}" style="display:block; margin-bottom:6px; font-size:14px; font-weight:700; color:#0f172a;">${label}</label>
       <input
         id="${id}"
         ${enabled ? "" : "disabled"}
         placeholder="${placeholder}"
-        style="
-          width:100%;
-          height:46px;
-          padding:0 12px;
-          border:1px solid #cbd5e1;
-          border-radius:12px;
-          background:#ffffff;
-          color:#0f172a;
-          font-size:15px;
-          ${enabled ? "" : "opacity:0.55;"}
-        "
+        style="width:100%; height:46px; padding:0 12px; border:1px solid #cbd5e1; border-radius:12px; background:#ffffff; color:#0f172a; font-size:15px; ${enabled ? "" : "opacity:0.55;"}"
       />
     </div>
   `;
@@ -825,29 +542,12 @@ function fieldText(label, id, placeholder, enabled) {
 function fieldDate(label, id, enabled) {
   return `
     <div>
-      <label for="${id}" style="
-        display:block;
-        margin-bottom:6px;
-        font-size:14px;
-        font-weight:700;
-        color:#0f172a;
-      ">${label}</label>
-
+      <label for="${id}" style="display:block; margin-bottom:6px; font-size:14px; font-weight:700; color:#0f172a;">${label}</label>
       <input
         id="${id}"
         type="date"
         ${enabled ? "" : "disabled"}
-        style="
-          width:100%;
-          height:46px;
-          padding:0 12px;
-          border:1px solid #cbd5e1;
-          border-radius:12px;
-          background:#ffffff;
-          color:#0f172a;
-          font-size:15px;
-          ${enabled ? "" : "opacity:0.55;"}
-        "
+        style="width:100%; height:46px; padding:0 12px; border:1px solid #cbd5e1; border-radius:12px; background:#ffffff; color:#0f172a; font-size:15px; ${enabled ? "" : "opacity:0.55;"}"
       />
     </div>
   `;
@@ -856,63 +556,29 @@ function fieldDate(label, id, enabled) {
 function fieldTime(label, id, enabled) {
   return `
     <div>
-      <label for="${id}" style="
-        display:block;
-        margin-bottom:6px;
-        font-size:14px;
-        font-weight:700;
-        color:#0f172a;
-      ">${label}</label>
-
+      <label for="${id}" style="display:block; margin-bottom:6px; font-size:14px; font-weight:700; color:#0f172a;">${label}</label>
       <input
         id="${id}"
         type="time"
         ${enabled ? "" : "disabled"}
-        style="
-          width:100%;
-          height:46px;
-          padding:0 12px;
-          border:1px solid #cbd5e1;
-          border-radius:12px;
-          background:#ffffff;
-          color:#0f172a;
-          font-size:15px;
-          ${enabled ? "" : "opacity:0.55;"}
-        "
+        style="width:100%; height:46px; padding:0 12px; border:1px solid #cbd5e1; border-radius:12px; background:#ffffff; color:#0f172a; font-size:15px; ${enabled ? "" : "opacity:0.55;"}"
       />
     </div>
   `;
 }
 
-function fieldSelect(label, id, items, valueKey, textKey, enabled) {
+function fieldSelect(label, id, items, enabled) {
   return `
     <div>
-      <label for="${id}" style="
-        display:block;
-        margin-bottom:6px;
-        font-size:14px;
-        font-weight:700;
-        color:#0f172a;
-      ">${label}</label>
-
+      <label for="${id}" style="display:block; margin-bottom:6px; font-size:14px; font-weight:700; color:#0f172a;">${label}</label>
       <select
         id="${id}"
         ${enabled ? "" : "disabled"}
-        style="
-          width:100%;
-          height:46px;
-          padding:0 12px;
-          border:1px solid #cbd5e1;
-          border-radius:12px;
-          background:#ffffff;
-          color:#0f172a;
-          font-size:15px;
-          ${enabled ? "" : "opacity:0.55;"}
-        "
+        style="width:100%; height:46px; padding:0 12px; border:1px solid #cbd5e1; border-radius:12px; background:#ffffff; color:#0f172a; font-size:15px; ${enabled ? "" : "opacity:0.55;"}"
       >
-        ${items.map((item) => `
-          <option value="${item[valueKey]}">${escapeHtml(item[textKey])}</option>
-        `).join("")}
+        ${items.map((item) => {
+          return `<option value="${item.id}">${escapeHtml(item.nombre)}</option>`;
+        }).join("")}
       </select>
     </div>
   `;
@@ -928,15 +594,23 @@ function getColorEvento(evento) {
   return "#16a34a";
 }
 
+function getPriorityColor(prioridad) {
+  if (prioridad === "alta") return "#dc2626";
+  if (prioridad === "media") return "#d97706";
+  return "#64748b";
+}
+
 function sortEventos(a, b) {
-  const aa = `${a.fecha || "9999-12-31"} ${a.horaInicio || "23:59"}`;
-  const bb = `${b.fecha || "9999-12-31"} ${b.horaInicio || "23:59"}`;
+  const aa = (a.fecha || "9999-12-31") + " " + (a.horaInicio || "23:59");
+  const bb = (b.fecha || "9999-12-31") + " " + (b.horaInicio || "23:59");
   return aa.localeCompare(bb);
 }
 
 function formatFecha(fecha) {
-  const [y, m, d] = fecha.split("-");
-  return `${d}/${m}/${y}`;
+  if (!fecha) return "Sin fecha";
+  const parts = fecha.split("-");
+  if (parts.length !== 3) return fecha;
+  return parts[2] + "/" + parts[1] + "/" + parts[0];
 }
 
 function escapeHtml(texto) {
@@ -949,7 +623,7 @@ function escapeHtml(texto) {
 }
 
 function getCheckedValues(name) {
-  return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map((el) => el.value);
+  return Array.from(document.querySelectorAll('input[name="' + name + '"]:checked')).map((el) => el.value);
 }
 
 function refrescarAgenda() {
@@ -966,16 +640,16 @@ window.cambiarUsuarioAgenda = function () {
 };
 
 window.crearEventoAgendaUI = function () {
-  const titulo = document.getElementById("agendaTitulo")?.value.trim() || "";
-  const tipo = document.getElementById("agendaTipo")?.value || "otro";
-  const fecha = document.getElementById("agendaFecha")?.value || "";
-  const horaInicio = document.getElementById("agendaHoraInicio")?.value || "";
-  const horaFin = document.getElementById("agendaHoraFin")?.value || "";
-  const cliente = document.getElementById("agendaCliente")?.value.trim() || "";
-  const obra = document.getElementById("agendaObra")?.value.trim() || "";
-  const prioridad = document.getElementById("agendaPrioridad")?.value || "media";
-  const vehiculoId = document.getElementById("agendaVehiculo")?.value || "";
-  const notas = document.getElementById("agendaNotas")?.value.trim() || "";
+  const titulo = document.getElementById("agendaTitulo") ? document.getElementById("agendaTitulo").value.trim() : "";
+  const tipo = document.getElementById("agendaTipo") ? document.getElementById("agendaTipo").value : "otro";
+  const fecha = document.getElementById("agendaFecha") ? document.getElementById("agendaFecha").value : "";
+  const horaInicio = document.getElementById("agendaHoraInicio") ? document.getElementById("agendaHoraInicio").value : "";
+  const horaFin = document.getElementById("agendaHoraFin") ? document.getElementById("agendaHoraFin").value : "";
+  const cliente = document.getElementById("agendaCliente") ? document.getElementById("agendaCliente").value.trim() : "";
+  const obra = document.getElementById("agendaObra") ? document.getElementById("agendaObra").value.trim() : "";
+  const prioridad = document.getElementById("agendaPrioridad") ? document.getElementById("agendaPrioridad").value : "media";
+  const vehiculoId = document.getElementById("agendaVehiculo") ? document.getElementById("agendaVehiculo").value : "";
+  const notas = document.getElementById("agendaNotas") ? document.getElementById("agendaNotas").value.trim() : "";
 
   const personalIds = getCheckedValues("agendaPersonal");
   const herramientaIds = getCheckedValues("agendaHerramienta");
@@ -1008,4 +682,4 @@ window.borrarEventoAgendaUI = function (eventId) {
   deleteEventoAgenda(eventId);
   refrescarAgenda();
 };
-}
+
