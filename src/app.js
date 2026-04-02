@@ -11,10 +11,10 @@ const SESSION_KEY = "zentrix_session_user_v1";
 const USERS_KEY = "zentrix_users_v1";
 
 const defaultConfig = {
-  empresa: "Zentrix",
+  empresa: "Zentryx",
   tema: "claro",
   mostrarSegundos: true,
-  formato24h: true,
+  formato24h: true
 };
 
 const defaultUsers = [
@@ -24,7 +24,7 @@ const defaultUsers = [
     password: "1234",
     nombre: "Administrador",
     rol: "admin",
-    activo: true,
+    activo: true
   },
   {
     id: "u_encargado",
@@ -32,7 +32,7 @@ const defaultUsers = [
     password: "1234",
     nombre: "Encargado",
     rol: "encargado",
-    activo: true,
+    activo: true
   },
   {
     id: "u_operario1",
@@ -40,8 +40,8 @@ const defaultUsers = [
     password: "1234",
     nombre: "Operario 1",
     rol: "operario",
-    activo: true,
-  },
+    activo: true
+  }
 ];
 
 function ensureConfig() {
@@ -143,7 +143,7 @@ function renderLogin() {
           <label class="field-label" for="pass">Contraseña</label>
           <input id="pass" class="field-input" type="password" placeholder="1234" autocomplete="current-password" />
 
-          <button id="loginBtn" class="primary-btn">Entrar</button>
+          <button id="loginBtn" class="primary-btn" type="button">Entrar</button>
 
           <p id="loginMsg" class="login-msg"></p>
 
@@ -189,6 +189,7 @@ function renderLogin() {
   [userInput, passInput].forEach((input) => {
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
+        e.preventDefault();
         loginBtn.click();
       }
     });
@@ -323,20 +324,9 @@ function renderView(user) {
       return;
     }
 
-    if (state.view === "configuracion") {
-  if (user.rol !== "admin") {
-    container.innerHTML = `
-      <div class="panel-card">
-        <h3>Configuración</h3>
-        <p>No tienes permiso para acceder a esta sección.</p>
-      </div>
-    `;
+    container.innerHTML = renderConfiguracion();
     return;
   }
-
-  container.innerHTML = renderConfiguracion();
-  return;
-}
 
   container.innerHTML = `
     <div class="panel-card">
@@ -351,7 +341,7 @@ function getViewTitle() {
     inicio: "Inicio",
     agenda: "Agenda",
     personal: "Personal",
-    configuracion: "Configuración",
+    configuracion: "Configuración"
   };
 
   return titles[state.view] || "Inicio";
@@ -362,7 +352,7 @@ function getViewSubtitle(user) {
     inicio: `Panel principal de ${user.nombre}.`,
     agenda: "Planificación, revisiones, vacaciones y avisos.",
     personal: "Equipo, roles y permisos.",
-    configuracion: "Empresa, usuarios y ajustes generales.",
+    configuracion: "Empresa, usuarios y ajustes generales."
   };
 
   return subtitles[state.view] || "";
