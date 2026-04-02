@@ -1,106 +1,140 @@
-import {
-  getEventos,
-  addEvento,
-  toggleEvento,
-  deleteEvento,
-  getAgendaContexto
-} from "../agenda.js";
+let tareas = JSON.parse(localStorage.getItem("tareas")) || [];
 
 export function renderAgenda() {
-  const eventos = getEventos();
-  const ctx = getAgendaContexto();
-
-  setTimeout(() => {
-    window.crearEventoUI = () => {
-      const texto = document.getElementById("nuevaTarea").value;
-      const fecha = document.getElementById("fechaTarea").value;
-      const hora = document.getElementById("horaTarea").value;
-      const tipo = document.getElementById("tipoEvento").value;
-      const prioridad = document.getElementById("prioridadEvento").value;
-      const asignado = document.getElementById("asignadoEvento").value;
-      const objeto = document.getElementById("objetoEvento").value;
-
-      if (!texto) return;
-
-      addEvento({ texto, fecha, hora, tipo, prioridad, asignado, objeto });
-      location.reload();
-    };
-
-    window.toggleEventoUI = (id) => {
-      toggleEvento(id);
-      location.reload();
-    };
-
-    window.deleteEventoUI = (id) => {
-      deleteEvento(id);
-      location.reload();
-    };
-  }, 0);
-
   return `
-    <div class="panel-card">
-      <h3>Agenda</h3>
+    <div class="card">
+      <h2>Agenda</h2>
 
-      <div style="display:grid; gap:8px; max-width:420px;">
-        <input id="nuevaTarea" placeholder="Nueva tarea..." />
-        <input id="fechaTarea" type="date" />
-        <input id="horaTarea" type="time" />
+      <input id="titulo" placeholder="Nueva tarea..." />
 
-        <select id="tipoEvento">
-          ${ctx.tipos.map(t => `<option>${t}</option>`).join("")}
-        </select>
+      <input id="fecha" type="date" />
+      <input id="hora" type="time" />
 
-        <select id="prioridadEvento">
-          ${ctx.prioridades.map(p => `<option>${p}</option>`).join("")}
-        </select>
+      <select id="tipo">
+        <option value="trabajo">Trabajo</option>
+        <option value="herramienta">Revisión herramienta</option>
+        <option value="vehiculo">Revisión vehículo</option>
+        <option value="vacaciones">Vacaciones</option>
+        <option value="reunion">Reunión</option>
+        <option value="aviso">Aviso</option>
+      </select>
 
-        <select id="asignadoEvento">
-          ${ctx.personal.map(p => `<option>${p}</option>`).join("")}
-        </select>
+      <select id="prioridad">
+        <option value="alta">Alta</option>
+        <option value="media">Media</option>
+        <option value="baja">Baja</option>
+      </select>
 
-        <input id="objetoEvento" placeholder="Vehículo / herramienta (opcional)" />
+      <select id="usuario">
+        <option>Operario 1</option>
+        <option>Operario 2</option>
+        <option>Encargado</option>
+      </select>
 
-        <button onclick="crearEventoUI()">+ Añadir</button>
-      </div>
+      <input id="extra" placeholder="Vehículo / herramienta (opcional)" />
 
-      <ul style="margin-top:20px; padding:0; list-style:none;">
-        ${eventos.map(e => {
-          const color = e.prioridad === "Alta" ? "#e53935"
-                      : e.prioridad === "Media" ? "#fb8c00"
-                      : "#43a047";
+      <button onclick="crearTarea()">+ Añadir</button>
 
-          return `
-            <li style="
-              margin-bottom:12px;
-              padding:12px;
-              border-left:6px solid ${color};
-              border-radius:8px;
-              background:#f9f9f9;
-            ">
-              <div style="display:flex; justify-content:space-between;">
-                <div>
-                  <input type="checkbox"
-                    ${e.done ? "checked" : ""}
-                    onclick="toggleEventoUI(${e.id})"
-                  />
-
-                  <strong>${e.texto}</strong><br>
-
-                  <small>
-                    ${e.fecha || ""} ${e.hora || ""} |
-                    ${e.tipo} |
-                    ${e.asignado}
-                  </small>
-
-                  ${e.objeto ? `<div><small>${e.objeto}</small></div>` : ""}
-                </div>
-
-                <button onclick="deleteEventoUI(${e.id})">❌</button>
-              </div>
-            </li>
-          `;
-        }).join("")}
-      </ul>
+      <div id="lista"></div>
     </div>
   `;
 }
+
+window.crearTarea = function () {
+  const titulo = document.getElementById("titulo").value;
+  const fecha = document.getElementById("fecha").value;
+  const hora = document.getElementById("hora").value;
+  const tipo = document.getElementById("tipo").value;
+  const prioridad = document.getElementById("prioridad").value;
+  const usuario = document.getElementById("usuario").value;
+  const extra = document.getElementById("extra").value;
+
+  if (!titulo || !fecha) return;
+
+  tareas.push({
+    id: Date.now(),
+    titulo,
+    fecha,
+    hora,
+    tipo,
+    prioridad,
+    usuario,
+    extra,
+    done: false
+  });
+
+  guardar();
+  pintar();
+};
+
+window.toggleTarea = function (id) {
+  tareas = tareas.map(t =>
+    t.id === id ? { ...t, done: !t.done } : t
+  );
+  guardar();
+  pintar();
+};
+
+window.eliminarTarea = function (id) {
+  tareas = tareas.filter(t => t.id !== id);
+  guardar();
+  pintar();
+};
+
+function guardar() {
+  localStorage.setItem("tareas", JSON.stringify(tareas));
+}
+
+function getColorTipo(tipo) {
+  switch (tipo) {
+    case "trabajo": return "#3b82f6";
+    case "herramienta": return "#f59e0b";
+    case "vehiculo": return "#8b5cf6";
+    case "vacaciones": return "#10b981";
+    case "reunion": return "#ec4899";
+    case "aviso": return "#ef4444";
+    default: return "#999";
+  }
+}
+
+function pintar() {
+  const cont = document.getElementById("lista");
+  if (!cont) return;
+
+  cont.innerHTML = tareas.map(t => `
+    <div style="
+      border-left:6px solid ${getColorTipo(t.tipo)};
+      background:#fff;
+      margin:10px 0;
+      padding:12px;
+      border-radius:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    ">
+
+      <div>
+        <input type="checkbox" ${t.done ? "checked" : ""} onclick="toggleTarea(${t.id})" />
+
+        <strong style="margin-left:8px">${t.titulo}</strong><br>
+
+        <small>${t.fecha} ${t.hora || ""}</small><br>
+
+        <small>
+          ${t.usuario} · ${t.tipo} · ${t.prioridad}
+          ${t.extra ? " · " + t.extra : ""}
+        </small>
+      </div>
+
+      <button onclick="eliminarTarea(${t.id})" style="
+        background:red;
+        color:#fff;
+        border:none;
+        padding:6px 10px;
+        border-radius:6px;
+      ">X</button>
+    </div>
+  `).join("");
+}
+
+setTimeout(pintar, 0);
