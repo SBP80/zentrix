@@ -2,6 +2,7 @@ import { state } from "./core/state.js";
 import { getConfig, saveConfig } from "./core/storage.js";
 import { escapeHtml } from "./core/utils.js";
 import { renderInicio } from "./core/views/inicio.js";
+import { renderAgenda } from "./core/views/agenda.js";
 
 const app = document.getElementById("app");
 
@@ -151,6 +152,10 @@ function renderView() {
     container.innerHTML = renderInicio();
     return;
   }
+  if (state.view === "agenda") {
+  container.innerHTML = renderAgenda();
+  return;
+}
 
   container.innerHTML = `
     <div class="panel-card">
