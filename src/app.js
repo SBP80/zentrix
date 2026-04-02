@@ -127,11 +127,12 @@ function renderApp() {
     });
   });
 
-  document.getElementById("logoutBtn").addEventListener("click", () => {
-    state.logged = false;
-    state.menuOpen = false;
-    render();
-  });
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  state.logged = false;
+  state.menuOpen = false;
+  localStorage.removeItem("zentrix_logged");
+  render();
+});
 
   document.getElementById("menuToggle").addEventListener("click", () => {
     state.menuOpen = !state.menuOpen;
