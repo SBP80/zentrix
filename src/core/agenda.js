@@ -8,24 +8,30 @@ export function saveTareas(tareas) {
   localStorage.setItem(KEY, JSON.stringify(tareas));
 }
 
-export function addTarea(texto) {
+export function addTarea(texto, fecha = "", hora = "") {
   const tareas = getTareas();
+
   tareas.push({
     id: Date.now(),
     texto,
-    done: false
+    fecha,
+    hora,
+    done: false,
+    createdAt: new Date().toISOString(),
   });
+
   saveTareas(tareas);
 }
 
 export function toggleTarea(id) {
-  const tareas = getTareas().map(t =>
+  const tareas = getTareas().map((t) =>
     t.id === id ? { ...t, done: !t.done } : t
   );
+
   saveTareas(tareas);
 }
 
 export function deleteTarea(id) {
-  const tareas = getTareas().filter(t => t.id !== id);
+  const tareas = getTareas().filter((t) => t.id !== id);
   saveTareas(tareas);
 }
