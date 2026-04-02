@@ -14,15 +14,25 @@ export function renderAgenda() {
         <button onclick="crearTarea()">+ Añadir</button>
       </div>
 
-      <ul style="margin-top:20px;">
+      <ul style="margin-top:20px; padding-left:0;">
         ${tareas.map((t) => `
-          <li style="margin-bottom:10px;">
-            <input type="checkbox" ${t.done ? "checked" : ""} onclick="toggleTareaUI(${t.id})">
-            ${t.done ? "<s>" + t.texto + "</s>" : t.texto}
-            ${t.fecha ? " | " + t.fecha : ""}
-            ${t.hora ? " | " + t.hora : ""}
-            <button onclick="borrarTareaUI(${t.id})">❌</button>
-          </li>
+         <li style="margin-bottom:12px; padding:10px; border:1px solid #d8e1eb; border-radius:10px; list-style:none; background:#fff;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+    <div style="display:flex; align-items:flex-start; gap:10px;">
+      <input type="checkbox" ${t.done ? "checked" : ""} onclick="toggleTareaUI(${t.id})">
+      <div>
+        <div style="font-weight:600;">
+          ${t.done ? "<s>" + t.texto + "</s>" : t.texto}
+        </div>
+        <div style="font-size:13px; color:#5f7084; margin-top:4px;">
+          ${t.fecha ? t.fecha : "Sin fecha"} ${t.hora ? "· " + t.hora : ""}
+        </div>
+      </div>
+    </div>
+
+    <button onclick="borrarTareaUI(${t.id})">❌</button>
+  </div>
+</li>
         `).join("")}
       </ul>
     </div>
