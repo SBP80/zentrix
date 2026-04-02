@@ -1,66 +1,70 @@
-const KEY = "zentryx_agenda_v3";
+const KEY = "zentrix_agenda_eventos_v1";
 
-const USUARIOS = [
-  { id: 1, nombre: "Administrador", rol: "admin" },
-  { id: 2, nombre: "Encargado", rol: "encargado" },
-  { id: 3, nombre: "Operario 1", rol: "operario" },
-];
-
-const PERSONAL = ["Operario 1", "Encargado"];
-const TIPOS_EVENTO = ["Trabajo", "Revisión", "Vacaciones", "Reunión"];
-const PRIORIDADES = ["Alta", "Media", "Baja"];
-
-function load() {
-  return JSON.parse(localStorage.getItem(KEY)) || [];
+function loadEventos() {
+  try {
+    return JSON.parse(localStorage.getItem(KEY)) || [];
+  } catch (error) {
+    return [];
+  }
 }
 
-function save(data) {
-  localStorage.setItem(KEY, JSON.stringify(data));
-}
-
-function getUsuarioActivoAgenda() {
-  return USUARIOS[0];
-}
-
-function puedeVerEvento(usuario, evento) {
-  if (usuario.rol === "admin") return true;
-  if (usuario.rol === "encargado") return true;
-  return evento.asignado === usuario.nombre;
+function saveEventos(eventos) {
+  localStorage.setItem(KEY, JSON.stringify(eventos));
 }
 
 export function getAgendaContexto() {
   return {
-    usuarioActivo: getUsuarioActivoAgenda(),
-    personal: [...PERSONAL],
-    tipos: [...TIPOS_EVENTO],
-    prioridades: [...PRIORIDADES],
+    tipos: [
+      "Trabajo",
+      "Revisión herramienta",
+      "Revisión vehículo",
+      "Vacaciones",
+      "Reunión",
+      "Aviso"
+    ],
+    prioridades: ["Alta", "Media", "Baja"],
+    usuarios: ["Operario 1", "Operario 2", "Encargado"]
   };
 }
 
 export function getEventos() {
-  const usuario = getUsuarioActivoAgenda();
-  return load().filter(e => puedeVerEvento(usuario, e));
+  return loadEventos().sort((a, b) => {
+    const fa = `${a.fecha || ""} ${a.hora || ""}`;
+    const fb = `${b.fecha || ""} ${b.hora || ""}`;
+    return fa.localeCompare(fb);
+  });
 }
 
 export function addEvento(evento) {
-  const data = load();
+  const eventos = loadEventos();
 
-  data.push({
+  eventos.push({
     id: Date.now(),
-    ...evento,
+    titulo: String(evento.titulo || "").trim(),
+    fecha: evento.fecha || "",
+    hora: evento.hora || "",
+    tipo: evento.tipo || "Trabajo",
+    prioridad: evento.prioridad || "Media",
+    usuario: evento.usuario || "Operario 1",
+    extra: String(evento.extra || "").trim(),
     done: false
   });
 
-  save(data);
+  saveEventos(eventos);
 }
 
 export function toggleEvento(id) {
-  const data = load();
-  const item = data.find(e => e.id === id);
-  if (item) item.done = !item.done;
-  save(data);
+  const eventos = loadEventos().map((evento) => {
+    if (evento.id === id) {
+      return { ...evento, done: !evento.done };
+    }
+    return evento;
+  });
+
+  saveEventos(eventos);
 }
 
 export function deleteEvento(id) {
-  save(load().filter(e => e.id !== id));
+  const eventos = loadEventos().filter((evento) => evento.id !== id);
+  saveEventos(eventos);
 }
