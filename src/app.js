@@ -59,6 +59,16 @@ function renderLogin() {
       </div>
     </div>
   `;
+  const userInput = document.getElementById("user");
+const passInput = document.getElementById("pass");
+
+[userInput, passInput].forEach((input) => {
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      document.getElementById("loginBtn").click();
+    }
+  });
+});
 
   document.getElementById("loginBtn").addEventListener("click", () => {
     const user = document.getElementById("user").value.trim();
