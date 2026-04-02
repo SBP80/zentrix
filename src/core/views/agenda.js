@@ -11,55 +11,91 @@ export function renderAgenda() {
     <div class="panel-card">
       <h3>Agenda</h3>
 
-      <div style="display:grid; gap:10px; max-width:420px;">
+      <div style="display:grid; gap:10px; max-width:460px; margin-bottom:18px;">
         <input id="nuevaTarea" placeholder="Nueva tarea..." />
         <input id="fechaTarea" type="date" />
         <input id="horaTarea" type="time" />
         <button onclick="crearTarea()">+ Añadir</button>
       </div>
 
-      <ul style="margin-top:20px; padding-left:0;">
+      <ul style="margin:0; padding:0; list-style:none;">
         ${tareas.length ? tareas.map((t) => `
           <li style="
-            margin-bottom:12px;
-            padding:10px;
-            border-radius:10px;
-            list-style:none;
-            background:${getColorFondo(t)};
-            border-left:6px solid ${getColorBorde(t)};
-            border:1px solid #d8e1eb;
+            margin-bottom:14px;
+            padding:14px;
+            border:2px solid #2563eb;
+            border-left:10px solid ${getColorBorde(t)};
+            border-radius:14px;
+            background:#ffffff;
+            box-shadow:0 6px 16px rgba(15,23,42,0.08);
           ">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-              <div style="display:flex; align-items:flex-start; gap:10px;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+              <div style="display:flex; align-items:flex-start; gap:12px; flex:1;">
                 <input
                   type="checkbox"
                   ${t.done ? "checked" : ""}
                   onclick="toggleTareaUI(${t.id})"
+                  style="margin-top:5px; width:18px; height:18px;"
                 >
 
-                <div>
-                  <div style="font-weight:600;">
+                <div style="min-width:0; flex:1;">
+                  <div style="
+                    font-size:18px;
+                    font-weight:700;
+                    color:#0f172a;
+                    word-break:break-word;
+                  ">
                     ${t.done ? "<s>" + escapeHtml(t.texto) + "</s>" : escapeHtml(t.texto)}
                   </div>
 
-                  <div style="font-size:13px; color:#5f7084; margin-top:4px;">
-                    ${t.fecha ? t.fecha : "Sin fecha"}${t.hora ? " · " + t.hora : ""}
+                  <div style="
+                    margin-top:6px;
+                    font-size:14px;
+                    color:#475569;
+                  ">
+                    ${t.fecha ? formatFecha(t.fecha) : "Sin fecha"}${t.hora ? " · " + t.hora : ""}
+                  </div>
+
+                  <div style="margin-top:10px;">
+                    <span style="
+                      display:inline-block;
+                      padding:6px 10px;
+                      border-radius:999px;
+                      font-size:12px;
+                      font-weight:700;
+                      background:${getColorBorde(t)};
+                      color:#ffffff;
+                    ">
+                      ${getEstadoTexto(t)}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <button onclick="borrarTareaUI(${t.id})">❌</button>
+              <button
+                onclick="borrarTareaUI(${t.id})"
+                style="
+                  border:none;
+                  background:#dc2626;
+                  color:#ffffff;
+                  border-radius:10px;
+                  width:40px;
+                  height:40px;
+                  font-size:18px;
+                  font-weight:700;
+                  cursor:pointer;
+                  flex:0 0 auto;
+                "
+              >✕</button>
             </div>
           </li>
         `).join("") : `
           <li style="
-            margin-bottom:12px;
-            padding:10px;
-            border-radius:10px;
-            list-style:none;
-            background:#f8fafc;
+            padding:14px;
             border:1px dashed #cbd5e1;
+            border-radius:12px;
             color:#64748b;
+            background:#f8fafc;
           ">
             No hay tareas todavía.
           </li>
@@ -69,26 +105,31 @@ export function renderAgenda() {
   `;
 }
 
-function getColorFondo(t) {
-  if (t.done) return "#f3f4f6";
-  if (!t.fecha) return "#f3f4f6";
+function getEstadoTexto(t) {
+  if (t.done) return "Hecha";
+  if (!t.fecha) return "Sin fecha";
 
   const hoy = new Date().toISOString().split("T")[0];
 
-  if (t.fecha < hoy) return "#fee2e2";
-  if (t.fecha === hoy) return "#fef9c3";
-  return "#dcfce7";
+  if (t.fecha < hoy) return "Atrasada";
+  if (t.fecha === hoy) return "Hoy";
+  return "Próxima";
 }
 
 function getColorBorde(t) {
-  if (t.done) return "#9ca3af";
-  if (!t.fecha) return "#9ca3af";
+  if (t.done) return "#64748b";
+  if (!t.fecha) return "#6b7280";
 
   const hoy = new Date().toISOString().split("T")[0];
 
   if (t.fecha < hoy) return "#dc2626";
-  if (t.fecha === hoy) return "#ca8a04";
+  if (t.fecha === hoy) return "#d97706";
   return "#16a34a";
+}
+
+function formatFecha(fecha) {
+  const [y, m, d] = fecha.split("-");
+  return `${d}/${m}/${y}`;
 }
 
 function escapeHtml(texto) {
