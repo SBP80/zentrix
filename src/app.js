@@ -143,45 +143,21 @@ function renderApp() {
 
   renderView();
 }
-
 function renderView() {
   const container = document.getElementById("viewContainer");
   if (!container) return;
 
   if (state.view === "inicio") {
-  container.innerHTML = renderInicio();
-  return;
-}
-
-  if (state.view === "agenda") {
-    container.innerHTML = `
-      <div class="panel-card">
-        <h3>Agenda</h3>
-        <p>Esta vista irá luego a su archivo propio.</p>
-      </div>
-    `;
+    container.innerHTML = renderInicio();
     return;
   }
 
-  if (state.view === "personal") {
-    container.innerHTML = `
-      <div class="panel-card">
-        <h3>Personal</h3>
-        <p>Esta vista irá luego a su archivo propio.</p>
-      </div>
-    `;
-    return;
-  }
-
-  if (state.view === "configuracion") {
-    container.innerHTML = `
-      <div class="panel-card">
-        <h3>Configuración</h3>
-        <p>Esta vista irá luego a su archivo propio.</p>
-      </div>
-    `;
-    return;
-  }
+  container.innerHTML = `
+    <div class="panel-card">
+      <h3>${state.view}</h3>
+      <p>Vista en construcción.</p>
+    </div>
+  `;
 }
 
 function getViewTitle() {
