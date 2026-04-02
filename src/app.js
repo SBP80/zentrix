@@ -1,6 +1,7 @@
 import { state } from "./core/state.js";
 import { getConfig, saveConfig } from "./core/storage.js";
 import { escapeHtml } from "./core/utils.js";
+import { renderInicio } from "./core/views/inicio.js";
 
 const app = document.getElementById("app");
 
@@ -148,14 +149,9 @@ function renderView() {
   if (!container) return;
 
   if (state.view === "inicio") {
-    container.innerHTML = `
-      <div class="panel-card">
-        <h3>Inicio</h3>
-        <p>Base modular creada correctamente.</p>
-      </div>
-    `;
-    return;
-  }
+  container.innerHTML = renderInicio();
+  return;
+}
 
   if (state.view === "agenda") {
     container.innerHTML = `
