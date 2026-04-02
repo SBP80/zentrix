@@ -4,21 +4,10 @@ const USUARIOS = [
   { id: 1, nombre: "Administrador", rol: "admin" },
   { id: 2, nombre: "Encargado", rol: "encargado" },
   { id: 3, nombre: "Operario 1", rol: "operario" },
-  { id: 4, nombre: "Operario 2", rol: "operario" }
 ];
 
-const PERSONAL = ["Operario 1", "Operario 2", "Encargado"];
-const VEHICULOS = ["Furgoneta 1", "Furgoneta 2"];
-const HERRAMIENTAS = ["Taladro", "Bomba limpieza"];
-
-const TIPOS_EVENTO = [
-  "Trabajo",
-  "Revisión vehículo",
-  "Revisión herramienta",
-  "Vacaciones",
-  "Reunión"
-];
-
+const PERSONAL = ["Operario 1", "Encargado"];
+const TIPOS_EVENTO = ["Trabajo", "Revisión", "Vacaciones", "Reunión"];
 const PRIORIDADES = ["Alta", "Media", "Baja"];
 
 function load() {
@@ -30,27 +19,19 @@ function save(data) {
 }
 
 function getUsuarioActivoAgenda() {
-  return USUARIOS[0]; // de momento admin
+  return USUARIOS[0];
 }
 
 function puedeVerEvento(usuario, evento) {
   if (usuario.rol === "admin") return true;
   if (usuario.rol === "encargado") return true;
-
-  if (usuario.rol === "operario") {
-    return evento.asignado === usuario.nombre;
-  }
-
-  return false;
+  return evento.asignado === usuario.nombre;
 }
 
 export function getAgendaContexto() {
   return {
     usuarioActivo: getUsuarioActivoAgenda(),
-    usuarios: [...USUARIOS],
     personal: [...PERSONAL],
-    vehiculos: [...VEHICULOS],
-    herramientas: [...HERRAMIENTAS],
     tipos: [...TIPOS_EVENTO],
     prioridades: [...PRIORIDADES],
   };
@@ -66,13 +47,7 @@ export function addEvento(evento) {
 
   data.push({
     id: Date.now(),
-    texto: evento.texto,
-    fecha: evento.fecha,
-    hora: evento.hora,
-    tipo: evento.tipo,
-    prioridad: evento.prioridad,
-    asignado: evento.asignado,
-    objeto: evento.objeto || "",
+    ...evento,
     done: false
   });
 
