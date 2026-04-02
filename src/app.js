@@ -3,6 +3,7 @@ import { getConfig, saveConfig } from "./core/storage.js";
 import { escapeHtml } from "./core/utils.js";
 import { renderInicio } from "./core/views/inicio.js";
 import { renderAgenda } from "./core/views/agenda.js";
+import { renderConfiguracion } from "./core/views/configuracion.js";
 
 const app = document.getElementById("app");
 
@@ -322,14 +323,20 @@ function renderView(user) {
       return;
     }
 
+    if (state.view === "configuracion") {
+  if (user.rol !== "admin") {
     container.innerHTML = `
       <div class="panel-card">
         <h3>Configuración</h3>
-        <p>Módulo en preparación.</p>
+        <p>No tienes permiso para acceder a esta sección.</p>
       </div>
     `;
     return;
   }
+
+  container.innerHTML = renderConfiguracion();
+  return;
+}
 
   container.innerHTML = `
     <div class="panel-card">
