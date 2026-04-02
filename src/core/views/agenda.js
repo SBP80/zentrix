@@ -13,9 +13,9 @@ export function renderAgenda() {
       <ul style="margin-top:20px;">
         ${tareas.map(t => `
           <li>
-            <input type="checkbox" ${t.done ? "checked" : ""} onclick="toggle(${t.id})">
+            <input type="checkbox" ${t.done ? "checked" : ""} onclick="toggleTareaUI(${t.id})">
             ${t.done ? "<s>" + t.texto + "</s>" : t.texto}
-            <button onclick="borrar(${t.id})">❌</button>
+            <button onclick="borrarTareaUI(${t.id})">❌</button>
           </li>
         `).join("")}
       </ul>
@@ -23,19 +23,29 @@ export function renderAgenda() {
   `;
 }
 
+function refrescarAgenda() {
+  const container = document.getElementById("viewContainer");
+  if (!container) return;
+  container.innerHTML = renderAgenda();
+}
+
 window.crearTarea = function () {
   const input = document.getElementById("nuevaTarea");
-  if (!input.value) return;
-  addTarea(input.value);
-  location.reload();
+  if (!input) return;
+
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  addTarea(texto);
+  refrescarAgenda();
 };
 
-window.toggle = function (id) {
+window.toggleTareaUI = function (id) {
   toggleTarea(id);
-  location.reload();
+  refrescarAgenda();
 };
 
-window.borrar = function (id) {
+window.borrarTareaUI = function (id) {
   deleteTarea(id);
-  location.reload();
+  refrescarAgenda();
 };
