@@ -1,7 +1,11 @@
 import { getTareas, addTarea, toggleTarea, deleteTarea } from "../agenda.js";
 
 export function renderAgenda() {
-  const tareas = getTareas();
+  const tareas = getTareas().sort((a, b) => {
+    const fechaA = (a.fecha || "") + (a.hora || "");
+    const fechaB = (b.fecha || "") + (b.hora || "");
+    return fechaA.localeCompare(fechaB);
+  });
 
   return `
     <div class="panel-card">
