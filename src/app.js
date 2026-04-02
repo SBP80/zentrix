@@ -63,12 +63,13 @@ function renderLogin() {
   document.getElementById("loginBtn").addEventListener("click", () => {
     const user = document.getElementById("user").value.trim();
     const pass = document.getElementById("pass").value.trim();
-
-    if (user === "admin" && pass === "1234") {
-      state.logged = true;
-      render();
-      return;
-    }
+if (user === "admin" && pass === "1234") {
+  state.logged = true;
+  localStorage.setItem("zentrix_logged", "true");
+  render();
+  return;
+}
+ 
 
     document.getElementById("loginMsg").textContent = "Usuario o contraseña incorrectos.";
   });
