@@ -1,8 +1,8 @@
 import { db } from "../db.js";
 import { getDireccionTexto } from "../data/personal.js";
-import { calcularResumenAusencias } from "../data/ausencias.js";
+import { contarDiasEntreFechas } from "../data/ausencias.js";
 
-const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v4";
+const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v5";
 const PERSONAL_EDIT_KEY = "zentrix_personal_edit_id_v1";
 
 const MODULOS = [
@@ -263,9 +263,9 @@ function checkboxAccion(key, label, checked) {
 
 function renderTrabajador(t) {
   const direccion = getDireccionTexto(t.direccion);
-  const ausencias = db.ausencias.getByTrabajador(t.id);
-  const resumenAusencias = calcularResumenAusencias(t.id);
   const estadoColor = t.activo ? "#16a34a" : "#dc2626";
+  const ausencias = ordenarAusencias(db.ausencias.getByTrabajador(t.id));
+  const resumen = calcularResumenLocal(t.id, ausencias);
 
   return `
     <div style="
@@ -328,11 +328,11 @@ function renderTrabajador(t) {
           </div>
 
           <div style="font-size:12px; margin-top:8px; color:#475569;">
-            Vacaciones: ${escapeHtml(String(t.vacaciones?.disponibles ?? 0))} disponibles · ${escapeHtml(String(resumenAusencias.vacaciones))} usadas · ${escapeHtml(String((t.vacaciones?.disponibles ?? 0) - resumenAusencias.vacaciones))} restantes
+            Vacaciones: ${escapeHtml(String(t.vacaciones?.disponibles ?? 0))} disponibles · ${escapeHtml(String(resumen.vacaciones))} usadas · ${escapeHtml(String((t.vacaciones?.disponibles ?? 0) - resumen.vacaciones))} restantes
           </div>
 
           <div style="font-size:12px; margin-top:4px; color:#475569;">
-            Moscosos: ${escapeHtml(String(t.moscosos?.disponibles ?? 0))} disponibles · ${escapeHtml(String(resumenAusencias.moscosos))} usados · ${escapeHtml(String((t.moscosos?.disponibles ?? 0) - resumenAusencias.moscosos))} restantes
+            Moscosos: ${escapeHtml(String(t.moscosos?.disponibles ?? 0))} disponibles · ${escapeHtml(String(resumen.moscosos))} usados · ${escapeHtml(String((t.moscosos?.disponibles ?? 0) - resumen.moscosos))} restantes
           </div>
 
           <div style="margin-top:10px;">
@@ -350,14 +350,30 @@ function renderTrabajador(t) {
           </div>
 
           <div style="margin-top:14px;">
-            <div style="font-size:12px; font-weight:700; color:#334155; margin-bottom:8px;">
-              Ausencias
+            <div style="
+              display:flex;
+              justify-content:space-between;
+              gap:12px;
+              align-items:center;
+              margin-bottom:8px;
+              flex-wrap:wrap;
+            ">
+              <div style="font-size:12px; font-weight:700; color:#334155;">
+                Ausencias
+              </div>
+              <div style="font-size:12px; color:#64748b;">
+                ${ausencias.length} registradas
+              </div>
             </div>
 
             <div style="
               display:grid;
               gap:8px;
               margin-bottom:10px;
+              padding:12px;
+              border:1px solid #e2e8f0;
+              border-radius:10px;
+              background:#f8fafc;
             ">
               <div style="
                 display:grid;
@@ -435,6 +451,8 @@ function renderTrabajador(t) {
 
 function renderAusenciaItem(a) {
   const color = getColorAusencia(a.tipo);
+  const bg = getBgAusencia(a.tipo);
+  const dias = contarDiasEntreFechas(a.fechaInicio, a.fechaFin);
 
   return `
     <div style="
@@ -446,15 +464,53 @@ function renderAusenciaItem(a) {
       border:1px solid #e2e8f0;
       border-left:6px solid ${color};
       border-radius:10px;
-      background:#fff;
+      background:${bg};
     ">
       <div style="flex:1; min-width:0;">
-        <div style="font-size:13px; font-weight:700; color:#0f172a;">
-          ${escapeHtml(capitaliza(a.tipo))}
+        <div style="
+          display:flex;
+          gap:8px;
+          align-items:center;
+          flex-wrap:wrap;
+          margin-bottom:4px;
+        ">
+          <div style="font-size:13px; font-weight:700; color:#0f172a;">
+            ${escapeHtml(capitaliza(a.tipo))}
+          </div>
+
+          <span style="
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            padding:3px 8px;
+            border-radius:999px;
+            background:${getEstadoBg(a.estado)};
+            color:#fff;
+            font-size:11px;
+            font-weight:700;
+          ">
+            ${escapeHtml(capitaliza(a.estado || "pendiente"))}
+          </span>
+
+          <span style="
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            padding:3px 8px;
+            border-radius:999px;
+            background:#0f172a;
+            color:#fff;
+            font-size:11px;
+            font-weight:700;
+          ">
+            ${dias} día${dias === 1 ? "" : "s"}
+          </span>
         </div>
+
         <div style="font-size:12px; color:#475569; margin-top:4px;">
-          ${escapeHtml(a.fechaInicio || "-")} → ${escapeHtml(a.fechaFin || "-")}
+          ${formateaFecha(a.fechaInicio)} → ${formateaFecha(a.fechaFin)}
         </div>
+
         ${a.comentario ? `
           <div style="font-size:12px; color:#64748b; margin-top:4px;">
             ${escapeHtml(a.comentario)}
@@ -479,6 +535,43 @@ function getColorAusencia(tipo) {
   if (tipo === "moscoso") return "#2563eb";
   if (tipo === "baja") return "#dc2626";
   return "#d97706";
+}
+
+function getBgAusencia(tipo) {
+  if (tipo === "vacaciones") return "#f0fdf4";
+  if (tipo === "moscoso") return "#eff6ff";
+  if (tipo === "baja") return "#fef2f2";
+  return "#fffbeb";
+}
+
+function getEstadoBg(estado) {
+  if (estado === "aprobada") return "#16a34a";
+  if (estado === "rechazada") return "#dc2626";
+  return "#d97706";
+}
+
+function ordenarAusencias(lista) {
+  return [...lista].sort((a, b) => {
+    const da = new Date(a.fechaInicio || 0).getTime();
+    const dbb = new Date(b.fechaInicio || 0).getTime();
+    return da - dbb;
+  });
+}
+
+function calcularResumenLocal(trabajadorId, ausencias = null) {
+  const lista = Array.isArray(ausencias) ? ausencias : db.ausencias.getByTrabajador(trabajadorId);
+
+  let vacaciones = 0;
+  let moscosos = 0;
+
+  lista.forEach((a) => {
+    const dias = contarDiasEntreFechas(a.fechaInicio, a.fechaFin);
+
+    if (a.tipo === "vacaciones") vacaciones += dias;
+    if (a.tipo === "moscoso") moscosos += dias;
+  });
+
+  return { vacaciones, moscosos };
 }
 
 function renderPills(obj) {
@@ -607,6 +700,11 @@ function activarBotonesAusencias() {
 
       if (!fechaInicio || !fechaFin) {
         alert("Debes indicar fecha de inicio y fecha fin.");
+        return;
+      }
+
+      if (new Date(fechaFin) < new Date(fechaInicio)) {
+        alert("La fecha fin no puede ser menor que la fecha inicio.");
         return;
       }
 
@@ -800,6 +898,13 @@ function numero(id, defecto) {
   if (raw === "") return defecto;
   const n = Number(raw);
   return Number.isFinite(n) ? n : defecto;
+}
+
+function formateaFecha(fecha) {
+  if (!fecha) return "-";
+  const d = new Date(fecha);
+  if (isNaN(d)) return fecha;
+  return d.toLocaleDateString("es-ES");
 }
 
 function grid() {
