@@ -2,8 +2,9 @@ import { db } from "../db.js";
 import { getDireccionTexto } from "../data/personal.js";
 import { contarDiasEntreFechas } from "../data/ausencias.js";
 
-const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v5";
+const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v6";
 const PERSONAL_EDIT_KEY = "zentrix_personal_edit_id_v1";
+const PERSONAL_CALENDAR_KEY = "zentrix_personal_calendar_v1";
 
 const MODULOS = [
   ["inicio", "Inicio"],
@@ -24,13 +25,23 @@ const ACCIONES = [
   ["aprobar", "Aprobar"]
 ];
 
+const MESES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
+
+const DIAS_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
 export function renderPersonal() {
   const lista = db.personal.getAll();
   const draft = getDraft();
   const editId = localStorage.getItem(PERSONAL_EDIT_KEY) || "";
   const editTrabajador = editId ? lista.find((t) => String(t.id) === String(editId)) : null;
+  const calendarState = getCalendarState();
+  const ausencias = ordenarAusencias(db.ausencias.getAll());
 
   setTimeout(() => {
+    activarControlesCalendario();
     activarEventosFormulario();
     activarBotonesBorrado();
     activarBotonesEditar();
@@ -38,13 +49,16 @@ export function renderPersonal() {
   }, 0);
 
   return `
-    <div style="max-width:1200px; width:100%;">
+    <div style="max-width:1280px; width:100%;">
       <div class="panel-card">
         <h3 style="margin-top:0;">Personal</h3>
-        <p style="color:#64748b; margin-bottom:18px;">Gestión completa de trabajadores.</p>
+        <p style="color:#64748b; margin-bottom:18px;">Gestión completa de trabajadores y ausencias.</p>
+
+        ${renderCalendarioBloque(lista, ausencias, calendarState)}
 
         ${editTrabajador ? `
           <div style="
+            margin-top:18px;
             margin-bottom:14px;
             padding:12px;
             border:1px solid #bfdbfe;
@@ -57,7 +71,9 @@ export function renderPersonal() {
           </div>
         ` : ""}
 
-        ${formulario(draft, !!editTrabajador)}
+        <div style="margin-top:18px;">
+          ${formulario(draft, !!editTrabajador)}
+        </div>
 
         <div style="margin-top:24px; display:grid; gap:14px;">
           ${lista.length ? lista.map(renderTrabajador).join("") : `
@@ -72,6 +88,228 @@ export function renderPersonal() {
             </div>
           `}
         </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCalendarioBloque(trabajadores, ausencias, calendarState) {
+  const mes = Number(calendarState.mes);
+  const anio = Number(calendarState.anio);
+  const trabajadorId = calendarState.trabajadorId || "todos";
+
+  const primerDiaMes = new Date(anio, mes, 1);
+  const ultimoDiaMes = new Date(anio, mes + 1, 0);
+  const diasEnMes = ultimoDiaMes.getDate();
+
+  let inicioSemana = primerDiaMes.getDay();
+  inicioSemana = inicioSemana === 0 ? 7 : inicioSemana; // domingo = 7
+  const huecosInicio = inicioSemana - 1;
+
+  const trabajadoresMap = {};
+  trabajadores.forEach((t) => {
+    trabajadoresMap[String(t.id)] = t;
+  });
+
+  const celdas = [];
+
+  for (let i = 0; i < huecosInicio; i += 1) {
+    celdas.push(`
+      <div style="
+        min-height:128px;
+        border:1px solid #e2e8f0;
+        border-radius:10px;
+        background:#f8fafc;
+      "></div>
+    `);
+  }
+
+  for (let dia = 1; dia <= diasEnMes; dia += 1) {
+    const iso = toISODate(anio, mes, dia);
+    const itemsDia = filtrarAusenciasDelDia(ausencias, iso, trabajadorId);
+
+    celdas.push(`
+      <div style="
+        min-height:128px;
+        border:1px solid #e2e8f0;
+        border-radius:10px;
+        background:#fff;
+        padding:8px;
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+      ">
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:8px;
+        ">
+          <div style="
+            font-size:13px;
+            font-weight:800;
+            color:#0f172a;
+          ">
+            ${dia}
+          </div>
+          <div style="
+            font-size:11px;
+            color:#64748b;
+          ">
+            ${itemsDia.length ? itemsDia.length : ""}
+          </div>
+        </div>
+
+        <div style="display:grid; gap:6px;">
+          ${itemsDia.length ? itemsDia.slice(0, 4).map((a) => {
+            const t = trabajadoresMap[String(a.trabajadorId)];
+            const nombre = t?.nombre || "Trabajador";
+            const tipoColor = getColorAusencia(a.tipo);
+            const tipoBg = getBgAusencia(a.tipo);
+
+            return `
+              <div title="${escapeHtmlAttr(nombre)} · ${escapeHtmlAttr(capitaliza(a.tipo))}" style="
+                border-left:5px solid ${tipoColor};
+                background:${tipoBg};
+                color:#0f172a;
+                border-radius:8px;
+                padding:6px 8px;
+                font-size:11px;
+                line-height:1.2;
+              ">
+                <div style="font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                  ${escapeHtml(nombre)}
+                </div>
+                <div style="color:#475569; margin-top:2px;">
+                  ${escapeHtml(capitaliza(a.tipo))}
+                </div>
+              </div>
+            `;
+          }).join("") : `
+            <div style="
+              font-size:11px;
+              color:#cbd5e1;
+              padding-top:6px;
+            ">
+              —
+            </div>
+          `}
+
+          ${itemsDia.length > 4 ? `
+            <div style="
+              font-size:11px;
+              color:#475569;
+              font-weight:700;
+            ">
+              +${itemsDia.length - 4} más
+            </div>
+          ` : ""}
+        </div>
+      </div>
+    `);
+  }
+
+  return `
+    <div style="
+      border:1px solid #e2e8f0;
+      border-radius:14px;
+      background:#f8fafc;
+      padding:16px;
+    ">
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        gap:14px;
+        flex-wrap:wrap;
+        margin-bottom:14px;
+      ">
+        <div>
+          <div style="font-size:18px; font-weight:800; color:#0f172a;">
+            Calendario de ausencias
+          </div>
+          <div style="font-size:13px; color:#64748b; margin-top:4px;">
+            Vista mensual de vacaciones, moscosos, bajas y permisos.
+          </div>
+        </div>
+
+        <div style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+          gap:10px;
+          min-width:min(100%, 620px);
+          flex:1;
+        ">
+          <div>
+            <label for="calendarMes" style="${labelStyle()}">Mes</label>
+            <select id="calendarMes" style="${input(false)}">
+              ${MESES.map((m, i) => `<option value="${i}" ${i === mes ? "selected" : ""}>${escapeHtml(m)}</option>`).join("")}
+            </select>
+          </div>
+
+          <div>
+            <label for="calendarAnio" style="${labelStyle()}">Año</label>
+            <select id="calendarAnio" style="${input(false)}">
+              ${getYearsOptions(anio).map((y) => `<option value="${y}" ${y === anio ? "selected" : ""}>${y}</option>`).join("")}
+            </select>
+          </div>
+
+          <div>
+            <label for="calendarTrabajador" style="${labelStyle()}">Trabajador</label>
+            <select id="calendarTrabajador" style="${input(false)}">
+              <option value="todos" ${trabajadorId === "todos" ? "selected" : ""}>Todos</option>
+              ${trabajadores.map((t) => `
+                <option value="${escapeHtmlAttr(t.id)}" ${String(trabajadorId) === String(t.id) ? "selected" : ""}>
+                  ${escapeHtml(t.nombre)}
+                </option>
+              `).join("")}
+            </select>
+          </div>
+
+          <div style="display:flex; align-items:flex-end;">
+            <button id="calendarHoy" type="button" style="${btnSecundario()} width:100%;">
+              Ir a mes actual
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        margin-bottom:14px;
+      ">
+        ${legend("Vacaciones", "#16a34a", "#f0fdf4")}
+        ${legend("Moscoso", "#2563eb", "#eff6ff")}
+        ${legend("Baja", "#dc2626", "#fef2f2")}
+        ${legend("Permiso", "#d97706", "#fffbeb")}
+      </div>
+
+      <div style="
+        display:grid;
+        grid-template-columns:repeat(7, minmax(0, 1fr));
+        gap:8px;
+      ">
+        ${DIAS_SEMANA.map((d) => `
+          <div style="
+            text-align:center;
+            font-size:12px;
+            font-weight:800;
+            color:#334155;
+            padding:6px 0;
+          ">
+            ${escapeHtml(d)}
+          </div>
+        `).join("")}
+      </div>
+
+      <div style="
+        display:grid;
+        grid-template-columns:repeat(7, minmax(0, 1fr));
+        gap:8px;
+      ">
+        ${celdas.join("")}
       </div>
     </div>
   `;
@@ -489,7 +727,7 @@ function renderAusenciaItem(a) {
             font-size:11px;
             font-weight:700;
           ">
-            ${escapeHtml(capitaliza(a.estado || "pendiente"))}
+            ${escapeHtml(capitaliza(a.estado || "aprobada"))}
           </span>
 
           <span style="
@@ -530,6 +768,105 @@ function renderAusenciaItem(a) {
   `;
 }
 
+function activarControlesCalendario() {
+  document.getElementById("calendarMes")?.addEventListener("change", guardarEstadoCalendario);
+  document.getElementById("calendarAnio")?.addEventListener("change", guardarEstadoCalendario);
+  document.getElementById("calendarTrabajador")?.addEventListener("change", guardarEstadoCalendario);
+
+  document.getElementById("calendarHoy")?.addEventListener("click", () => {
+    const now = new Date();
+    saveCalendarState({
+      mes: now.getMonth(),
+      anio: now.getFullYear(),
+      trabajadorId: "todos"
+    });
+    refrescar();
+  });
+}
+
+function guardarEstadoCalendario() {
+  saveCalendarState({
+    mes: Number(document.getElementById("calendarMes")?.value || new Date().getMonth()),
+    anio: Number(document.getElementById("calendarAnio")?.value || new Date().getFullYear()),
+    trabajadorId: document.getElementById("calendarTrabajador")?.value || "todos"
+  });
+  refrescar();
+}
+
+function getCalendarState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PERSONAL_CALENDAR_KEY) || "{}");
+    const now = new Date();
+
+    return {
+      mes: Number.isFinite(saved.mes) ? saved.mes : now.getMonth(),
+      anio: Number.isFinite(saved.anio) ? saved.anio : now.getFullYear(),
+      trabajadorId: saved.trabajadorId || "todos"
+    };
+  } catch (error) {
+    const now = new Date();
+    return {
+      mes: now.getMonth(),
+      anio: now.getFullYear(),
+      trabajadorId: "todos"
+    };
+  }
+}
+
+function saveCalendarState(data) {
+  localStorage.setItem(PERSONAL_CALENDAR_KEY, JSON.stringify(data));
+}
+
+function getYearsOptions(currentYear) {
+  const years = [];
+  for (let y = currentYear - 2; y <= currentYear + 3; y += 1) {
+    years.push(y);
+  }
+  return years;
+}
+
+function filtrarAusenciasDelDia(lista, isoDate, trabajadorId) {
+  return lista.filter((a) => {
+    if (trabajadorId !== "todos" && String(a.trabajadorId) !== String(trabajadorId)) {
+      return false;
+    }
+    return fechaDentroDeRango(isoDate, a.fechaInicio, a.fechaFin);
+  });
+}
+
+function fechaDentroDeRango(fecha, inicio, fin) {
+  if (!fecha || !inicio || !fin) return false;
+  return fecha >= inicio && fecha <= fin;
+}
+
+function legend(texto, borderColor, bgColor) {
+  return `
+    <div style="
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid #e2e8f0;
+      font-size:12px;
+      color:#334155;
+      font-weight:700;
+    ">
+      <span style="
+        width:12px;
+        height:12px;
+        border-radius:999px;
+        background:${bgColor};
+        border:3px solid ${borderColor};
+        box-sizing:border-box;
+        display:inline-block;
+      "></span>
+      ${escapeHtml(texto)}
+    </div>
+  `;
+}
+
 function getColorAusencia(tipo) {
   if (tipo === "vacaciones") return "#16a34a";
   if (tipo === "moscoso") return "#2563eb";
@@ -566,7 +903,6 @@ function calcularResumenLocal(trabajadorId, ausencias = null) {
 
   lista.forEach((a) => {
     const dias = contarDiasEntreFechas(a.fechaInicio, a.fechaFin);
-
     if (a.tipo === "vacaciones") vacaciones += dias;
     if (a.tipo === "moscoso") moscosos += dias;
   });
@@ -905,6 +1241,12 @@ function formateaFecha(fecha) {
   const d = new Date(fecha);
   if (isNaN(d)) return fecha;
   return d.toLocaleDateString("es-ES");
+}
+
+function toISODate(anio, mes, dia) {
+  const m = String(mes + 1).padStart(2, "0");
+  const d = String(dia).padStart(2, "0");
+  return `${anio}-${m}-${d}`;
 }
 
 function grid() {
