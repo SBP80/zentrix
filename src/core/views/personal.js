@@ -6,6 +6,12 @@ import {
   getDireccionTexto
 } from "../data/personal.js";
 
+import {
+  getAusenciasByTrabajador,
+  addAusencia,
+  deleteAusencia
+} from "../data/ausencias.js";
+
 const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v4";
 const PERSONAL_EDIT_KEY = "zentrix_personal_edit_id_v1";
 
@@ -38,6 +44,7 @@ export function renderPersonal() {
     activarEventosFormulario();
     activarBotonesBorrado();
     activarBotonesEditar();
+    activarBotonesAusencias();
   }, 0);
 
   return `
@@ -266,6 +273,7 @@ function checkboxAccion(key, label, checked) {
 
 function renderTrabajador(t) {
   const direccion = getDireccionTexto(t.direccion);
+  const ausencias = getAusenciasByTrabajador(t.id);
   const estadoColor = t.activo ? "#16a34a" : "#dc2626";
 
   return `
@@ -349,6 +357,64 @@ function renderTrabajador(t) {
               ${renderPills(t.permisosAcciones)}
             </div>
           </div>
+
+          <div style="margin-top:14px;">
+            <div style="font-size:12px; font-weight:700; color:#334155; margin-bottom:8px;">
+              Ausencias
+            </div>
+
+            <div style="
+              display:grid;
+              gap:8px;
+              margin-bottom:10px;
+            ">
+              <div style="
+                display:grid;
+                grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+                gap:8px;
+              ">
+                <select id="aus_tipo_${escapeHtmlAttr(t.id)}" style="${input(false)}">
+                  <option value="vacaciones">Vacaciones</option>
+                  <option value="moscoso">Moscoso</option>
+                  <option value="baja">Baja</option>
+                  <option value="permiso">Permiso</option>
+                </select>
+
+                <input id="aus_inicio_${escapeHtmlAttr(t.id)}" type="date" style="${input(true)}" />
+                <input id="aus_fin_${escapeHtmlAttr(t.id)}" type="date" style="${input(true)}" />
+              </div>
+
+              <input
+                id="aus_comentario_${escapeHtmlAttr(t.id)}"
+                placeholder="Comentario opcional"
+                style="${input(false)}"
+              />
+
+              <button
+                type="button"
+                class="btn-add-ausencia"
+                data-id="${escapeHtmlAttr(t.id)}"
+                style="${btnMiniPrincipal()}"
+              >
+                + Añadir ausencia
+              </button>
+            </div>
+
+            <div style="display:grid; gap:8px;">
+              ${ausencias.length ? ausencias.map((a) => renderAusenciaItem(a)).join("") : `
+                <div style="
+                  padding:10px 12px;
+                  border:1px dashed #cbd5e1;
+                  border-radius:10px;
+                  background:#f8fafc;
+                  color:#64748b;
+                  font-size:13px;
+                ">
+                  Sin ausencias registradas.
+                </div>
+              `}
+            </div>
+          </div>
         </div>
 
         <div style="display:flex; gap:8px; flex:0 0 auto;">
@@ -374,6 +440,54 @@ function renderTrabajador(t) {
       </div>
     </div>
   `;
+}
+
+function renderAusenciaItem(a) {
+  const color = getColorAusencia(a.tipo);
+
+  return `
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      padding:10px 12px;
+      border:1px solid #e2e8f0;
+      border-left:6px solid ${color};
+      border-radius:10px;
+      background:#fff;
+    ">
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:13px; font-weight:700; color:#0f172a;">
+          ${escapeHtml(capitaliza(a.tipo))}
+        </div>
+        <div style="font-size:12px; color:#475569; margin-top:4px;">
+          ${escapeHtml(a.fechaInicio || "-")} → ${escapeHtml(a.fechaFin || "-")}
+        </div>
+        ${a.comentario ? `
+          <div style="font-size:12px; color:#64748b; margin-top:4px;">
+            ${escapeHtml(a.comentario)}
+          </div>
+        ` : ""}
+      </div>
+
+      <button
+        type="button"
+        class="btn-delete-ausencia"
+        data-id="${escapeHtmlAttr(a.id)}"
+        style="${btnDelete()}"
+      >
+        ✕
+      </button>
+    </div>
+  `;
+}
+
+function getColorAusencia(tipo) {
+  if (tipo === "vacaciones") return "#16a34a";
+  if (tipo === "moscoso") return "#2563eb";
+  if (tipo === "baja") return "#dc2626";
+  return "#d97706";
 }
 
 function renderPills(obj) {
@@ -486,6 +600,46 @@ function activarBotonesEditar() {
       localStorage.setItem(PERSONAL_EDIT_KEY, String(id));
       refrescar();
       window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+}
+
+function activarBotonesAusencias() {
+  document.querySelectorAll(".btn-add-ausencia").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const trabajadorId = btn.dataset.id;
+
+      const tipo = document.getElementById(`aus_tipo_${trabajadorId}`)?.value || "vacaciones";
+      const fechaInicio = document.getElementById(`aus_inicio_${trabajadorId}`)?.value || "";
+      const fechaFin = document.getElementById(`aus_fin_${trabajadorId}`)?.value || "";
+      const comentario = document.getElementById(`aus_comentario_${trabajadorId}`)?.value.trim() || "";
+
+      if (!fechaInicio || !fechaFin) {
+        alert("Debes indicar fecha de inicio y fecha fin.");
+        return;
+      }
+
+      addAusencia({
+        trabajadorId,
+        tipo,
+        fechaInicio,
+        fechaFin,
+        comentario,
+        estado: "aprobada"
+      });
+
+      refrescar();
+    });
+  });
+
+  document.querySelectorAll(".btn-delete-ausencia").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      const ok = window.confirm("Vas a borrar esta ausencia. ¿Confirmas?");
+      if (!ok) return;
+
+      deleteAusencia(id);
+      refrescar();
     });
   });
 }
@@ -758,6 +912,18 @@ function btnDelete() {
   `;
 }
 
+function btnMiniPrincipal() {
+  return `
+    padding:10px 14px;
+    background:#2563eb;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-weight:700;
+    cursor:pointer;
+  `;
+}
+
 function miniBtn(color) {
   return `
     padding:4px 8px;
@@ -788,6 +954,11 @@ function normalizaWhatsapp(telefono) {
   if (t.startsWith("+")) return t.slice(1);
   if (t.startsWith("34")) return t;
   return "34" + t;
+}
+
+function capitaliza(texto) {
+  const t = String(texto || "");
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
 }
 
 function escapeHtml(texto) {
