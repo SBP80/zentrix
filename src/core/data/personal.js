@@ -82,7 +82,8 @@ export function getPersonal() {
 }
 
 export function getTrabajadorById(id) {
-  return getPersonal().find((item) => item.id === id) || null;
+  const idTxt = String(id);
+  return getPersonal().find((item) => String(item.id) === idTxt) || null;
 }
 
 export function savePersonal(lista) {
@@ -142,8 +143,10 @@ export function addTrabajador(trabajador) {
 }
 
 export function updateTrabajador(id, cambios) {
+  const idTxt = String(id);
+
   const lista = getPersonal().map((item) => {
-    if (item.id !== id) return item;
+    if (String(item.id) !== idTxt) return item;
     return { ...item, ...cambios };
   });
 
@@ -151,7 +154,8 @@ export function updateTrabajador(id, cambios) {
 }
 
 export function deleteTrabajador(id) {
-  const lista = getPersonal().filter((item) => item.id !== id);
+  const idTxt = String(id);
+  const lista = getPersonal().filter((item) => String(item.id) !== idTxt);
   savePersonal(lista);
 }
 
