@@ -4,6 +4,7 @@ import { escapeHtml } from "./core/utils.js";
 import { renderInicio } from "./core/views/inicio.js";
 import { renderAgenda } from "./core/views/agenda.js";
 import { renderConfiguracion } from "./core/views/configuracion.js";
+import { renderPersonal } from "./core/views/personal.js";
 
 const app = document.getElementById("app");
 
@@ -304,14 +305,9 @@ function renderView(user) {
   }
 
   if (state.view === "personal") {
-    container.innerHTML = `
-      <div class="panel-card">
-        <h3>Personal</h3>
-        <p>Módulo en preparación.</p>
-      </div>
-    `;
-    return;
-  }
+  container.innerHTML = renderPersonal();
+  return;
+}
 
   if (state.view === "configuracion") {
     if (user.rol !== "admin") {
