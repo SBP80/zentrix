@@ -1,4 +1,5 @@
 const PERSONAL_KEY = "zentrix_personal_v2";
+const PERSONAL_INIT_KEY = "zentrix_personal_init_v1";
 
 const PERSONAL_DEMO = [
   {
@@ -59,26 +60,31 @@ const PERSONAL_DEMO = [
 ];
 
 function ensurePersonal() {
+  const initialized = localStorage.getItem(PERSONAL_INIT_KEY) === "true";
+
   try {
     const actual = JSON.parse(localStorage.getItem(PERSONAL_KEY) || "[]");
-    if (Array.isArray(actual) && actual.length) return actual;
+
+    if (Array.isArray(actual)) {
+      if (!initialized) {
+        localStorage.setItem(PERSONAL_KEY, JSON.stringify(PERSONAL_DEMO));
+        localStorage.setItem(PERSONAL_INIT_KEY, "true");
+        return PERSONAL_DEMO;
+      }
+
+      return actual;
+    }
   } catch (error) {
     // nada
   }
 
   localStorage.setItem(PERSONAL_KEY, JSON.stringify(PERSONAL_DEMO));
+  localStorage.setItem(PERSONAL_INIT_KEY, "true");
   return PERSONAL_DEMO;
 }
 
 export function getPersonal() {
-  ensurePersonal();
-
-  try {
-    const data = JSON.parse(localStorage.getItem(PERSONAL_KEY) || "[]");
-    return Array.isArray(data) ? data : [];
-  } catch (error) {
-    return [];
-  }
+  return ensurePersonal();
 }
 
 export function getTrabajadorById(id) {
@@ -87,7 +93,8 @@ export function getTrabajadorById(id) {
 }
 
 export function savePersonal(lista) {
-  localStorage.setItem(PERSONAL_KEY, JSON.stringify(lista));
+  localStorage.setItem(PERSONAL_KEY, JSON.stringify(Array.isArray(lista) ? lista : []));
+  localStorage.setItem(PERSONAL_INIT_KEY, "true");
 }
 
 export function addTrabajador(trabajador) {
