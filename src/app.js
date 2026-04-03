@@ -5,11 +5,11 @@ import { renderInicio } from "./core/views/inicio.js";
 import { renderAgenda } from "./core/views/agenda.js";
 import { renderConfiguracion } from "./core/views/configuracion.js";
 import { renderPersonal } from "./core/views/personal.js";
+import { getPersonal } from "./core/data/personal.js";
 
 const app = document.getElementById("app");
 
-const SESSION_KEY = "zentrix_session_user_v1";
-const USERS_KEY = "zentrix_users_v1";
+const SESSION_KEY = "zentrix_session_user_v2";
 
 const defaultConfig = {
   empresa: "Zentryx",
@@ -18,33 +18,6 @@ const defaultConfig = {
   formato24h: true
 };
 
-const defaultUsers = [
-  {
-    id: "u_admin",
-    username: "admin",
-    password: "1234",
-    nombre: "Administrador",
-    rol: "admin",
-    activo: true
-  },
-  {
-    id: "u_encargado",
-    username: "encargado",
-    password: "1234",
-    nombre: "Encargado",
-    rol: "encargado",
-    activo: true
-  },
-  {
-    id: "u_operario1",
-    username: "operario1",
-    password: "1234",
-    nombre: "Operario 1",
-    rol: "operario",
-    activo: true
-  }
-];
-
 function ensureConfig() {
   const current = getConfig() || {};
   const merged = { ...defaultConfig, ...current };
@@ -52,59 +25,46 @@ function ensureConfig() {
   return merged;
 }
 
-function ensureUsers() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-    if (Array.isArray(saved) && saved.length) return saved;
-  } catch (error) {
-    // nada
-  }
-
-  localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers));
-  return defaultUsers;
-}
-
-function getUsers() {
-  ensureUsers();
-  try {
-    return JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-  } catch (error) {
-    return [];
-  }
-}
-
 function getCurrentUser() {
   const sessionId = localStorage.getItem(SESSION_KEY);
   if (!sessionId) return null;
 
-  const user = getUsers().find((u) => u.id === sessionId && u.activo);
-  return user || null;
+  const personal = getPersonal();
+  return personal.find((p) => String(p.id) === String(sessionId) && p.activo !== false) || null;
 }
 
 function setCurrentUser(userId) {
-  localStorage.setItem(SESSION_KEY, userId);
+  localStorage.setItem(SESSION_KEY, String(userId));
 }
 
 function clearCurrentUser() {
   localStorage.removeItem(SESSION_KEY);
 }
 
-function getVisibleViewsByRole(role) {
-  if (role === "admin") {
-    return ["inicio", "agenda", "personal", "configuracion"];
-  }
-
-  if (role === "encargado") {
-    return ["inicio", "agenda", "personal"];
-  }
-
-  return ["inicio", "agenda"];
+function esAdmin(user) {
+  return user?.permisosModulos?.configuracion === true;
 }
 
-function getRoleLabel(role) {
-  if (role === "admin") return "Administrador";
-  if (role === "encargado") return "Encargado";
-  return "Operario";
+function tienePermisoModulo(user, modulo) {
+  if (!user) return false;
+  if (esAdmin(user)) return true;
+  return !!user?.permisosModulos?.[modulo];
+}
+
+function getVisibleViews(user) {
+  const views = [];
+
+  if (tienePermisoModulo(user, "inicio")) views.push("inicio");
+  if (tienePermisoModulo(user, "agenda")) views.push("agenda");
+  if (tienePermisoModulo(user, "personal")) views.push("personal");
+  if (tienePermisoModulo(user, "configuracion")) views.push("configuracion");
+
+  return views;
+}
+
+function getRoleLabel(user) {
+  if (esAdmin(user)) return "Administrador";
+  return user?.puesto || "Trabajador";
 }
 
 function render() {
@@ -122,7 +82,6 @@ function render() {
 
 function renderLogin() {
   const config = ensureConfig();
-  ensureUsers();
 
   app.innerHTML = `
     <div class="login-shell theme-${config.tema}">
@@ -139,21 +98,14 @@ function renderLogin() {
           <h2>Iniciar sesión</h2>
 
           <label class="field-label" for="user">Usuario</label>
-          <input id="user" class="field-input" placeholder="admin" autocomplete="username" />
+          <input id="user" class="field-input" placeholder="Usuario" autocomplete="username" />
 
           <label class="field-label" for="pass">Contraseña</label>
-          <input id="pass" class="field-input" type="password" placeholder="1234" autocomplete="current-password" />
+          <input id="pass" class="field-input" type="password" placeholder="Contraseña" autocomplete="current-password" />
 
           <button id="loginBtn" class="primary-btn" type="button">Entrar</button>
 
           <p id="loginMsg" class="login-msg"></p>
-
-          <div style="margin-top:14px; color:#64748b; font-size:13px; line-height:1.5;">
-            Usuarios iniciales:<br>
-            admin / 1234<br>
-            encargado / 1234<br>
-            operario1 / 1234
-          </div>
         </div>
       </div>
     </div>
@@ -165,14 +117,14 @@ function renderLogin() {
   const loginMsg = document.getElementById("loginMsg");
 
   function tryLogin() {
-    const username = userInput.value.trim();
+    const username = userInput.value.trim().toLowerCase();
     const password = passInput.value.trim();
 
-    const user = getUsers().find(
-      (u) =>
-        u.activo &&
-        u.username.toLowerCase() === username.toLowerCase() &&
-        u.password === password
+    const personal = getPersonal();
+    const user = personal.find((p) =>
+      p.activo !== false &&
+      String(p.usuario || "").trim().toLowerCase() === username &&
+      String(p.password || "") === password
     );
 
     if (!user) {
@@ -183,7 +135,14 @@ function renderLogin() {
     setCurrentUser(user.id);
     state.logged = true;
     state.menuOpen = false;
-    state.view = "inicio";
+
+    if (!tienePermisoModulo(user, "inicio")) {
+      const visibles = getVisibleViews(user);
+      state.view = visibles[0] || "inicio";
+    } else {
+      state.view = "inicio";
+    }
+
     render();
   }
 
@@ -201,10 +160,10 @@ function renderLogin() {
 
 function renderApp(user) {
   const config = ensureConfig();
-  const visibleViews = getVisibleViewsByRole(user.rol);
+  const visibleViews = getVisibleViews(user);
 
   if (!visibleViews.includes(state.view)) {
-    state.view = "inicio";
+    state.view = visibleViews[0] || "inicio";
   }
 
   app.innerHTML = `
@@ -221,7 +180,7 @@ function renderApp(user) {
           <div class="sidebar-logo">Z</div>
           <div class="sidebar-brand">
             <h2>${escapeHtml(config.empresa)}</h2>
-            <p>${escapeHtml(user.nombre)} · ${escapeHtml(getRoleLabel(user.rol))}</p>
+            <p>${escapeHtml(user.nombre || "")} · ${escapeHtml(getRoleLabel(user))}</p>
           </div>
         </div>
 
@@ -250,7 +209,10 @@ function renderApp(user) {
 
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      state.view = btn.dataset.view;
+      const nextView = btn.dataset.view;
+      if (!visibleViews.includes(nextView)) return;
+
+      state.view = nextView;
       state.menuOpen = false;
       render();
     });
@@ -294,6 +256,11 @@ function renderView(user) {
   const container = document.getElementById("viewContainer");
   if (!container) return;
 
+  if (!tienePermisoModulo(user, state.view)) {
+    const visibles = getVisibleViews(user);
+    state.view = visibles[0] || "inicio";
+  }
+
   if (state.view === "inicio") {
     container.innerHTML = renderInicio();
     return;
@@ -305,12 +272,12 @@ function renderView(user) {
   }
 
   if (state.view === "personal") {
-  container.innerHTML = renderPersonal();
-  return;
-}
+    container.innerHTML = renderPersonal();
+    return;
+  }
 
   if (state.view === "configuracion") {
-    if (user.rol !== "admin") {
+    if (!tienePermisoModulo(user, "configuracion")) {
       container.innerHTML = `
         <div class="panel-card">
           <h3>Configuración</h3>
@@ -345,7 +312,7 @@ function getViewTitle() {
 
 function getViewSubtitle(user) {
   const subtitles = {
-    inicio: `Panel principal de ${user.nombre}.`,
+    inicio: `Panel principal de ${user.nombre || "usuario"}.`,
     agenda: "Planificación, revisiones, vacaciones y avisos.",
     personal: "Equipo, roles y permisos.",
     configuracion: "Empresa, usuarios y ajustes generales."
