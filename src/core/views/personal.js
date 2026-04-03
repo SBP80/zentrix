@@ -5,7 +5,7 @@ import {
   getDireccionTexto
 } from "../data/personal.js";
 
-const PERSONAL_DRAFT_KEY = "zentryx_personal_draft_v1";
+const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v2";
 
 export function renderPersonal() {
   const lista = getPersonal();
@@ -14,28 +14,29 @@ export function renderPersonal() {
   setTimeout(() => {
     activarEventosFormulario();
     activarBotonesBorrado();
-    toggleOtroTipoVia();
   }, 0);
 
   return `
-    <div class="panel-card">
-      <h3>Personal</h3>
-      <p>Gestión completa de trabajadores.</p>
+    <div style="max-width:1200px; width:100%;">
+      <div class="panel-card">
+        <h3 style="margin-top:0;">Personal</h3>
+        <p style="color:#64748b; margin-bottom:18px;">Gestión completa de trabajadores.</p>
 
-      ${formulario(draft)}
+        ${formulario(draft)}
 
-      <div style="margin-top:20px; display:grid; gap:14px;">
-        ${lista.length ? lista.map(renderTrabajador).join("") : `
-          <div style="
-            padding:14px;
-            border:1px dashed #cbd5e1;
-            border-radius:12px;
-            color:#64748b;
-            background:#f8fafc;
-          ">
-            No hay trabajadores todavía.
-          </div>
-        `}
+        <div style="margin-top:24px; display:grid; gap:14px;">
+          ${lista.length ? lista.map(renderTrabajador).join("") : `
+            <div style="
+              padding:14px;
+              border:1px dashed #cbd5e1;
+              border-radius:12px;
+              color:#64748b;
+              background:#f8fafc;
+            ">
+              No hay trabajadores todavía.
+            </div>
+          `}
+        </div>
       </div>
     </div>
   `;
@@ -43,74 +44,153 @@ export function renderPersonal() {
 
 function formulario(draft) {
   return `
-    <div style="display:grid; gap:10px; margin-top:10px;">
-      <input id="nombre" placeholder="Nombre completo" value="${escapeHtmlAttr(draft.nombre)}" style="${input()}" />
-      <input id="usuario" placeholder="Usuario" value="${escapeHtmlAttr(draft.usuario)}" style="${input()}" />
-      <input id="password" placeholder="Contraseña" value="${escapeHtmlAttr(draft.password)}" style="${input()}" />
+    <div style="display:grid; gap:18px; margin-top:10px;">
+      ${bloque(
+        "Acceso",
+        `
+          <div style="${grid()}">
+            ${campoInput("Nombre completo", "nombre", draft.nombre)}
+            ${campoInput("Usuario", "usuario", draft.usuario)}
+            ${campoInput("Contraseña", "password", draft.password)}
+            ${campoInput("Puesto", "puesto", draft.puesto)}
+          </div>
+        `
+      )}
 
-      <input id="telefono" placeholder="Teléfono" value="${escapeHtmlAttr(draft.telefono)}" style="${input()}" />
-      <input id="email" placeholder="Email" value="${escapeHtmlAttr(draft.email)}" style="${input()}" />
+      ${bloque(
+        "Contacto",
+        `
+          <div style="${grid()}">
+            ${campoInput("Teléfono", "telefono", draft.telefono, 'inputmode="tel"')}
+            ${campoInput("Email", "email", draft.email, 'inputmode="email"')}
+            ${campoInput("DNI", "dni", draft.dni)}
+            ${campoInput("Seguridad Social", "nss", draft.nss)}
+          </div>
+        `
+      )}
 
-      <select id="tipoVia" style="${input()}">
-        ${renderTipoViaOptions(draft.tipoVia)}
-      </select>
+      ${bloque(
+        "Dirección",
+        `
+          <div style="${grid()}">
+            ${campoTipoVia(draft.tipoVia)}
+            ${campoInput("Nombre de la vía", "via", draft.via)}
+            ${campoInput("Número", "numero", draft.numero)}
+            ${campoInput("Portal", "portal", draft.portal)}
+            ${campoInput("Piso", "piso", draft.piso)}
+            ${campoInput("Puerta", "puerta", draft.puerta)}
+            ${campoInput("Código postal", "cp", draft.cp, 'inputmode="numeric"')}
+            ${campoInput("Población", "poblacion", draft.poblacion)}
+            ${campoInput("Provincia", "provincia", draft.provincia)}
+          </div>
+        `
+      )}
 
-      <input
-        id="tipoViaOtro"
-        placeholder="Escribe el tipo de vía"
-        value="${escapeHtmlAttr(draft.tipoViaOtro)}"
-        style="${input()} ${mostrarOtroTipoVia(draft.tipoVia) ? "" : "display:none;"}"
-      />
+      ${bloque(
+        "Datos laborales",
+        `
+          <div style="${grid()}">
+            ${campoInput("Fecha de alta", "fechaAlta", draft.fechaAlta, 'type="date"')}
+            ${campoInput("Vacaciones disponibles", "vacDisp", draft.vacDisp, 'inputmode="numeric"')}
+            ${campoInput("Vacaciones usadas", "vacUsadas", draft.vacUsadas, 'inputmode="numeric"')}
+            ${campoInput("Moscosos disponibles", "mosDisp", draft.mosDisp, 'inputmode="numeric"')}
+            ${campoInput("Moscosos usados", "mosUsados", draft.mosUsados, 'inputmode="numeric"')}
+          </div>
+        `
+      )}
 
-      <input id="via" placeholder="Nombre de la vía" value="${escapeHtmlAttr(draft.via)}" style="${input()}" />
-      <input id="numero" placeholder="Número" value="${escapeHtmlAttr(draft.numero)}" style="${input()}" />
-      <input id="portal" placeholder="Portal" value="${escapeHtmlAttr(draft.portal)}" style="${input()}" />
-      <input id="piso" placeholder="Piso" value="${escapeHtmlAttr(draft.piso)}" style="${input()}" />
-      <input id="puerta" placeholder="Puerta" value="${escapeHtmlAttr(draft.puerta)}" style="${input()}" />
-      <input id="cp" placeholder="Código postal" value="${escapeHtmlAttr(draft.cp)}" style="${input()}" />
-      <input id="poblacion" placeholder="Población" value="${escapeHtmlAttr(draft.poblacion)}" style="${input()}" />
-      <input id="provincia" placeholder="Provincia" value="${escapeHtmlAttr(draft.provincia)}" style="${input()}" />
-
-      <input id="dni" placeholder="DNI" value="${escapeHtmlAttr(draft.dni)}" style="${input()}" />
-      <input id="nss" placeholder="Seguridad Social" value="${escapeHtmlAttr(draft.nss)}" style="${input()}" />
-
-      <button id="btnCrear" type="button" style="${btn()}">+ Crear trabajador</button>
+      <div>
+        <button id="btnCrear" type="button" style="${btn()}">+ Crear trabajador</button>
+      </div>
     </div>
   `;
 }
 
-function renderTipoViaOptions(valorActual) {
-  const opciones = [
-    "",
-    "Calle",
-    "Avenida",
-    "Plaza",
-    "Camino",
-    "Carretera",
-    "Paseo",
-    "Ronda",
-    "Travesía",
-    "Urbanización",
-    "Polígono",
-    "Otro"
-  ];
+function bloque(titulo, contenido) {
+  return `
+    <div style="
+      padding:16px;
+      border:1px solid #e2e8f0;
+      border-radius:14px;
+      background:#f8fafc;
+    ">
+      <div style="
+        font-size:15px;
+        font-weight:700;
+        color:#0f172a;
+        margin-bottom:12px;
+      ">
+        ${escapeHtml(titulo)}
+      </div>
+      ${contenido}
+    </div>
+  `;
+}
 
-  return opciones.map(op => `
-    <option value="${escapeHtmlAttr(op)}" ${valorActual === op ? "selected" : ""}>
-      ${op || "Tipo de vía"}
-    </option>
-  `).join("");
+function campoInput(label, id, value, extra = "") {
+  const isDate = extra.includes('type="date"');
+  return `
+    <div style="min-width:0;">
+      <label for="${id}" style="${labelStyle()}">${escapeHtml(label)}</label>
+      <input
+        id="${id}"
+        value="${escapeHtmlAttr(value || "")}"
+        ${extra}
+        style="${input(isDate)}"
+      />
+    </div>
+  `;
+}
+
+function campoTipoVia(value) {
+  return `
+    <div style="min-width:0;">
+      <label for="tipoVia" style="${labelStyle()}">Tipo de vía</label>
+      <input
+        id="tipoVia"
+        list="tipoViaLista"
+        value="${escapeHtmlAttr(value || "")}"
+        placeholder="Calle, Avenida, Plaza..."
+        style="${input(false)}"
+      />
+      <datalist id="tipoViaLista">
+        <option value="Calle"></option>
+        <option value="Avenida"></option>
+        <option value="Plaza"></option>
+        <option value="Camino"></option>
+        <option value="Carretera"></option>
+        <option value="Paseo"></option>
+        <option value="Ronda"></option>
+        <option value="Travesía"></option>
+        <option value="Urbanización"></option>
+        <option value="Polígono"></option>
+      </datalist>
+    </div>
+  `;
 }
 
 function renderTrabajador(t) {
   const direccion = getDireccionTexto(t.direccion);
 
   return `
-    <div style="padding:14px; border:1px solid #ddd; border-radius:12px; background:#fff;">
-      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+    <div style="
+      padding:14px;
+      border:1px solid #ddd;
+      border-radius:12px;
+      background:#fff;
+    ">
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        gap:12px;
+        align-items:flex-start;
+      ">
         <div style="flex:1; min-width:0;">
           <strong style="font-size:18px;">${escapeHtml(t.nombre)}</strong>
-          <div style="font-size:13px; color:#666; margin-top:4px;">Usuario: ${escapeHtml(t.usuario || "-")}</div>
+
+          <div style="font-size:13px; color:#666; margin-top:4px;">
+            Usuario: ${escapeHtml(t.usuario || "-")} · ${escapeHtml(t.puesto || "-")}
+          </div>
 
           <div style="margin-top:8px;">
             ${t.telefono ? `
@@ -156,30 +236,24 @@ function renderTrabajador(t) {
 
 function activarEventosFormulario() {
   const ids = [
-    "nombre", "usuario", "password", "telefono", "email",
-    "tipoVia", "tipoViaOtro", "via", "numero", "portal",
-    "piso", "puerta", "cp", "poblacion", "provincia",
-    "dni", "nss"
+    "nombre", "usuario", "password", "puesto",
+    "telefono", "email", "dni", "nss",
+    "tipoVia", "via", "numero", "portal", "piso", "puerta", "cp", "poblacion", "provincia",
+    "fechaAlta", "vacDisp", "vacUsadas", "mosDisp", "mosUsados"
   ];
 
-  ids.forEach(id => {
+  ids.forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
-
     el.addEventListener("input", guardarDraftDesdeFormulario);
     el.addEventListener("change", guardarDraftDesdeFormulario);
-  });
-
-  document.getElementById("tipoVia")?.addEventListener("change", () => {
-    toggleOtroTipoVia();
-    guardarDraftDesdeFormulario();
   });
 
   document.getElementById("btnCrear")?.addEventListener("click", crearTrabajador);
 }
 
 function activarBotonesBorrado() {
-  document.querySelectorAll(".btn-delete").forEach(btn => {
+  document.querySelectorAll(".btn-delete").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.dataset.id;
       const nombre = btn.dataset.nombre || "este trabajador";
@@ -194,19 +268,15 @@ function activarBotonesBorrado() {
 }
 
 function crearTrabajador() {
-  const tipoViaSeleccionado = val("tipoVia");
-  const tipoViaFinal = tipoViaSeleccionado === "Otro"
-  ? (document.getElementById("tipoViaOtro")?.value.trim() || "")
-  : tipoViaSeleccionado;
-
   const data = {
     nombre: val("nombre"),
     usuario: val("usuario"),
     password: val("password"),
+    puesto: val("puesto"),
     telefono: val("telefono"),
     email: val("email"),
     direccion: {
-      tipoVia: tipoViaFinal,
+      tipoVia: val("tipoVia"),
       via: val("via"),
       numero: val("numero"),
       portal: val("portal"),
@@ -217,7 +287,16 @@ function crearTrabajador() {
       provincia: val("provincia")
     },
     dni: val("dni"),
-    nss: val("nss")
+    nss: val("nss"),
+    fechaAlta: val("fechaAlta"),
+    vacaciones: {
+      disponibles: numero("vacDisp", 30),
+      usadas: numero("vacUsadas", 0)
+    },
+    moscosos: {
+      disponibles: numero("mosDisp", 2),
+      usados: numero("mosUsados", 0)
+    }
   };
 
   if (!data.nombre) {
@@ -230,30 +309,15 @@ function crearTrabajador() {
   refrescar();
 }
 
-function toggleOtroTipoVia() {
-  const select = document.getElementById("tipoVia");
-  const otro = document.getElementById("tipoViaOtro");
-  if (!select || !otro) return;
-
-  if (select.value === "Otro") {
-    otro.style.display = "";
-    otro.disabled = false;
-    otro.focus();
-  } else {
-    otro.style.display = "none";
-    otro.disabled = true;
-  }
-}
-
 function guardarDraftDesdeFormulario() {
   const draft = {
     nombre: val("nombre"),
     usuario: val("usuario"),
     password: val("password"),
+    puesto: val("puesto"),
     telefono: val("telefono"),
     email: val("email"),
     tipoVia: val("tipoVia"),
-    tipoViaOtro: val("tipoViaOtro"),
     via: val("via"),
     numero: val("numero"),
     portal: val("portal"),
@@ -263,7 +327,12 @@ function guardarDraftDesdeFormulario() {
     poblacion: val("poblacion"),
     provincia: val("provincia"),
     dni: val("dni"),
-    nss: val("nss")
+    nss: val("nss"),
+    fechaAlta: val("fechaAlta"),
+    vacDisp: val("vacDisp"),
+    vacUsadas: val("vacUsadas"),
+    mosDisp: val("mosDisp"),
+    mosUsados: val("mosUsados")
   };
 
   localStorage.setItem(PERSONAL_DRAFT_KEY, JSON.stringify(draft));
@@ -276,10 +345,10 @@ function getDraft() {
       nombre: data.nombre || "",
       usuario: data.usuario || "",
       password: data.password || "",
+      puesto: data.puesto || "",
       telefono: data.telefono || "",
       email: data.email || "",
       tipoVia: data.tipoVia || "",
-      tipoViaOtro: data.tipoViaOtro || "",
       via: data.via || "",
       numero: data.numero || "",
       portal: data.portal || "",
@@ -289,28 +358,15 @@ function getDraft() {
       poblacion: data.poblacion || "",
       provincia: data.provincia || "",
       dni: data.dni || "",
-      nss: data.nss || ""
+      nss: data.nss || "",
+      fechaAlta: data.fechaAlta || "",
+      vacDisp: data.vacDisp || "",
+      vacUsadas: data.vacUsadas || "",
+      mosDisp: data.mosDisp || "",
+      mosUsados: data.mosUsados || ""
     };
   } catch (error) {
-    return {
-      nombre: "",
-      usuario: "",
-      password: "",
-      telefono: "",
-      email: "",
-      tipoVia: "",
-      tipoViaOtro: "",
-      via: "",
-      numero: "",
-      portal: "",
-      piso: "",
-      puerta: "",
-      cp: "",
-      poblacion: "",
-      provincia: "",
-      dni: "",
-      nss: ""
-    };
+    return {};
   }
 }
 
@@ -324,32 +380,94 @@ function refrescar() {
   container.innerHTML = renderPersonal();
 }
 
-function mostrarOtroTipoVia(tipoVia) {
-  return tipoVia === "Otro";
-}
-
 function val(id) {
   return document.getElementById(id)?.value.trim() || "";
 }
 
-function input() {
-  return "padding:10px;border:1px solid #ccc;border-radius:10px;";
+function numero(id, defecto) {
+  const raw = val(id);
+  if (raw === "") return defecto;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : defecto;
+}
+
+function grid() {
+  return `
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    gap:10px;
+  `;
+}
+
+function labelStyle() {
+  return `
+    display:block;
+    margin-bottom:6px;
+    font-size:13px;
+    font-weight:700;
+    color:#334155;
+  `;
+}
+
+function input(isDate = false) {
+  return `
+    width:100%;
+    min-width:0;
+    padding:${isDate ? "0 12px" : "10px 12px"};
+    height:46px;
+    border:1px solid #ccc;
+    border-radius:10px;
+    background:#fff;
+    box-sizing:border-box;
+  `;
 }
 
 function btn() {
-  return "padding:12px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;";
+  return `
+    padding:12px 18px;
+    background:#2563eb;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-weight:700;
+    cursor:pointer;
+  `;
 }
 
 function btnDelete() {
-  return "background:#dc2626;color:#fff;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;";
+  return `
+    background:#dc2626;
+    color:#fff;
+    border:none;
+    padding:8px 10px;
+    border-radius:8px;
+    cursor:pointer;
+  `;
 }
 
 function miniBtn(color) {
-  return `padding:4px 8px;background:${color};color:#fff;border-radius:6px;text-decoration:none;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;`;
+  return `
+    padding:4px 8px;
+    background:${color};
+    color:#fff;
+    border-radius:6px;
+    text-decoration:none;
+    font-size:12px;
+    font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  `;
 }
 
 function link() {
-  return "color:#2563eb;display:inline-block;margin-right:10px;text-decoration:none;font-weight:700;";
+  return `
+    color:#2563eb;
+    display:inline-block;
+    margin-right:10px;
+    text-decoration:none;
+    font-weight:700;
+  `;
 }
 
 function normalizaWhatsapp(telefono) {
