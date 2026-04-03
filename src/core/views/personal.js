@@ -2,18 +2,23 @@ import {
   getPersonal,
   addTrabajador,
   deleteTrabajador,
+  updateTrabajador,
   getDireccionTexto
 } from "../data/personal.js";
 
-const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v2";
+const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v3";
+const PERSONAL_EDIT_KEY = "zentrix_personal_edit_id_v1";
 
 export function renderPersonal() {
   const lista = getPersonal();
   const draft = getDraft();
+  const editId = localStorage.getItem(PERSONAL_EDIT_KEY) || "";
+  const editTrabajador = editId ? lista.find((t) => String(t.id) === String(editId)) : null;
 
   setTimeout(() => {
     activarEventosFormulario();
     activarBotonesBorrado();
+    activarBotonesEditar();
   }, 0);
 
   return `
@@ -22,7 +27,21 @@ export function renderPersonal() {
         <h3 style="margin-top:0;">Personal</h3>
         <p style="color:#64748b; margin-bottom:18px;">Gestión completa de trabajadores.</p>
 
-        ${formulario(draft)}
+        ${editTrabajador ? `
+          <div style="
+            margin-bottom:14px;
+            padding:12px;
+            border:1px solid #bfdbfe;
+            border-radius:12px;
+            background:#eff6ff;
+            color:#1e3a8a;
+            font-weight:700;
+          ">
+            Editando: ${escapeHtml(editTrabajador.nombre)}
+          </div>
+        ` : ""}
+
+        ${formulario(draft, !!editTrabajador)}
 
         <div style="margin-top:24px; display:grid; gap:14px;">
           ${lista.length ? lista.map(renderTrabajador).join("") : `
@@ -42,7 +61,7 @@ export function renderPersonal() {
   `;
 }
 
-function formulario(draft) {
+function formulario(draft, editando) {
   return `
     <div style="display:grid; gap:18px; margin-top:10px;">
       ${bloque(
@@ -99,8 +118,16 @@ function formulario(draft) {
         `
       )}
 
-      <div>
-        <button id="btnCrear" type="button" style="${btn()}">+ Crear trabajador</button>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button id="btnCrear" type="button" style="${btn()}">
+          ${editando ? "Guardar cambios" : "+ Crear trabajador"}
+        </button>
+
+        ${editando ? `
+          <button id="btnCancelarEdicion" type="button" style="${btnSecundario()}">
+            Cancelar edición
+          </button>
+        ` : ""}
       </div>
     </div>
   `;
@@ -218,17 +245,36 @@ function renderTrabajador(t) {
           <div style="font-size:12px; margin-top:8px; color:#475569;">
             DNI: ${escapeHtml(t.dni || "-")} | NSS: ${escapeHtml(t.nss || "-")}
           </div>
+
+          <div style="font-size:12px; margin-top:8px; color:#475569;">
+            Vacaciones: ${escapeHtml(String(t.vacaciones?.disponibles ?? 0))} disponibles · ${escapeHtml(String(t.vacaciones?.usadas ?? 0))} usadas
+          </div>
+
+          <div style="font-size:12px; margin-top:4px; color:#475569;">
+            Moscosos: ${escapeHtml(String(t.moscosos?.disponibles ?? 0))} disponibles · ${escapeHtml(String(t.moscosos?.usados ?? 0))} usados
+          </div>
         </div>
 
-        <button
-          class="btn-delete"
-          data-id="${escapeHtmlAttr(t.id)}"
-          data-nombre="${escapeHtmlAttr(t.nombre)}"
-          type="button"
-          style="${btnDelete()}"
-        >
-          ✕
-        </button>
+        <div style="display:flex; gap:8px; flex:0 0 auto;">
+          <button
+            class="btn-edit"
+            data-id="${escapeHtmlAttr(t.id)}"
+            type="button"
+            style="${btnEdit()}"
+          >
+            Editar
+          </button>
+
+          <button
+            class="btn-delete"
+            data-id="${escapeHtmlAttr(t.id)}"
+            data-nombre="${escapeHtmlAttr(t.nombre)}"
+            type="button"
+            style="${btnDelete()}"
+          >
+            ✕
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -249,7 +295,8 @@ function activarEventosFormulario() {
     el.addEventListener("change", guardarDraftDesdeFormulario);
   });
 
-  document.getElementById("btnCrear")?.addEventListener("click", crearTrabajador);
+  document.getElementById("btnCrear")?.addEventListener("click", guardarTrabajador);
+  document.getElementById("btnCancelarEdicion")?.addEventListener("click", cancelarEdicion);
 }
 
 function activarBotonesBorrado() {
@@ -267,7 +314,50 @@ function activarBotonesBorrado() {
   });
 }
 
-function crearTrabajador() {
+function activarBotonesEditar() {
+  document.querySelectorAll(".btn-edit").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      const lista = getPersonal();
+      const trabajador = lista.find((t) => String(t.id) === String(id));
+      if (!trabajador) return;
+
+      const d = trabajador.direccion || {};
+
+      const draft = {
+        nombre: trabajador.nombre || "",
+        usuario: trabajador.usuario || "",
+        password: trabajador.password || "",
+        puesto: trabajador.puesto || "",
+        telefono: trabajador.telefono || "",
+        email: trabajador.email || "",
+        tipoVia: d.tipoVia || "",
+        via: d.via || "",
+        numero: d.numero || "",
+        portal: d.portal || "",
+        piso: d.piso || "",
+        puerta: d.puerta || "",
+        cp: d.cp || "",
+        poblacion: d.poblacion || "",
+        provincia: d.provincia || "",
+        dni: trabajador.dni || "",
+        nss: trabajador.nss || "",
+        fechaAlta: trabajador.fechaAlta || "",
+        vacDisp: String(trabajador.vacaciones?.disponibles ?? 30),
+        vacUsadas: String(trabajador.vacaciones?.usadas ?? 0),
+        mosDisp: String(trabajador.moscosos?.disponibles ?? 2),
+        mosUsados: String(trabajador.moscosos?.usados ?? 0)
+      };
+
+      localStorage.setItem(PERSONAL_DRAFT_KEY, JSON.stringify(draft));
+      localStorage.setItem(PERSONAL_EDIT_KEY, String(id));
+      refrescar();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+}
+
+function guardarTrabajador() {
   const data = {
     nombre: val("nombre"),
     usuario: val("usuario"),
@@ -304,9 +394,27 @@ function crearTrabajador() {
     return;
   }
 
+  const editId = localStorage.getItem(PERSONAL_EDIT_KEY);
+
+  if (editId) {
+    const ok = window.confirm("Vas a guardar cambios en este trabajador. ¿Confirmas?");
+    if (!ok) return;
+
+    updateTrabajador(editId, data);
+    cancelarEdicion(false);
+    refrescar();
+    return;
+  }
+
   addTrabajador(data);
   clearDraft();
   refrescar();
+}
+
+function cancelarEdicion(refresca = true) {
+  localStorage.removeItem(PERSONAL_EDIT_KEY);
+  clearDraft();
+  if (refresca) refrescar();
 }
 
 function guardarDraftDesdeFormulario() {
@@ -431,6 +539,30 @@ function btn() {
     border-radius:10px;
     font-weight:700;
     cursor:pointer;
+  `;
+}
+
+function btnSecundario() {
+  return `
+    padding:12px 18px;
+    background:#64748b;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-weight:700;
+    cursor:pointer;
+  `;
+}
+
+function btnEdit() {
+  return `
+    background:#2563eb;
+    color:#fff;
+    border:none;
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:700;
   `;
 }
 
