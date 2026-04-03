@@ -195,7 +195,9 @@ function activarBotonesBorrado() {
 
 function crearTrabajador() {
   const tipoViaSeleccionado = val("tipoVia");
-  const tipoViaFinal = tipoViaSeleccionado === "Otro" ? val("tipoViaOtro") : tipoViaSeleccionado;
+  const tipoViaFinal = tipoViaSeleccionado === "Otro"
+  ? (document.getElementById("tipoViaOtro")?.value.trim() || "")
+  : tipoViaSeleccionado;
 
   const data = {
     nombre: val("nombre"),
@@ -233,7 +235,14 @@ function toggleOtroTipoVia() {
   const otro = document.getElementById("tipoViaOtro");
   if (!select || !otro) return;
 
-  otro.style.display = select.value === "Otro" ? "" : "none";
+  if (select.value === "Otro") {
+    otro.style.display = "";
+    otro.disabled = false;
+    otro.focus();
+  } else {
+    otro.style.display = "none";
+    otro.disabled = true;
+  }
 }
 
 function guardarDraftDesdeFormulario() {
