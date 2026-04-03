@@ -2,9 +2,10 @@ import { db } from "../db.js";
 import { getDireccionTexto } from "../data/personal.js";
 import { contarDiasEntreFechas } from "../data/ausencias.js";
 
-const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v6";
+const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v7";
 const PERSONAL_EDIT_KEY = "zentrix_personal_edit_id_v1";
 const PERSONAL_CALENDAR_KEY = "zentrix_personal_calendar_v1";
+const AUSENCIA_EDIT_KEY = "zentrix_ausencia_edit_id_v1";
 
 const MODULOS = [
   ["inicio", "Inicio"],
@@ -67,7 +68,7 @@ export function renderPersonal() {
             color:#1e3a8a;
             font-weight:700;
           ">
-            Editando: ${escapeHtml(editTrabajador.nombre)}
+            Editando trabajador: ${escapeHtml(editTrabajador.nombre)}
           </div>
         ` : ""}
 
@@ -103,7 +104,7 @@ function renderCalendarioBloque(trabajadores, ausencias, calendarState) {
   const diasEnMes = ultimoDiaMes.getDate();
 
   let inicioSemana = primerDiaMes.getDay();
-  inicioSemana = inicioSemana === 0 ? 7 : inicioSemana; // domingo = 7
+  inicioSemana = inicioSemana === 0 ? 7 : inicioSemana;
   const huecosInicio = inicioSemana - 1;
 
   const trabajadoresMap = {};
@@ -406,104 +407,12 @@ function formulario(draft, editando) {
   `;
 }
 
-function bloque(titulo, contenido) {
-  return `
-    <div style="
-      padding:16px;
-      border:1px solid #e2e8f0;
-      border-radius:14px;
-      background:#f8fafc;
-    ">
-      <div style="
-        font-size:15px;
-        font-weight:700;
-        color:#0f172a;
-        margin-bottom:12px;
-      ">
-        ${escapeHtml(titulo)}
-      </div>
-      ${contenido}
-    </div>
-  `;
-}
-
-function campoInput(label, id, value, extra = "") {
-  const isDate = extra.includes('type="date"');
-  return `
-    <div style="min-width:0;">
-      <label for="${id}" style="${labelStyle()}">${escapeHtml(label)}</label>
-      <input
-        id="${id}"
-        value="${escapeHtmlAttr(value || "")}"
-        ${extra}
-        style="${input(isDate)}"
-      />
-    </div>
-  `;
-}
-
-function campoTipoVia(value) {
-  return `
-    <div style="min-width:0;">
-      <label for="tipoVia" style="${labelStyle()}">Tipo de vía</label>
-      <input
-        id="tipoVia"
-        list="tipoViaLista"
-        value="${escapeHtmlAttr(value || "")}"
-        placeholder="Calle, Avenida, Plaza..."
-        style="${input(false)}"
-      />
-      <datalist id="tipoViaLista">
-        <option value="Calle"></option>
-        <option value="Avenida"></option>
-        <option value="Plaza"></option>
-        <option value="Camino"></option>
-        <option value="Carretera"></option>
-        <option value="Paseo"></option>
-        <option value="Ronda"></option>
-        <option value="Travesía"></option>
-        <option value="Urbanización"></option>
-        <option value="Polígono"></option>
-      </datalist>
-    </div>
-  `;
-}
-
-function campoSelectActivo(valor) {
-  return `
-    <div style="min-width:0;">
-      <label for="activo" style="${labelStyle()}">Estado</label>
-      <select id="activo" style="${input(false)}">
-        <option value="true" ${valor !== false ? "selected" : ""}>Activo</option>
-        <option value="false" ${valor === false ? "selected" : ""}>Inactivo</option>
-      </select>
-    </div>
-  `;
-}
-
-function checkboxModulo(key, label, checked) {
-  return `
-    <label style="${checkWrap()}">
-      <input type="checkbox" id="mod_${key}" ${checked ? "checked" : ""}>
-      <span>${escapeHtml(label)}</span>
-    </label>
-  `;
-}
-
-function checkboxAccion(key, label, checked) {
-  return `
-    <label style="${checkWrap()}">
-      <input type="checkbox" id="acc_${key}" ${checked ? "checked" : ""}>
-      <span>${escapeHtml(label)}</span>
-    </label>
-  `;
-}
-
 function renderTrabajador(t) {
   const direccion = getDireccionTexto(t.direccion);
   const estadoColor = t.activo ? "#16a34a" : "#dc2626";
   const ausencias = ordenarAusencias(db.ausencias.getByTrabajador(t.id));
   const resumen = calcularResumenLocal(t.id, ausencias);
+  const editAusenciaId = localStorage.getItem(AUSENCIA_EDIT_KEY) || "";
 
   return `
     <div style="
@@ -645,8 +554,12 @@ function renderTrabajador(t) {
               </button>
             </div>
 
+            ${editAusenciaId ? `
+              <div id="editAusenciaBox_${escapeHtmlAttr(t.id)}"></div>
+            ` : ""}
+
             <div style="display:grid; gap:8px;">
-              ${ausencias.length ? ausencias.map((a) => renderAusenciaItem(a)).join("") : `
+              ${ausencias.length ? ausencias.map((a) => renderAusenciaItem(a, t.id)).join("") : `
                 <div style="
                   padding:10px 12px;
                   border:1px dashed #cbd5e1;
@@ -687,83 +600,168 @@ function renderTrabajador(t) {
   `;
 }
 
-function renderAusenciaItem(a) {
+function renderAusenciaItem(a, trabajadorId) {
   const color = getColorAusencia(a.tipo);
   const bg = getBgAusencia(a.tipo);
   const dias = contarDiasEntreFechas(a.fechaInicio, a.fechaFin);
+  const editId = localStorage.getItem(AUSENCIA_EDIT_KEY) || "";
+  const editando = String(editId) === String(a.id);
 
   return `
     <div style="
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      align-items:flex-start;
-      padding:10px 12px;
-      border:1px solid #e2e8f0;
-      border-left:6px solid ${color};
-      border-radius:10px;
-      background:${bg};
+      display:grid;
+      gap:8px;
     ">
-      <div style="flex:1; min-width:0;">
-        <div style="
-          display:flex;
-          gap:8px;
-          align-items:center;
-          flex-wrap:wrap;
-          margin-bottom:4px;
-        ">
-          <div style="font-size:13px; font-weight:700; color:#0f172a;">
-            ${escapeHtml(capitaliza(a.tipo))}
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        gap:10px;
+        align-items:flex-start;
+        padding:10px 12px;
+        border:1px solid #e2e8f0;
+        border-left:6px solid ${color};
+        border-radius:10px;
+        background:${bg};
+      ">
+        <div style="flex:1; min-width:0;">
+          <div style="
+            display:flex;
+            gap:8px;
+            align-items:center;
+            flex-wrap:wrap;
+            margin-bottom:4px;
+          ">
+            <div style="font-size:13px; font-weight:700; color:#0f172a;">
+              ${escapeHtml(capitaliza(a.tipo))}
+            </div>
+
+            <span style="
+              display:inline-flex;
+              align-items:center;
+              justify-content:center;
+              padding:3px 8px;
+              border-radius:999px;
+              background:${getEstadoBg(a.estado)};
+              color:#fff;
+              font-size:11px;
+              font-weight:700;
+            ">
+              ${escapeHtml(capitaliza(a.estado || "aprobada"))}
+            </span>
+
+            <span style="
+              display:inline-flex;
+              align-items:center;
+              justify-content:center;
+              padding:3px 8px;
+              border-radius:999px;
+              background:#0f172a;
+              color:#fff;
+              font-size:11px;
+              font-weight:700;
+            ">
+              ${dias} día${dias === 1 ? "" : "s"}
+            </span>
           </div>
 
-          <span style="
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            padding:3px 8px;
-            border-radius:999px;
-            background:${getEstadoBg(a.estado)};
-            color:#fff;
-            font-size:11px;
-            font-weight:700;
-          ">
-            ${escapeHtml(capitaliza(a.estado || "aprobada"))}
-          </span>
-
-          <span style="
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            padding:3px 8px;
-            border-radius:999px;
-            background:#0f172a;
-            color:#fff;
-            font-size:11px;
-            font-weight:700;
-          ">
-            ${dias} día${dias === 1 ? "" : "s"}
-          </span>
-        </div>
-
-        <div style="font-size:12px; color:#475569; margin-top:4px;">
-          ${formateaFecha(a.fechaInicio)} → ${formateaFecha(a.fechaFin)}
-        </div>
-
-        ${a.comentario ? `
-          <div style="font-size:12px; color:#64748b; margin-top:4px;">
-            ${escapeHtml(a.comentario)}
+          <div style="font-size:12px; color:#475569; margin-top:4px;">
+            ${formateaFecha(a.fechaInicio)} → ${formateaFecha(a.fechaFin)}
           </div>
-        ` : ""}
+
+          ${a.comentario ? `
+            <div style="font-size:12px; color:#64748b; margin-top:4px;">
+              ${escapeHtml(a.comentario)}
+            </div>
+          ` : ""}
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button
+            type="button"
+            class="btn-edit-ausencia"
+            data-id="${escapeHtmlAttr(a.id)}"
+            data-trabajador="${escapeHtmlAttr(trabajadorId)}"
+            style="${btnEdit()}"
+          >
+            Editar
+          </button>
+
+          <button
+            type="button"
+            class="btn-delete-ausencia"
+            data-id="${escapeHtmlAttr(a.id)}"
+            style="${btnDelete()}"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
-      <button
-        type="button"
-        class="btn-delete-ausencia"
-        data-id="${escapeHtmlAttr(a.id)}"
-        style="${btnDelete()}"
-      >
-        ✕
-      </button>
+      ${editando ? renderEditorAusencia(a, trabajadorId) : ""}
+    </div>
+  `;
+}
+
+function renderEditorAusencia(a, trabajadorId) {
+  return `
+    <div style="
+      padding:12px;
+      border:1px solid #bfdbfe;
+      border-radius:10px;
+      background:#eff6ff;
+      display:grid;
+      gap:8px;
+    ">
+      <div style="
+        font-size:13px;
+        font-weight:800;
+        color:#1e3a8a;
+      ">
+        Editando ausencia
+      </div>
+
+      <div style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+        gap:8px;
+      ">
+        <select id="edit_aus_tipo_${escapeHtmlAttr(a.id)}" style="${input(false)}">
+          <option value="vacaciones" ${a.tipo === "vacaciones" ? "selected" : ""}>Vacaciones</option>
+          <option value="moscoso" ${a.tipo === "moscoso" ? "selected" : ""}>Moscoso</option>
+          <option value="baja" ${a.tipo === "baja" ? "selected" : ""}>Baja</option>
+          <option value="permiso" ${a.tipo === "permiso" ? "selected" : ""}>Permiso</option>
+        </select>
+
+        <input id="edit_aus_inicio_${escapeHtmlAttr(a.id)}" type="date" value="${escapeHtmlAttr(a.fechaInicio || "")}" style="${input(true)}" />
+        <input id="edit_aus_fin_${escapeHtmlAttr(a.id)}" type="date" value="${escapeHtmlAttr(a.fechaFin || "")}" style="${input(true)}" />
+      </div>
+
+      <input
+        id="edit_aus_comentario_${escapeHtmlAttr(a.id)}"
+        value="${escapeHtmlAttr(a.comentario || "")}"
+        placeholder="Comentario opcional"
+        style="${input(false)}"
+      />
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button
+          type="button"
+          class="btn-save-ausencia"
+          data-id="${escapeHtmlAttr(a.id)}"
+          style="${btnMiniPrincipal()}"
+        >
+          Guardar ausencia
+        </button>
+
+        <button
+          type="button"
+          class="btn-cancel-ausencia"
+          data-id="${escapeHtmlAttr(a.id)}"
+          style="${btnSecundario()}"
+        >
+          Cancelar
+        </button>
+      </div>
     </div>
   `;
 }
@@ -1064,6 +1062,56 @@ function activarBotonesAusencias() {
       if (!ok) return;
 
       db.ausencias.remove(id);
+      if (String(localStorage.getItem(AUSENCIA_EDIT_KEY) || "") === String(id)) {
+        localStorage.removeItem(AUSENCIA_EDIT_KEY);
+      }
+      refrescar();
+    });
+  });
+
+  document.querySelectorAll(".btn-edit-ausencia").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      localStorage.setItem(AUSENCIA_EDIT_KEY, String(btn.dataset.id));
+      refrescar();
+    });
+  });
+
+  document.querySelectorAll(".btn-cancel-ausencia").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      localStorage.removeItem(AUSENCIA_EDIT_KEY);
+      refrescar();
+    });
+  });
+
+  document.querySelectorAll(".btn-save-ausencia").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      const tipo = document.getElementById(`edit_aus_tipo_${id}`)?.value || "vacaciones";
+      const fechaInicio = document.getElementById(`edit_aus_inicio_${id}`)?.value || "";
+      const fechaFin = document.getElementById(`edit_aus_fin_${id}`)?.value || "";
+      const comentario = document.getElementById(`edit_aus_comentario_${id}`)?.value.trim() || "";
+
+      if (!fechaInicio || !fechaFin) {
+        alert("Debes indicar fecha de inicio y fecha fin.");
+        return;
+      }
+
+      if (new Date(fechaFin) < new Date(fechaInicio)) {
+        alert("La fecha fin no puede ser menor que la fecha inicio.");
+        return;
+      }
+
+      const ok = window.confirm("Vas a guardar cambios en esta ausencia. ¿Confirmas?");
+      if (!ok) return;
+
+      db.ausencias.update(id, {
+        tipo,
+        fechaInicio,
+        fechaFin,
+        comentario
+      });
+
+      localStorage.removeItem(AUSENCIA_EDIT_KEY);
       refrescar();
     });
   });
