@@ -1,57 +1,65 @@
-const AUSENCIAS_KEY = "zentrix_ausencias_v1";
+const KEY = "zentrix_ausencias_v1";
 
-function ensureAusencias() {
-  try {
-    const data = JSON.parse(localStorage.getItem(AUSENCIAS_KEY) || "[]");
-    if (Array.isArray(data)) return data;
-  } catch (error) {
-    // nada
-  }
-
-  localStorage.setItem(AUSENCIAS_KEY, JSON.stringify([]));
-  return [];
+// ===============================
+// BASE
+// ===============================
+function leer() {
+  return JSON.parse(localStorage.getItem(KEY) || "[]");
 }
 
+function guardar(data) {
+  localStorage.setItem(KEY, JSON.stringify(data));
+}
+
+// ===============================
+// CRUD
+// ===============================
 export function getAusencias() {
-  return ensureAusencias();
-}
-
-export function saveAusencias(lista) {
-  localStorage.setItem(AUSENCIAS_KEY, JSON.stringify(Array.isArray(lista) ? lista : []));
+  return leer();
 }
 
 export function getAusenciasByTrabajador(trabajadorId) {
-  return getAusencias().filter((item) => String(item.trabajadorId) === String(trabajadorId));
+  return leer().filter(a => a.trabajadorId === trabajadorId);
 }
 
-export function addAusencia(ausencia) {
-  const lista = getAusencias();
+export function addAusencia(data) {
+  const lista = leer();
 
-  lista.push({
-    id: "a_" + Date.now(),
-    trabajadorId: String(ausencia.trabajadorId || ""),
-    tipo: String(ausencia.tipo || "vacaciones").trim(), // vacaciones | moscoso | baja | permiso
-    fechaInicio: String(ausencia.fechaInicio || "").trim(),
-    fechaFin: String(ausencia.fechaFin || "").trim(),
-    estado: String(ausencia.estado || "aprobada").trim(), // pendiente | aprobada | rechazada
-    comentario: String(ausencia.comentario || "").trim()
-  });
+  const nueva = {
+    id: Date.now(),
+    trabajadorId: data.trabajadorId,
+    tipo: data.tipo, // vacaciones o moscoso
+    fechaInicio: data.fechaInicio,
+    fechaFin: data.fechaFin,
+    estado: "pendiente",
+    createdAt: new Date().toISOString()
+  };
 
-  saveAusencias(lista);
-}
+  lista.push(nueva);
+  guardar(lista);
 
-export function deleteAusencia(id) {
-  const lista = getAusencias().filter((item) => String(item.id) !== String(id));
-  saveAusencias(lista);
+  return nueva;
 }
 
 export function updateAusencia(id, cambios) {
-  const lista = getAusencias().map((item) => {
-    if (String(item.id) !== String(id)) return item;
-    return { ...item, ...cambios };
-  });
+  const lista = leer();
 
-  saveAusencias(lista);export function contarDiasEntreFechas(inicio, fin) {
+  const nueva = lista.map(a =>
+    a.id === id ? { ...a, ...cambios } : a
+  );
+
+  guardar(nueva);
+}
+
+export function deleteAusencia(id) {
+  const lista = leer().filter(a => a.id !== id);
+  guardar(lista);
+}
+
+// ===============================
+// LÓGICA DE DÍAS
+// ===============================
+export function contarDiasEntreFechas(inicio, fin) {
   if (!inicio || !fin) return 0;
 
   const d1 = new Date(inicio);
@@ -63,17 +71,19 @@ export function updateAusencia(id, cambios) {
 
   if (diff < 0) return 0;
 
-  // +1 porque cuenta ambos días
   return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
 }
 
+// ===============================
+// RESUMEN AUTOMÁTICO
+// ===============================
 export function calcularResumenAusencias(trabajadorId) {
   const lista = getAusenciasByTrabajador(trabajadorId);
 
   let vacaciones = 0;
   let moscosos = 0;
 
-  lista.forEach((a) => {
+  lista.forEach(a => {
     if (a.estado !== "aprobada") return;
 
     const dias = contarDiasEntreFechas(a.fechaInicio, a.fechaFin);
@@ -91,5 +101,4 @@ export function calcularResumenAusencias(trabajadorId) {
     vacaciones,
     moscosos
   };
-}
 }
