@@ -19,7 +19,7 @@ export function getAusencias() {
 }
 
 export function getAusenciasByTrabajador(trabajadorId) {
-  return leer().filter(a => a.trabajadorId === trabajadorId);
+  return leer().filter(a => String(a.trabajadorId) === String(trabajadorId));
 }
 
 export function addAusencia(data) {
@@ -28,10 +28,11 @@ export function addAusencia(data) {
   const nueva = {
     id: Date.now(),
     trabajadorId: data.trabajadorId,
-    tipo: data.tipo, // vacaciones o moscoso
+    tipo: data.tipo || "vacaciones",
     fechaInicio: data.fechaInicio,
     fechaFin: data.fechaFin,
-    estado: "pendiente",
+    comentario: data.comentario || "",
+    estado: data.estado || "aprobada",
     createdAt: new Date().toISOString()
   };
 
@@ -45,14 +46,14 @@ export function updateAusencia(id, cambios) {
   const lista = leer();
 
   const nueva = lista.map(a =>
-    a.id === id ? { ...a, ...cambios } : a
+    String(a.id) === String(id) ? { ...a, ...cambios } : a
   );
 
   guardar(nueva);
 }
 
 export function deleteAusencia(id) {
-  const lista = leer().filter(a => a.id !== id);
+  const lista = leer().filter(a => String(a.id) !== String(id));
   guardar(lista);
 }
 
@@ -75,7 +76,7 @@ export function contarDiasEntreFechas(inicio, fin) {
 }
 
 // ===============================
-// RESUMEN AUTOMÁTICO
+// RESUMEN AUTOMÁTICO (CORREGIDO)
 // ===============================
 export function calcularResumenAusencias(trabajadorId) {
   const lista = getAusenciasByTrabajador(trabajadorId);
@@ -84,8 +85,6 @@ export function calcularResumenAusencias(trabajadorId) {
   let moscosos = 0;
 
   lista.forEach(a => {
-    if (a.estado !== "aprobada") return;
-
     const dias = contarDiasEntreFechas(a.fechaInicio, a.fechaFin);
 
     if (a.tipo === "vacaciones") {
