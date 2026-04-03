@@ -1,5 +1,6 @@
 import { db } from "../db.js";
 import { getDireccionTexto } from "../data/personal.js";
+import { calcularResumenAusencias } from "../data/ausencias.js";
 
 const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v4";
 const PERSONAL_EDIT_KEY = "zentrix_personal_edit_id_v1";
@@ -263,6 +264,7 @@ function checkboxAccion(key, label, checked) {
 function renderTrabajador(t) {
   const direccion = getDireccionTexto(t.direccion);
   const ausencias = db.ausencias.getByTrabajador(t.id);
+  const resumenAusencias = calcularResumenAusencias(t.id);
   const estadoColor = t.activo ? "#16a34a" : "#dc2626";
 
   return `
@@ -326,11 +328,11 @@ function renderTrabajador(t) {
           </div>
 
           <div style="font-size:12px; margin-top:8px; color:#475569;">
-            Vacaciones: ${escapeHtml(String(t.vacaciones?.disponibles ?? 0))} disponibles · ${escapeHtml(String(t.vacaciones?.usadas ?? 0))} usadas
+            Vacaciones: ${escapeHtml(String(t.vacaciones?.disponibles ?? 0))} disponibles · ${escapeHtml(String(resumenAusencias.vacaciones))} usadas · ${escapeHtml(String((t.vacaciones?.disponibles ?? 0) - resumenAusencias.vacaciones))} restantes
           </div>
 
           <div style="font-size:12px; margin-top:4px; color:#475569;">
-            Moscosos: ${escapeHtml(String(t.moscosos?.disponibles ?? 0))} disponibles · ${escapeHtml(String(t.moscosos?.usados ?? 0))} usados
+            Moscosos: ${escapeHtml(String(t.moscosos?.disponibles ?? 0))} disponibles · ${escapeHtml(String(resumenAusencias.moscosos))} usados · ${escapeHtml(String((t.moscosos?.disponibles ?? 0) - resumenAusencias.moscosos))} restantes
           </div>
 
           <div style="margin-top:10px;">
