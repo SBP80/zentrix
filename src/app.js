@@ -8,7 +8,6 @@ import { renderPersonal } from "./core/views/personal.js";
 import { getPersonal } from "./core/data/personal.js";
 
 const app = document.getElementById("app");
-
 const SESSION_KEY = "zentrix_session_user_v2";
 
 const defaultConfig = {
