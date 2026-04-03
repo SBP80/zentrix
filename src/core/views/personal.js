@@ -6,8 +6,27 @@ import {
   getDireccionTexto
 } from "../data/personal.js";
 
-const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v3";
+const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v4";
 const PERSONAL_EDIT_KEY = "zentrix_personal_edit_id_v1";
+
+const MODULOS = [
+  ["inicio", "Inicio"],
+  ["agenda", "Agenda"],
+  ["personal", "Personal"],
+  ["configuracion", "Configuración"],
+  ["vehiculos", "Vehículos"],
+  ["herramientas", "Herramientas"],
+  ["clientes", "Clientes"],
+  ["obras", "Obras"]
+];
+
+const ACCIONES = [
+  ["verTodo", "Ver todo"],
+  ["crear", "Crear"],
+  ["editar", "Editar"],
+  ["borrar", "Borrar"],
+  ["aprobar", "Aprobar"]
+];
 
 export function renderPersonal() {
   const lista = getPersonal();
@@ -72,6 +91,7 @@ function formulario(draft, editando) {
             ${campoInput("Usuario", "usuario", draft.usuario)}
             ${campoInput("Contraseña", "password", draft.password)}
             ${campoInput("Puesto", "puesto", draft.puesto)}
+            ${campoSelectActivo(draft.activo)}
           </div>
         `
       )}
@@ -114,6 +134,24 @@ function formulario(draft, editando) {
             ${campoInput("Vacaciones usadas", "vacUsadas", draft.vacUsadas, 'inputmode="numeric"')}
             ${campoInput("Moscosos disponibles", "mosDisp", draft.mosDisp, 'inputmode="numeric"')}
             ${campoInput("Moscosos usados", "mosUsados", draft.mosUsados, 'inputmode="numeric"')}
+          </div>
+        `
+      )}
+
+      ${bloque(
+        "Permisos por módulos",
+        `
+          <div style="${gridChecks()}">
+            ${MODULOS.map(([key, label]) => checkboxModulo(key, label, draft.permisosModulos?.[key])).join("")}
+          </div>
+        `
+      )}
+
+      ${bloque(
+        "Permisos por acciones",
+        `
+          <div style="${gridChecks()}">
+            ${ACCIONES.map(([key, label]) => checkboxAccion(key, label, draft.permisosAcciones?.[key])).join("")}
           </div>
         `
       )}
@@ -196,8 +234,39 @@ function campoTipoVia(value) {
   `;
 }
 
+function campoSelectActivo(valor) {
+  return `
+    <div style="min-width:0;">
+      <label for="activo" style="${labelStyle()}">Estado</label>
+      <select id="activo" style="${input(false)}">
+        <option value="true" ${valor !== false ? "selected" : ""}>Activo</option>
+        <option value="false" ${valor === false ? "selected" : ""}>Inactivo</option>
+      </select>
+    </div>
+  `;
+}
+
+function checkboxModulo(key, label, checked) {
+  return `
+    <label style="${checkWrap()}">
+      <input type="checkbox" id="mod_${key}" ${checked ? "checked" : ""}>
+      <span>${escapeHtml(label)}</span>
+    </label>
+  `;
+}
+
+function checkboxAccion(key, label, checked) {
+  return `
+    <label style="${checkWrap()}">
+      <input type="checkbox" id="acc_${key}" ${checked ? "checked" : ""}>
+      <span>${escapeHtml(label)}</span>
+    </label>
+  `;
+}
+
 function renderTrabajador(t) {
   const direccion = getDireccionTexto(t.direccion);
+  const estadoColor = t.activo ? "#16a34a" : "#dc2626";
 
   return `
     <div style="
@@ -213,7 +282,20 @@ function renderTrabajador(t) {
         align-items:flex-start;
       ">
         <div style="flex:1; min-width:0;">
-          <strong style="font-size:18px;">${escapeHtml(t.nombre)}</strong>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <strong style="font-size:18px;">${escapeHtml(t.nombre)}</strong>
+            <span style="
+              display:inline-block;
+              padding:4px 8px;
+              border-radius:999px;
+              background:${estadoColor};
+              color:#fff;
+              font-size:12px;
+              font-weight:700;
+            ">
+              ${t.activo ? "Activo" : "Inactivo"}
+            </span>
+          </div>
 
           <div style="font-size:13px; color:#666; margin-top:4px;">
             Usuario: ${escapeHtml(t.usuario || "-")} · ${escapeHtml(t.puesto || "-")}
@@ -253,6 +335,20 @@ function renderTrabajador(t) {
           <div style="font-size:12px; margin-top:4px; color:#475569;">
             Moscosos: ${escapeHtml(String(t.moscosos?.disponibles ?? 0))} disponibles · ${escapeHtml(String(t.moscosos?.usados ?? 0))} usados
           </div>
+
+          <div style="margin-top:10px;">
+            <div style="font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Módulos</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+              ${renderPills(t.permisosModulos)}
+            </div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <div style="font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Acciones</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+              ${renderPills(t.permisosAcciones)}
+            </div>
+          </div>
         </div>
 
         <div style="display:flex; gap:8px; flex:0 0 auto;">
@@ -280,9 +376,31 @@ function renderTrabajador(t) {
   `;
 }
 
+function renderPills(obj) {
+  if (!obj) return "";
+
+  return Object.entries(obj)
+    .map(([key, value]) => `
+      <span style="
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        padding:4px 8px;
+        border-radius:999px;
+        background:${value ? "#16a34a" : "#94a3b8"};
+        color:#fff;
+        font-size:11px;
+        font-weight:700;
+      ">
+        ${escapeHtml(key)}
+      </span>
+    `)
+    .join("");
+}
+
 function activarEventosFormulario() {
   const ids = [
-    "nombre", "usuario", "password", "puesto",
+    "nombre", "usuario", "password", "puesto", "activo",
     "telefono", "email", "dni", "nss",
     "tipoVia", "via", "numero", "portal", "piso", "puerta", "cp", "poblacion", "provincia",
     "fechaAlta", "vacDisp", "vacUsadas", "mosDisp", "mosUsados"
@@ -292,6 +410,18 @@ function activarEventosFormulario() {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener("input", guardarDraftDesdeFormulario);
+    el.addEventListener("change", guardarDraftDesdeFormulario);
+  });
+
+  MODULOS.forEach(([key]) => {
+    const el = document.getElementById("mod_" + key);
+    if (!el) return;
+    el.addEventListener("change", guardarDraftDesdeFormulario);
+  });
+
+  ACCIONES.forEach(([key]) => {
+    const el = document.getElementById("acc_" + key);
+    if (!el) return;
     el.addEventListener("change", guardarDraftDesdeFormulario);
   });
 
@@ -329,6 +459,7 @@ function activarBotonesEditar() {
         usuario: trabajador.usuario || "",
         password: trabajador.password || "",
         puesto: trabajador.puesto || "",
+        activo: trabajador.activo !== false,
         telefono: trabajador.telefono || "",
         email: trabajador.email || "",
         tipoVia: d.tipoVia || "",
@@ -346,7 +477,9 @@ function activarBotonesEditar() {
         vacDisp: String(trabajador.vacaciones?.disponibles ?? 30),
         vacUsadas: String(trabajador.vacaciones?.usadas ?? 0),
         mosDisp: String(trabajador.moscosos?.disponibles ?? 2),
-        mosUsados: String(trabajador.moscosos?.usados ?? 0)
+        mosUsados: String(trabajador.moscosos?.usados ?? 0),
+        permisosModulos: trabajador.permisosModulos || {},
+        permisosAcciones: trabajador.permisosAcciones || {}
       };
 
       localStorage.setItem(PERSONAL_DRAFT_KEY, JSON.stringify(draft));
@@ -363,6 +496,7 @@ function guardarTrabajador() {
     usuario: val("usuario"),
     password: val("password"),
     puesto: val("puesto"),
+    activo: document.getElementById("activo")?.value !== "false",
     telefono: val("telefono"),
     email: val("email"),
     direccion: {
@@ -386,7 +520,9 @@ function guardarTrabajador() {
     moscosos: {
       disponibles: numero("mosDisp", 2),
       usados: numero("mosUsados", 0)
-    }
+    },
+    permisosModulos: leerPermisosModulos(),
+    permisosAcciones: leerPermisosAcciones()
   };
 
   if (!data.nombre) {
@@ -411,6 +547,22 @@ function guardarTrabajador() {
   refrescar();
 }
 
+function leerPermisosModulos() {
+  const out = {};
+  MODULOS.forEach(([key]) => {
+    out[key] = !!document.getElementById("mod_" + key)?.checked;
+  });
+  return out;
+}
+
+function leerPermisosAcciones() {
+  const out = {};
+  ACCIONES.forEach(([key]) => {
+    out[key] = !!document.getElementById("acc_" + key)?.checked;
+  });
+  return out;
+}
+
 function cancelarEdicion(refresca = true) {
   localStorage.removeItem(PERSONAL_EDIT_KEY);
   clearDraft();
@@ -423,6 +575,7 @@ function guardarDraftDesdeFormulario() {
     usuario: val("usuario"),
     password: val("password"),
     puesto: val("puesto"),
+    activo: document.getElementById("activo")?.value !== "false",
     telefono: val("telefono"),
     email: val("email"),
     tipoVia: val("tipoVia"),
@@ -440,7 +593,9 @@ function guardarDraftDesdeFormulario() {
     vacDisp: val("vacDisp"),
     vacUsadas: val("vacUsadas"),
     mosDisp: val("mosDisp"),
-    mosUsados: val("mosUsados")
+    mosUsados: val("mosUsados"),
+    permisosModulos: leerPermisosModulos(),
+    permisosAcciones: leerPermisosAcciones()
   };
 
   localStorage.setItem(PERSONAL_DRAFT_KEY, JSON.stringify(draft));
@@ -454,6 +609,7 @@ function getDraft() {
       usuario: data.usuario || "",
       password: data.password || "",
       puesto: data.puesto || "",
+      activo: data.activo !== false,
       telefono: data.telefono || "",
       email: data.email || "",
       tipoVia: data.tipoVia || "",
@@ -471,7 +627,9 @@ function getDraft() {
       vacDisp: data.vacDisp || "",
       vacUsadas: data.vacUsadas || "",
       mosDisp: data.mosDisp || "",
-      mosUsados: data.mosUsados || ""
+      mosUsados: data.mosUsados || "",
+      permisosModulos: data.permisosModulos || {},
+      permisosAcciones: data.permisosAcciones || {}
     };
   } catch (error) {
     return {};
@@ -504,6 +662,29 @@ function grid() {
     display:grid;
     grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
     gap:10px;
+  `;
+}
+
+function gridChecks() {
+  return `
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+    gap:10px;
+  `;
+}
+
+function checkWrap() {
+  return `
+    display:flex;
+    gap:8px;
+    align-items:center;
+    padding:10px 12px;
+    border:1px solid #dbe4ee;
+    border-radius:10px;
+    background:#fff;
+    font-size:14px;
+    color:#0f172a;
+    font-weight:700;
   `;
 }
 
