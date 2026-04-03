@@ -1,16 +1,5 @@
-import {
-  getPersonal,
-  addTrabajador,
-  deleteTrabajador,
-  updateTrabajador,
-  getDireccionTexto
-} from "../data/personal.js";
-
-import {
-  getAusenciasByTrabajador,
-  addAusencia,
-  deleteAusencia
-} from "../data/ausencias.js";
+import { db } from "../db.js";
+import { getDireccionTexto } from "../data/personal.js";
 
 const PERSONAL_DRAFT_KEY = "zentrix_personal_draft_v4";
 const PERSONAL_EDIT_KEY = "zentrix_personal_edit_id_v1";
@@ -35,7 +24,7 @@ const ACCIONES = [
 ];
 
 export function renderPersonal() {
-  const lista = getPersonal();
+  const lista = db.personal.getAll();
   const draft = getDraft();
   const editId = localStorage.getItem(PERSONAL_EDIT_KEY) || "";
   const editTrabajador = editId ? lista.find((t) => String(t.id) === String(editId)) : null;
@@ -273,7 +262,7 @@ function checkboxAccion(key, label, checked) {
 
 function renderTrabajador(t) {
   const direccion = getDireccionTexto(t.direccion);
-  const ausencias = getAusenciasByTrabajador(t.id);
+  const ausencias = db.ausencias.getByTrabajador(t.id);
   const estadoColor = t.activo ? "#16a34a" : "#dc2626";
 
   return `
@@ -552,7 +541,7 @@ function activarBotonesBorrado() {
       const ok = window.confirm(`Vas a borrar a ${nombre}. ¿Confirmas?`);
       if (!ok) return;
 
-      deleteTrabajador(id);
+      db.personal.remove(id);
       refrescar();
     });
   });
@@ -562,7 +551,7 @@ function activarBotonesEditar() {
   document.querySelectorAll(".btn-edit").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.dataset.id;
-      const lista = getPersonal();
+      const lista = db.personal.getAll();
       const trabajador = lista.find((t) => String(t.id) === String(id));
       if (!trabajador) return;
 
@@ -619,7 +608,7 @@ function activarBotonesAusencias() {
         return;
       }
 
-      addAusencia({
+      db.ausencias.create({
         trabajadorId,
         tipo,
         fechaInicio,
@@ -638,7 +627,7 @@ function activarBotonesAusencias() {
       const ok = window.confirm("Vas a borrar esta ausencia. ¿Confirmas?");
       if (!ok) return;
 
-      deleteAusencia(id);
+      db.ausencias.remove(id);
       refrescar();
     });
   });
@@ -690,13 +679,13 @@ function guardarTrabajador() {
     const ok = window.confirm("Vas a guardar cambios en este trabajador. ¿Confirmas?");
     if (!ok) return;
 
-    updateTrabajador(editId, data);
+    db.personal.update(editId, data);
     cancelarEdicion(false);
     refrescar();
     return;
   }
 
-  addTrabajador(data);
+  db.personal.create(data);
   clearDraft();
   refrescar();
 }
