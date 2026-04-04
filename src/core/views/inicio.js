@@ -39,7 +39,15 @@ export function renderInicio() {
             <div style="font-size:34px; font-weight:700; color:#0f172a;">
               ${hora}
             </div>
-            <div style="font-size:14px; color:#64748b;">
+            <div style="
+              font-size:15px;
+              color:#64748b;
+              margin-top:6px;
+              text-transform:capitalize;
+            ">
+              ${fecha}
+            </div>
+            <div style="font-size:14px; color:#64748b; margin-top:6px;">
               Usuario: <strong>${escapeHtml(usuario.nombre)}</strong>
             </div>
           </div>
@@ -69,7 +77,7 @@ export function renderInicio() {
 
         <div class="panel-card">
           <div style="font-size:14px; color:#64748b; margin-bottom:8px;">Rol</div>
-          <div style="font-size:22px; font-weight:700; color:#0f172a;">${escapeHtml(usuario.rol)}</div>
+          <div style="font-size:22px; font-weight:700; color:#0f172a;">${escapeHtml(usuario.puesto || "sin rol")}</div>
         </div>
       </div>
 
@@ -130,18 +138,18 @@ export function renderInicio() {
 
 function getUsuarioActual() {
   const sessionId = localStorage.getItem("zentrix_session_user_v1");
-  const raw = localStorage.getItem("zentrix_users_v1");
+  const raw = localStorage.getItem("zentrix_personal_v2");
 
   try {
     const users = JSON.parse(raw || "[]");
-    return users.find((u) => u.id === sessionId) || {
+    return users.find((u) => String(u.id) === String(sessionId)) || {
       nombre: "Usuario",
-      rol: "sin rol",
+      puesto: "sin rol",
     };
   } catch (error) {
     return {
       nombre: "Usuario",
-      rol: "sin rol",
+      puesto: "sin rol",
     };
   }
 }
