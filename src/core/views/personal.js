@@ -2,6 +2,7 @@ import { db } from "../db.js";
 import { getDireccionTexto } from "../data/personal.js";
 
 const EDIT_ID_KEY = "zentryx_personal_edit_id";
+const EDIT_AUSENCIA_KEY = "zentryx_ausencia_edit_id";
 const SESSION_USER_KEY = "zentrix_session_user_v1";
 
 export function renderPersonal() {
@@ -63,7 +64,7 @@ function renderFormularioTrabajador(editando, acciones, usuarioActual) {
   const mod = t.permisosModulos || {};
   const acc = t.permisosAcciones || {};
 
-  const puedeTocarPermisos = !!acciones.aprobar || String(usuarioActual.id) === String(t.id) === false;
+  const puedeTocarPermisos = !!acciones.aprobar || !editando || String(usuarioActual.id) !== String(t.id);
 
   return `
     <div style="
@@ -342,6 +343,7 @@ function renderTrabajador(t, acciones) {
 
 function renderAusencia(a, acciones) {
   const dias = contarDias(a.fechaInicio, a.fechaFin);
+  const editando = String(localStorage.getItem(EDIT_AUSENCIA_KEY) || "") === String(a.id);
 
   return `
     <div style="
@@ -395,13 +397,70 @@ function renderAusencia(a, acciones) {
         </div>
 
         ${a.comentario ? `<div style="font-size:12px;color:#64748b;margin-top:4px;">${escapeHtml(a.comentario)}</div>` : ""}
+
+        ${editando ? renderEditorAusencia(a) : ""}
       </div>
 
-      ${acciones.borrar ? `
-        <button type="button" class="btn-borrar-ausencia" data-id="${escapeHtmlAttr(a.id)}" style="${btnBorrar()}">
-          ✕
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${acciones.editar ? `
+          <button type="button" class="btn-editar-ausencia" data-id="${escapeHtmlAttr(a.id)}" style="${btnEditar()}">
+            Editar
+          </button>
+        ` : ""}
+
+        ${acciones.borrar ? `
+          <button type="button" class="btn-borrar-ausencia" data-id="${escapeHtmlAttr(a.id)}" style="${btnBorrar()}">
+            ✕
+          </button>
+        ` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderEditorAusencia(a) {
+  return `
+    <div style="
+      margin-top:12px;
+      display:grid;
+      gap:8px;
+      padding:12px;
+      border:1px solid #cbd5e1;
+      border-radius:10px;
+      background:#ffffff;
+    ">
+      <div style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+        gap:8px;
+      ">
+        <select id="edit_aus_tipo_${escapeHtmlAttr(a.id)}" style="${inputStyle()}">
+          <option value="vacaciones" ${a.tipo === "vacaciones" ? "selected" : ""}>Vacaciones</option>
+          <option value="moscoso" ${a.tipo === "moscoso" ? "selected" : ""}>Moscoso</option>
+          <option value="baja" ${a.tipo === "baja" ? "selected" : ""}>Baja</option>
+          <option value="permiso" ${a.tipo === "permiso" ? "selected" : ""}>Permiso</option>
+        </select>
+
+        <select id="edit_aus_estado_${escapeHtmlAttr(a.id)}" style="${inputStyle()}">
+          <option value="aprobada" ${a.estado === "aprobada" ? "selected" : ""}>Aprobada</option>
+          <option value="pendiente" ${a.estado === "pendiente" ? "selected" : ""}>Pendiente</option>
+          <option value="rechazada" ${a.estado === "rechazada" ? "selected" : ""}>Rechazada</option>
+        </select>
+
+        <input id="edit_aus_inicio_${escapeHtmlAttr(a.id)}" type="date" value="${escapeHtmlAttr(a.fechaInicio || "")}" style="${inputStyle()}">
+        <input id="edit_aus_fin_${escapeHtmlAttr(a.id)}" type="date" value="${escapeHtmlAttr(a.fechaFin || "")}" style="${inputStyle()}">
+      </div>
+
+      <input id="edit_aus_comentario_${escapeHtmlAttr(a.id)}" value="${escapeHtmlAttr(a.comentario || "")}" placeholder="Comentario opcional" style="${inputStyle()}">
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn-guardar-ausencia" data-id="${escapeHtmlAttr(a.id)}" style="${btnPrincipal()}">
+          Guardar ausencia
         </button>
-      ` : ""}
+        <button type="button" class="btn-cancelar-editar-ausencia" style="${btnSecundario()}">
+          Cancelar
+        </button>
+      </div>
     </div>
   `;
 }
@@ -427,6 +486,52 @@ function activarEventosPersonal() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
     });
+
+    document.querySelectorAll(".btn-editar-ausencia").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        localStorage.setItem(EDIT_AUSENCIA_KEY, String(btn.dataset.id));
+        refrescarPersonal();
+      });
+    });
+
+    document.querySelectorAll(".btn-cancelar-editar-ausencia").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        localStorage.removeItem(EDIT_AUSENCIA_KEY);
+        refrescarPersonal();
+      });
+    });
+
+    document.querySelectorAll(".btn-guardar-ausencia").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        const tipo = valueOf(`edit_aus_tipo_${id}`);
+        const estado = valueOf(`edit_aus_estado_${id}`);
+        const fechaInicio = valueOf(`edit_aus_inicio_${id}`);
+        const fechaFin = valueOf(`edit_aus_fin_${id}`);
+        const comentario = valueOf(`edit_aus_comentario_${id}`);
+
+        if (!fechaInicio || !fechaFin) {
+          alert("Debes indicar fecha de inicio y fecha fin.");
+          return;
+        }
+
+        if (new Date(fechaFin) < new Date(fechaInicio)) {
+          alert("La fecha fin no puede ser menor que la fecha inicio.");
+          return;
+        }
+
+        db.ausencias.update(id, {
+          tipo,
+          estado,
+          fechaInicio,
+          fechaFin,
+          comentario
+        });
+
+        localStorage.removeItem(EDIT_AUSENCIA_KEY);
+        refrescarPersonal();
+      });
+    });
   }
 
   if (acciones.borrar) {
@@ -448,6 +553,9 @@ function activarEventosPersonal() {
         const ok = window.confirm("Vas a borrar esta ausencia. ¿Confirmas?");
         if (!ok) return;
         db.ausencias.remove(btn.dataset.id);
+        if (String(localStorage.getItem(EDIT_AUSENCIA_KEY) || "") === String(btn.dataset.id)) {
+          localStorage.removeItem(EDIT_AUSENCIA_KEY);
+        }
         refrescarPersonal();
       });
     });
@@ -500,7 +608,7 @@ function guardarTrabajador() {
     ? db.personal.getAll().find((t) => String(t.id) === String(editId)) || {}
     : {};
 
-  const puedeTocarPermisos = !!acciones.aprobar || (!editId);
+  const puedeTocarPermisos = !!acciones.aprobar || !editId;
 
   const data = {
     nombre: valueOf("p_nombre"),
