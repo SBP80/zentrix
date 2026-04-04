@@ -9,6 +9,7 @@ const FORM_TAB_KEY = "zentryx_personal_form_tab";
 const SEARCH_KEY = "zentryx_personal_search";
 const FILTER_STATUS_KEY = "zentryx_personal_filter_status";
 const ORDER_KEY = "zentryx_personal_order";
+const QUICK_FILTER_KEY = "zentryx_personal_quick_filter";
 
 export function renderPersonal() {
   const usuarioActual = getUsuarioActual();
@@ -25,10 +26,11 @@ export function renderPersonal() {
   const newFormOpen = localStorage.getItem(NEW_FORM_OPEN_KEY) === "true";
 
   const search = getSearchText();
-  const status = getStatusFilter();
-  const order = getOrderBy();
+const status = getStatusFilter();
+const order = getOrderBy();
+const quickFilter = getQuickFilter();
 
-  const trabajadores = filtrarTrabajadores(baseTrabajadores, search, status, order);
+const trabajadores = filtrarTrabajadores(baseTrabajadores, search, status, order, quickFilter);
 
   setTimeout(() => {
     activarEventosPersonal();
@@ -92,7 +94,18 @@ export function renderPersonal() {
       </button>
     </div>
   </div>
-
+  <div style="
+  margin-top:12px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+">
+  ${quickChip("todos", "Todos", quickFilter === "todos")}
+  ${quickChip("activos", "Activos", quickFilter === "activos")}
+  ${quickChip("inactivos", "Inactivos", quickFilter === "inactivos")}
+  ${quickChip("con_ausencias", "Con ausencias", quickFilter === "con_ausencias")}
+  ${quickChip("sin_ausencias", "Sin ausencias", quickFilter === "sin_ausencias")}
+</div>
   <div style="
     margin-top:10px;
     display:flex;
@@ -106,8 +119,9 @@ export function renderPersonal() {
     <div>
       Búsqueda: ${search ? escapeHtml(search) : "ninguna"} ·
       Estado: ${escapeHtml(status)} ·
-      Orden: ${escapeHtml(order)}
-    </div>
+      Orden: ${escapeHtml(order)} ·
+      Chip: ${escapeHtml(quickFilter)}
+   </div>
   </div>
 </div>
 
@@ -694,11 +708,18 @@ orderEl?.addEventListener("change", () => {
   setOrderBy(orderEl.value || "nombre_asc");
   refrescarPersonal();
 });
+  document.querySelectorAll(".btn-quick-filter").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setQuickFilter(btn.dataset.quick || "todos");
+    refrescarPersonal();
+  });
+});
 
 document.getElementById("btn_limpiar_filtros_personal")?.addEventListener("click", () => {
   setSearchText("");
   setStatusFilter("todos");
   setOrderBy("nombre_asc");
+  setQuickFilter("todos");
   refrescarPersonal();
 });
 
@@ -966,7 +987,15 @@ function setOrderBy(value) {
   localStorage.setItem(ORDER_KEY, value);
 }
 
-function filtrarTrabajadores(lista, search, status, order) {
+function getQuickFilter() {
+  return localStorage.getItem(QUICK_FILTER_KEY) || "todos";
+}
+
+function setQuickFilter(value) {
+  localStorage.setItem(QUICK_FILTER_KEY, value);
+}
+
+function filtrarTrabajadores(lista, search, status, order, quickFilter) {
   let salida = [...lista];
 
   const txt = normalizeText(search);
@@ -992,6 +1021,49 @@ function filtrarTrabajadores(lista, search, status, order) {
       return bolsa.includes(txt);
     });
   }
+
+  if (status === "activos") {
+    salida = salida.filter((t) => t.activo !== false);
+  }
+
+  if (status === "inactivos") {
+    salida = salida.filter((t) => t.activo === false);
+  }
+
+  if (quickFilter === "activos") {
+    salida = salida.filter((t) => t.activo !== false);
+  }
+
+  if (quickFilter === "inactivos") {
+    salida = salida.filter((t) => t.activo === false);
+  }
+
+  if (quickFilter === "con_ausencias") {
+    salida = salida.filter((t) => db.ausencias.getByTrabajador(t.id).length > 0);
+  }
+
+  if (quickFilter === "sin_ausencias") {
+    salida = salida.filter((t) => db.ausencias.getByTrabajador(t.id).length === 0);
+  }
+
+  salida.sort((a, b) => {
+    if (order === "nombre_desc") {
+      return String(b.nombre || "").localeCompare(String(a.nombre || ""), "es");
+    }
+
+    if (order === "alta_desc") {
+      return String(b.fechaAlta || "").localeCompare(String(a.fechaAlta || ""), "es");
+    }
+
+    if (order === "alta_asc") {
+      return String(a.fechaAlta || "").localeCompare(String(b.fechaAlta || ""), "es");
+    }
+
+    return String(a.nombre || "").localeCompare(String(b.nombre || ""), "es");
+  });
+
+  return salida;
+}
 
   if (status === "activos") {
     salida = salida.filter((t) => t.activo !== false);
@@ -1166,6 +1238,27 @@ function tabBtn(tab, texto, active) {
       "
     >
       ${texto}
+    </button>
+  `;
+}
+function quickChip(value, text, active) {
+  return `
+    <button
+      type="button"
+      class="btn-quick-filter"
+      data-quick="${value}"
+      style="
+        padding:8px 12px;
+        border:none;
+        border-radius:999px;
+        cursor:pointer;
+        font-weight:700;
+        font-size:12px;
+        background:${active ? "#0f172a" : "#e2e8f0"};
+        color:${active ? "#fff" : "#0f172a"};
+      "
+    >
+      ${text}
     </button>
   `;
 }
