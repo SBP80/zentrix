@@ -2,9 +2,18 @@ import { db } from "../db.js";
 import { getDireccionTexto } from "../data/personal.js";
 
 const EDIT_ID_KEY = "zentryx_personal_edit_id";
+const SESSION_USER_KEY = "zentrix_session_user_v1";
 
 export function renderPersonal() {
-  const trabajadores = db.personal.getAll();
+  const usuarioActual = getUsuarioActual();
+  const acciones = usuarioActual.permisosAcciones || {};
+  const puedeVerTodo = !!acciones.verTodo;
+
+  const todos = db.personal.getAll();
+  const trabajadores = puedeVerTodo
+    ? todos
+    : todos.filter((t) => String(t.id) === String(usuarioActual.id));
+
   const editId = localStorage.getItem(EDIT_ID_KEY) || "";
   const editando = trabajadores.find((t) => String(t.id) === String(editId)) || null;
 
@@ -18,12 +27,12 @@ export function renderPersonal() {
         <h3 style="margin-top:0;">Personal</h3>
         <p style="color:#64748b;margin-bottom:18px;">Equipo, roles y permisos.</p>
 
-        ${renderFormularioTrabajador(editando)}
+        ${acciones.crear || acciones.editar ? renderFormularioTrabajador(editando, acciones, usuarioActual) : ""}
 
         <div style="margin-top:24px;display:grid;gap:14px;">
           ${
             trabajadores.length
-              ? trabajadores.map((t) => renderTrabajador(t)).join("")
+              ? trabajadores.map((t) => renderTrabajador(t, acciones)).join("")
               : `
                 <div style="
                   padding:14px;
@@ -32,7 +41,7 @@ export function renderPersonal() {
                   color:#64748b;
                   background:#f8fafc;
                 ">
-                  No hay trabajadores todavía.
+                  No hay trabajadores disponibles.
                 </div>
               `
           }
@@ -42,13 +51,19 @@ export function renderPersonal() {
   `;
 }
 
-function renderFormularioTrabajador(editando) {
+function renderFormularioTrabajador(editando, acciones, usuarioActual) {
+  const esEdicion = !!editando;
+  if (esEdicion && !acciones.editar) return "";
+  if (!esEdicion && !acciones.crear) return "";
+
   const t = editando || {};
   const d = t.direccion || {};
   const vacaciones = t.vacaciones || {};
   const moscosos = t.moscosos || {};
   const mod = t.permisosModulos || {};
   const acc = t.permisosAcciones || {};
+
+  const puedeTocarPermisos = !!acciones.aprobar || String(usuarioActual.id) === String(t.id) === false;
 
   return `
     <div style="
@@ -94,36 +109,36 @@ function renderFormularioTrabajador(editando) {
         ${campo("Moscosos disponibles", "p_mos", String(moscosos.disponibles ?? 2), 'type="number"')}
       </div>
 
-      <div style="margin-top:14px;">
+      <div style="margin-top:14px;opacity:${puedeTocarPermisos ? "1" : "0.65"};">
         <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">Permisos por módulos</div>
         <div style="
           display:grid;
           grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
           gap:8px;
         ">
-          ${check("mod_inicio", "Inicio", !!mod.inicio)}
-          ${check("mod_agenda", "Agenda", !!mod.agenda)}
-          ${check("mod_personal", "Personal", !!mod.personal)}
-          ${check("mod_configuracion", "Configuración", !!mod.configuracion)}
-          ${check("mod_vehiculos", "Vehículos", !!mod.vehiculos)}
-          ${check("mod_herramientas", "Herramientas", !!mod.herramientas)}
-          ${check("mod_clientes", "Clientes", !!mod.clientes)}
-          ${check("mod_obras", "Obras", !!mod.obras)}
+          ${check("mod_inicio", "Inicio", !!mod.inicio, !puedeTocarPermisos)}
+          ${check("mod_agenda", "Agenda", !!mod.agenda, !puedeTocarPermisos)}
+          ${check("mod_personal", "Personal", !!mod.personal, !puedeTocarPermisos)}
+          ${check("mod_configuracion", "Configuración", !!mod.configuracion, !puedeTocarPermisos)}
+          ${check("mod_vehiculos", "Vehículos", !!mod.vehiculos, !puedeTocarPermisos)}
+          ${check("mod_herramientas", "Herramientas", !!mod.herramientas, !puedeTocarPermisos)}
+          ${check("mod_clientes", "Clientes", !!mod.clientes, !puedeTocarPermisos)}
+          ${check("mod_obras", "Obras", !!mod.obras, !puedeTocarPermisos)}
         </div>
       </div>
 
-      <div style="margin-top:14px;">
+      <div style="margin-top:14px;opacity:${puedeTocarPermisos ? "1" : "0.65"};">
         <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">Permisos por acciones</div>
         <div style="
           display:grid;
           grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
           gap:8px;
         ">
-          ${check("acc_verTodo", "Ver todo", !!acc.verTodo)}
-          ${check("acc_crear", "Crear", !!acc.crear)}
-          ${check("acc_editar", "Editar", !!acc.editar)}
-          ${check("acc_borrar", "Borrar", !!acc.borrar)}
-          ${check("acc_aprobar", "Aprobar", !!acc.aprobar)}
+          ${check("acc_verTodo", "Ver todo", !!acc.verTodo, !puedeTocarPermisos)}
+          ${check("acc_crear", "Crear", !!acc.crear, !puedeTocarPermisos)}
+          ${check("acc_editar", "Editar", !!acc.editar, !puedeTocarPermisos)}
+          ${check("acc_borrar", "Borrar", !!acc.borrar, !puedeTocarPermisos)}
+          ${check("acc_aprobar", "Aprobar", !!acc.aprobar, !puedeTocarPermisos)}
         </div>
       </div>
 
@@ -142,7 +157,7 @@ function renderFormularioTrabajador(editando) {
   `;
 }
 
-function renderTrabajador(t) {
+function renderTrabajador(t, acciones) {
   const ausencias = ordenarAusencias(db.ausencias.getByTrabajador(t.id));
   const resumen = calcularResumenTrabajador(t, ausencias);
   const direccionTexto = getDireccionTexto(t.direccion || {});
@@ -231,13 +246,17 @@ function renderTrabajador(t) {
         </div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button type="button" class="btn-editar-trabajador" data-id="${escapeHtmlAttr(t.id)}" style="${btnEditar()}">
-            Editar
-          </button>
+          ${acciones.editar ? `
+            <button type="button" class="btn-editar-trabajador" data-id="${escapeHtmlAttr(t.id)}" style="${btnEditar()}">
+              Editar
+            </button>
+          ` : ""}
 
-          <button type="button" class="btn-borrar-trabajador" data-id="${escapeHtmlAttr(t.id)}" data-nombre="${escapeHtmlAttr(t.nombre || "")}" style="${btnBorrar()}">
-            ✕
-          </button>
+          ${acciones.borrar ? `
+            <button type="button" class="btn-borrar-trabajador" data-id="${escapeHtmlAttr(t.id)}" data-nombre="${escapeHtmlAttr(t.nombre || "")}" style="${btnBorrar()}">
+              ✕
+            </button>
+          ` : ""}
         </div>
       </div>
 
@@ -258,48 +277,50 @@ function renderTrabajador(t) {
           </div>
         </div>
 
-        <div style="
-          display:grid;
-          gap:8px;
-          padding:12px;
-          border:1px solid #e2e8f0;
-          border-radius:10px;
-          background:#f8fafc;
-          margin-bottom:10px;
-        ">
+        ${acciones.crear ? `
           <div style="
             display:grid;
-            grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
             gap:8px;
+            padding:12px;
+            border:1px solid #e2e8f0;
+            border-radius:10px;
+            background:#f8fafc;
+            margin-bottom:10px;
           ">
-            <select id="aus_tipo_${escapeHtmlAttr(t.id)}" style="${inputStyle()}">
-              <option value="vacaciones">Vacaciones</option>
-              <option value="moscoso">Moscoso</option>
-              <option value="baja">Baja</option>
-              <option value="permiso">Permiso</option>
-            </select>
+            <div style="
+              display:grid;
+              grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+              gap:8px;
+            ">
+              <select id="aus_tipo_${escapeHtmlAttr(t.id)}" style="${inputStyle()}">
+                <option value="vacaciones">Vacaciones</option>
+                <option value="moscoso">Moscoso</option>
+                <option value="baja">Baja</option>
+                <option value="permiso">Permiso</option>
+              </select>
 
-            <select id="aus_estado_${escapeHtmlAttr(t.id)}" style="${inputStyle()}">
-              <option value="aprobada">Aprobada</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="rechazada">Rechazada</option>
-            </select>
+              <select id="aus_estado_${escapeHtmlAttr(t.id)}" style="${inputStyle()}">
+                <option value="aprobada">Aprobada</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="rechazada">Rechazada</option>
+              </select>
 
-            <input id="aus_inicio_${escapeHtmlAttr(t.id)}" type="date" style="${inputStyle()}">
-            <input id="aus_fin_${escapeHtmlAttr(t.id)}" type="date" style="${inputStyle()}">
+              <input id="aus_inicio_${escapeHtmlAttr(t.id)}" type="date" style="${inputStyle()}">
+              <input id="aus_fin_${escapeHtmlAttr(t.id)}" type="date" style="${inputStyle()}">
+            </div>
+
+            <input id="aus_comentario_${escapeHtmlAttr(t.id)}" placeholder="Comentario opcional" style="${inputStyle()}">
+
+            <button type="button" class="btn-add-ausencia" data-id="${escapeHtmlAttr(t.id)}" style="${btnPrincipal()}">
+              Añadir ausencia
+            </button>
           </div>
-
-          <input id="aus_comentario_${escapeHtmlAttr(t.id)}" placeholder="Comentario opcional" style="${inputStyle()}">
-
-          <button type="button" class="btn-add-ausencia" data-id="${escapeHtmlAttr(t.id)}" style="${btnPrincipal()}">
-            Añadir ausencia
-          </button>
-        </div>
+        ` : ""}
 
         <div style="display:grid;gap:8px;">
           ${
             ausencias.length
-              ? ausencias.map((a) => renderAusencia(a)).join("")
+              ? ausencias.map((a) => renderAusencia(a, acciones)).join("")
               : `
                 <div style="
                   padding:10px 12px;
@@ -319,7 +340,7 @@ function renderTrabajador(t) {
   `;
 }
 
-function renderAusencia(a) {
+function renderAusencia(a, acciones) {
   const dias = contarDias(a.fechaInicio, a.fechaFin);
 
   return `
@@ -376,85 +397,111 @@ function renderAusencia(a) {
         ${a.comentario ? `<div style="font-size:12px;color:#64748b;margin-top:4px;">${escapeHtml(a.comentario)}</div>` : ""}
       </div>
 
-      <button type="button" class="btn-borrar-ausencia" data-id="${escapeHtmlAttr(a.id)}" style="${btnBorrar()}">
-        ✕
-      </button>
+      ${acciones.borrar ? `
+        <button type="button" class="btn-borrar-ausencia" data-id="${escapeHtmlAttr(a.id)}" style="${btnBorrar()}">
+          ✕
+        </button>
+      ` : ""}
     </div>
   `;
 }
 
 function activarEventosPersonal() {
-  document.getElementById("btn_guardar_trabajador")?.addEventListener("click", guardarTrabajador);
+  const usuarioActual = getUsuarioActual();
+  const acciones = usuarioActual.permisosAcciones || {};
 
-  document.getElementById("btn_cancelar_trabajador")?.addEventListener("click", () => {
-    localStorage.removeItem(EDIT_ID_KEY);
-    refrescarPersonal();
-  });
+  if (acciones.crear || acciones.editar) {
+    document.getElementById("btn_guardar_trabajador")?.addEventListener("click", guardarTrabajador);
 
-  document.querySelectorAll(".btn-editar-trabajador").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      localStorage.setItem(EDIT_ID_KEY, String(btn.dataset.id));
-      refrescarPersonal();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  });
-
-  document.querySelectorAll(".btn-borrar-trabajador").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const nombre = btn.dataset.nombre || "este trabajador";
-      const ok = window.confirm(`Vas a borrar a ${nombre}. ¿Confirmas?`);
-      if (!ok) return;
-      db.personal.remove(btn.dataset.id);
-      if (String(localStorage.getItem(EDIT_ID_KEY) || "") === String(btn.dataset.id)) {
-        localStorage.removeItem(EDIT_ID_KEY);
-      }
+    document.getElementById("btn_cancelar_trabajador")?.addEventListener("click", () => {
+      localStorage.removeItem(EDIT_ID_KEY);
       refrescarPersonal();
     });
-  });
+  }
 
-  document.querySelectorAll(".btn-add-ausencia").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const id = btn.dataset.id;
-      const tipo = valueOf(`aus_tipo_${id}`);
-      const estado = valueOf(`aus_estado_${id}`);
-      const fechaInicio = valueOf(`aus_inicio_${id}`);
-      const fechaFin = valueOf(`aus_fin_${id}`);
-      const comentario = valueOf(`aus_comentario_${id}`);
-
-      if (!fechaInicio || !fechaFin) {
-        alert("Debes indicar fecha de inicio y fecha fin.");
-        return;
-      }
-
-      if (new Date(fechaFin) < new Date(fechaInicio)) {
-        alert("La fecha fin no puede ser menor que la fecha inicio.");
-        return;
-      }
-
-      db.ausencias.create({
-        trabajadorId: id,
-        tipo,
-        estado,
-        fechaInicio,
-        fechaFin,
-        comentario
+  if (acciones.editar) {
+    document.querySelectorAll(".btn-editar-trabajador").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        localStorage.setItem(EDIT_ID_KEY, String(btn.dataset.id));
+        refrescarPersonal();
+        window.scrollTo({ top: 0, behavior: "smooth" });
       });
-
-      refrescarPersonal();
     });
-  });
+  }
 
-  document.querySelectorAll(".btn-borrar-ausencia").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const ok = window.confirm("Vas a borrar esta ausencia. ¿Confirmas?");
-      if (!ok) return;
-      db.ausencias.remove(btn.dataset.id);
-      refrescarPersonal();
+  if (acciones.borrar) {
+    document.querySelectorAll(".btn-borrar-trabajador").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const nombre = btn.dataset.nombre || "este trabajador";
+        const ok = window.confirm(`Vas a borrar a ${nombre}. ¿Confirmas?`);
+        if (!ok) return;
+        db.personal.remove(btn.dataset.id);
+        if (String(localStorage.getItem(EDIT_ID_KEY) || "") === String(btn.dataset.id)) {
+          localStorage.removeItem(EDIT_ID_KEY);
+        }
+        refrescarPersonal();
+      });
     });
-  });
+
+    document.querySelectorAll(".btn-borrar-ausencia").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const ok = window.confirm("Vas a borrar esta ausencia. ¿Confirmas?");
+        if (!ok) return;
+        db.ausencias.remove(btn.dataset.id);
+        refrescarPersonal();
+      });
+    });
+  }
+
+  if (acciones.crear) {
+    document.querySelectorAll(".btn-add-ausencia").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        const tipo = valueOf(`aus_tipo_${id}`);
+        const estado = valueOf(`aus_estado_${id}`);
+        const fechaInicio = valueOf(`aus_inicio_${id}`);
+        const fechaFin = valueOf(`aus_fin_${id}`);
+        const comentario = valueOf(`aus_comentario_${id}`);
+
+        if (!fechaInicio || !fechaFin) {
+          alert("Debes indicar fecha de inicio y fecha fin.");
+          return;
+        }
+
+        if (new Date(fechaFin) < new Date(fechaInicio)) {
+          alert("La fecha fin no puede ser menor que la fecha inicio.");
+          return;
+        }
+
+        db.ausencias.create({
+          trabajadorId: id,
+          tipo,
+          estado,
+          fechaInicio,
+          fechaFin,
+          comentario
+        });
+
+        refrescarPersonal();
+      });
+    });
+  }
 }
 
 function guardarTrabajador() {
+  const usuarioActual = getUsuarioActual();
+  const acciones = usuarioActual.permisosAcciones || {};
+  const editId = localStorage.getItem(EDIT_ID_KEY) || "";
+
+  if (!editId && !acciones.crear) return;
+  if (editId && !acciones.editar) return;
+
+  const actual = editId
+    ? db.personal.getAll().find((t) => String(t.id) === String(editId)) || {}
+    : {};
+
+  const puedeTocarPermisos = !!acciones.aprobar || (!editId);
+
   const data = {
     nombre: valueOf("p_nombre"),
     usuario: valueOf("p_usuario"),
@@ -478,12 +525,14 @@ function guardarTrabajador() {
     },
     fechaAlta: valueOf("p_fechaAlta"),
     vacaciones: {
-      disponibles: numberOf("p_vac", 30)
+      disponibles: numberOf("p_vac", 30),
+      usadas: actual?.vacaciones?.usadas ?? 0
     },
     moscosos: {
-      disponibles: numberOf("p_mos", 2)
+      disponibles: numberOf("p_mos", 2),
+      usados: actual?.moscosos?.usados ?? 0
     },
-    permisosModulos: {
+    permisosModulos: puedeTocarPermisos ? {
       inicio: checked("mod_inicio"),
       agenda: checked("mod_agenda"),
       personal: checked("mod_personal"),
@@ -492,14 +541,14 @@ function guardarTrabajador() {
       herramientas: checked("mod_herramientas"),
       clientes: checked("mod_clientes"),
       obras: checked("mod_obras")
-    },
-    permisosAcciones: {
+    } : (actual.permisosModulos || {}),
+    permisosAcciones: puedeTocarPermisos ? {
       verTodo: checked("acc_verTodo"),
       crear: checked("acc_crear"),
       editar: checked("acc_editar"),
       borrar: checked("acc_borrar"),
       aprobar: checked("acc_aprobar")
-    }
+    } : (actual.permisosAcciones || {})
   };
 
   if (!data.nombre) {
@@ -507,10 +556,7 @@ function guardarTrabajador() {
     return;
   }
 
-  const editId = localStorage.getItem(EDIT_ID_KEY) || "";
-
   if (editId) {
-    const actual = db.personal.getAll().find((t) => String(t.id) === String(editId)) || {};
     db.personal.update(editId, { ...actual, ...data });
     localStorage.removeItem(EDIT_ID_KEY);
   } else {
@@ -518,6 +564,21 @@ function guardarTrabajador() {
   }
 
   refrescarPersonal();
+}
+
+function getUsuarioActual() {
+  const id = localStorage.getItem(SESSION_USER_KEY) || "";
+  const usuarios = db.personal.getAll();
+  return usuarios.find((u) => String(u.id) === String(id)) || {
+    id: "",
+    permisosAcciones: {
+      verTodo: false,
+      crear: false,
+      editar: false,
+      borrar: false,
+      aprobar: false
+    }
+  };
 }
 
 function calcularResumenTrabajador(trabajador, ausencias) {
@@ -603,7 +664,7 @@ function campoSelectActivo(valor) {
   `;
 }
 
-function check(id, texto, valor) {
+function check(id, texto, valor, disabled = false) {
   return `
     <label style="
       display:flex;
@@ -617,7 +678,7 @@ function check(id, texto, valor) {
       color:#0f172a;
       font-weight:700;
     ">
-      <input id="${id}" type="checkbox" ${valor ? "checked" : ""}>
+      <input id="${id}" type="checkbox" ${valor ? "checked" : ""} ${disabled ? "disabled" : ""}>
       <span>${escapeHtml(texto)}</span>
     </label>
   `;
