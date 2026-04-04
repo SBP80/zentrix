@@ -1,52 +1,53 @@
 import {
   getPersonal,
   addTrabajador,
-  deleteTrabajador,
-  updateTrabajador
+  deleteTrabajador
 } from "../data/personal.js";
 
 import {
   getAusencias,
   addAusencia,
-  deleteAusencia,
-  updateAusencia
+  deleteAusencia
 } from "../data/ausencias.js";
 
-// ====== UI ======
 export function renderPersonal(container) {
-  const lista = getPersonal();
+  const trabajadores = getPersonal();
+  const ausencias = getAusencias();
 
   container.innerHTML = `
     <h2>Personal</h2>
     <p>Equipo, roles y permisos.</p>
 
-    <div class="card">
-      <input id="nombre" placeholder="Nombre trabajador">
-      <button id="crear">+ Añadir</button>
+    <div style="margin-bottom:20px;">
+      <input id="nuevo-nombre" placeholder="Nombre trabajador">
+      <button id="btn-add">+ Añadir trabajador</button>
     </div>
 
-    ${lista.map(t => renderTrabajador(t)).join("")}
+    ${trabajadores.map(t => renderTrabajador(t, ausencias)).join("")}
   `;
 
-  // crear trabajador
-  document.getElementById("crear").onclick = () => {
-    const nombre = document.getElementById("nombre").value.trim();
+  // Añadir trabajador
+  document.getElementById("btn-add").onclick = () => {
+    const nombre = document.getElementById("nuevo-nombre").value.trim();
     if (!nombre) return;
+
     addTrabajador({ nombre });
     renderPersonal(container);
   };
 
-  // eventos globales
-  container.querySelectorAll(".delete-trabajador").forEach(btn => {
+  // Eliminar trabajador
+  container.querySelectorAll(".btn-delete-trabajador").forEach(btn => {
     btn.onclick = () => {
       deleteTrabajador(btn.dataset.id);
       renderPersonal(container);
     };
   });
 
-  container.querySelectorAll(".add-ausencia").forEach(btn => {
+  // Añadir ausencia
+  container.querySelectorAll(".btn-add-ausencia").forEach(btn => {
     btn.onclick = () => {
       const id = btn.dataset.id;
+
       const tipo = document.getElementById(`tipo-${id}`).value;
       const inicio = document.getElementById(`inicio-${id}`).value;
       const fin = document.getElementById(`fin-${id}`).value;
@@ -67,54 +68,26 @@ export function renderPersonal(container) {
     };
   });
 
-  container.querySelectorAll(".delete-ausencia").forEach(btn => {
+  // Eliminar ausencia
+  container.querySelectorAll(".btn-delete-ausencia").forEach(btn => {
     btn.onclick = () => {
       deleteAusencia(btn.dataset.id);
       renderPersonal(container);
     };
   });
-
-  container.querySelectorAll(".edit-ausencia").forEach(btn => {
-    btn.onclick = () => {
-      const id = btn.dataset.id;
-      const a = getAusencias().find(x => x.id == id);
-
-      const nuevoTipo = prompt("Tipo", a.tipo);
-      const nuevoInicio = prompt("Inicio (yyyy-mm-dd)", a.inicio);
-      const nuevoFin = prompt("Fin (yyyy-mm-dd)", a.fin);
-      const nuevoComentario = prompt("Comentario", a.comentario || "");
-      const nuevoEstado = prompt("Estado (pendiente/aprobada/rechazada)", a.estado);
-
-      updateAusencia(id, {
-        ...a,
-        tipo: nuevoTipo,
-        inicio: nuevoInicio,
-        fin: nuevoFin,
-        comentario: nuevoComentario,
-        estado: nuevoEstado
-      });
-
-      renderPersonal(container);
-    };
-  });
 }
 
-// ====== TRABAJADOR ======
-function renderTrabajador(t) {
-  const ausencias = getAusencias().filter(a => a.trabajadorId == t.id);
-
-  const resumen = calcularResumen(ausencias);
+// ===== Render trabajador =====
+function renderTrabajador(t, ausencias) {
+  const lista = ausencias.filter(a => a.trabajadorId == t.id);
 
   return `
-    <div class="card">
+    <div style="border:1px solid #ccc; padding:15px; margin-bottom:20px;">
       <h3>${t.nombre}</h3>
 
-      <div>
-        Vacaciones: ${resumen.vacaciones.usadas} usadas / ${resumen.vacaciones.total}
-        Moscosos: ${resumen.moscosos.usados} usados / ${resumen.moscosos.total}
-      </div>
-
-      <button class="delete-trabajador" data-id="${t.id}">Eliminar</button>
+      <button class="btn-delete-trabajador" data-id="${t.id}">
+        Eliminar trabajador
+      </button>
 
       <h4>Ausencias</h4>
 
@@ -129,50 +102,26 @@ function renderTrabajador(t) {
       <input type="date" id="fin-${t.id}">
       <input id="coment-${t.id}" placeholder="Comentario">
 
-      <button class="add-ausencia" data-id="${t.id}">
+      <button class="btn-add-ausencia" data-id="${t.id}">
         + Añadir ausencia
       </button>
 
-      ${ausencias.map(a => renderAusencia(a)).join("")}
+      ${lista.map(a => renderAusencia(a)).join("")}
     </div>
   `;
 }
 
-// ====== AUSENCIA ======
+// ===== Render ausencia =====
 function renderAusencia(a) {
   return `
-    <div class="ausencia">
+    <div style="margin-top:10px; padding:10px; border:1px solid #ddd;">
       <b>${a.tipo}</b>
       (${a.inicio} → ${a.fin})
       [${a.estado}]
-      <button class="edit-ausencia" data-id="${a.id}">Editar</button>
-      <button class="delete-ausencia" data-id="${a.id}">X</button>
+
+      <button class="btn-delete-ausencia" data-id="${a.id}">
+        X
+      </button>
     </div>
   `;
-}
-
-// ====== CÁLCULO ======
-function calcularResumen(ausencias) {
-  let vacUsadas = 0;
-  let moscoUsados = 0;
-
-  ausencias.forEach(a => {
-    if (a.estado !== "aprobada") return;
-
-    const dias = diasEntre(a.inicio, a.fin);
-
-    if (a.tipo === "Vacaciones") vacUsadas += dias;
-    if (a.tipo === "Moscoso") moscoUsados += dias;
-  });
-
-  return {
-    vacaciones: { usadas: vacUsadas, total: 30 },
-    moscosos: { usados: moscoUsados, total: 2 }
-  };
-}
-
-function diasEntre(inicio, fin) {
-  const d1 = new Date(inicio);
-  const d2 = new Date(fin);
-  return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
 }
