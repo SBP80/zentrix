@@ -6,6 +6,8 @@ const EDIT_AUSENCIA_KEY = "zentryx_ausencia_edit_id";
 const SESSION_USER_KEY = "zentrix_session_user_v1";
 const NEW_FORM_OPEN_KEY = "zentryx_personal_new_form_open";
 const FORM_TAB_KEY = "zentryx_personal_form_tab";
+const SEARCH_KEY = "zentryx_personal_search";
+const FILTER_STATUS_KEY = "zentryx_personal_filter_status";
 
 export function renderPersonal() {
   const usuarioActual = getUsuarioActual();
@@ -13,13 +15,18 @@ export function renderPersonal() {
   const puedeVerTodo = !!acciones.verTodo;
 
   const todos = db.personal.getAll();
-  const trabajadores = puedeVerTodo
+  const baseTrabajadores = puedeVerTodo
     ? todos
     : todos.filter((t) => String(t.id) === String(usuarioActual.id));
 
   const editId = localStorage.getItem(EDIT_ID_KEY) || "";
-  const editando = trabajadores.find((t) => String(t.id) === String(editId)) || null;
+  const editando = baseTrabajadores.find((t) => String(t.id) === String(editId)) || null;
   const newFormOpen = localStorage.getItem(NEW_FORM_OPEN_KEY) === "true";
+
+  const search = getSearchText();
+  const status = getStatusFilter();
+
+  const trabajadores = filtrarTrabajadores(baseTrabajadores, search, status);
 
   setTimeout(() => {
     activarEventosPersonal();
@@ -35,6 +42,59 @@ export function renderPersonal() {
 
         ${renderBloqueFormulario(editando, acciones, usuarioActual, newFormOpen)}
 
+        <div style="
+          margin-top:18px;
+          padding:12px;
+          border:1px solid #e2e8f0;
+          border-radius:12px;
+          background:#f8fafc;
+        ">
+          <div style="
+            display:grid;
+            grid-template-columns:minmax(240px,1fr) 220px auto;
+            gap:10px;
+            align-items:end;
+          ">
+            <div>
+              <label for="personal_search" style="${labelStyle()}">Buscar trabajador</label>
+              <input
+                id="personal_search"
+                value="${escapeHtmlAttr(search)}"
+                placeholder="Nombre, usuario, puesto, email, teléfono..."
+                style="${inputStyle()}"
+              >
+            </div>
+
+            <div>
+              <label for="personal_status" style="${labelStyle()}">Estado</label>
+              <select id="personal_status" style="${inputStyle()}">
+                <option value="todos" ${status === "todos" ? "selected" : ""}>Todos</option>
+                <option value="activos" ${status === "activos" ? "selected" : ""}>Activos</option>
+                <option value="inactivos" ${status === "inactivos" ? "selected" : ""}>Inactivos</option>
+              </select>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button id="btn_limpiar_filtros_personal" type="button" style="${btnSecundario()}">
+                Limpiar
+              </button>
+            </div>
+          </div>
+
+          <div style="
+            margin-top:10px;
+            display:flex;
+            justify-content:space-between;
+            gap:10px;
+            flex-wrap:wrap;
+            font-size:12px;
+            color:#64748b;
+          ">
+            <div>Mostrando ${trabajadores.length} de ${baseTrabajadores.length} trabajadores</div>
+            <div>Búsqueda activa: ${search ? escapeHtml(search) : "ninguna"}</div>
+          </div>
+        </div>
+
         <div style="margin-top:20px;display:grid;gap:14px;">
           ${
             trabajadores.length
@@ -47,7 +107,7 @@ export function renderPersonal() {
                   color:#64748b;
                   background:#f8fafc;
                 ">
-                  No hay trabajadores disponibles.
+                  No hay trabajadores que coincidan con el filtro.
                 </div>
               `
           }
@@ -601,6 +661,24 @@ function activarEventosPersonal() {
     });
   });
 
+  const searchEl = document.getElementById("personal_search");
+  searchEl?.addEventListener("input", () => {
+    setSearchText(searchEl.value || "");
+    refrescarPersonal();
+  });
+
+  const statusEl = document.getElementById("personal_status");
+  statusEl?.addEventListener("change", () => {
+    setStatusFilter(statusEl.value || "todos");
+    refrescarPersonal();
+  });
+
+  document.getElementById("btn_limpiar_filtros_personal")?.addEventListener("click", () => {
+    setSearchText("");
+    setStatusFilter("todos");
+    refrescarPersonal();
+  });
+
   if (acciones.crear || acciones.editar) {
     document.getElementById("btn_guardar_trabajador")?.addEventListener("click", guardarTrabajador);
 
@@ -839,6 +917,68 @@ function getFormTab() {
 
 function setFormTab(tab) {
   localStorage.setItem(FORM_TAB_KEY, tab);
+}
+
+function getSearchText() {
+  return localStorage.getItem(SEARCH_KEY) || "";
+}
+
+function setSearchText(value) {
+  localStorage.setItem(SEARCH_KEY, value);
+}
+
+function getStatusFilter() {
+  return localStorage.getItem(FILTER_STATUS_KEY) || "todos";
+}
+
+function setStatusFilter(value) {
+  localStorage.setItem(FILTER_STATUS_KEY, value);
+}
+
+function filtrarTrabajadores(lista, search, status) {
+  let salida = [...lista];
+
+  const txt = normalizeText(search);
+
+  if (txt) {
+    salida = salida.filter((t) => {
+      const bolsa = [
+        t.nombre,
+        t.usuario,
+        t.puesto,
+        t.email,
+        t.telefono,
+        t.dni,
+        t.nss,
+        t.direccion?.via,
+        t.direccion?.poblacion,
+        t.direccion?.provincia
+      ]
+        .filter(Boolean)
+        .map(normalizeText)
+        .join(" ");
+
+      return bolsa.includes(txt);
+    });
+  }
+
+  if (status === "activos") {
+    salida = salida.filter((t) => t.activo !== false);
+  }
+
+  if (status === "inactivos") {
+    salida = salida.filter((t) => t.activo === false);
+  }
+
+  return salida.sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
+}
+
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 function calcularResumenTrabajador(trabajador, ausencias) {
