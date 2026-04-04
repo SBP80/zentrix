@@ -1,5 +1,7 @@
+import { db } from "../db.js";
+
 export function renderPersonal() {
-  const personal = JSON.parse(localStorage.getItem("zentryx_personal") || "[]");
+  const trabajadores = db.personal.getAll();
 
   setTimeout(() => {
     document.getElementById("btn_add")?.addEventListener("click", () => {
@@ -8,22 +10,19 @@ export function renderPersonal() {
 
       if (!nombre) return alert("Nombre obligatorio");
 
-      personal.push({
-        id: Date.now(),
+      db.personal.create({
         nombre,
         rol
       });
 
-      localStorage.setItem("zentryx_personal", JSON.stringify(personal));
-      location.reload();
+      refrescar();
     });
 
     document.querySelectorAll(".btn_delete").forEach(btn => {
       btn.addEventListener("click", () => {
-        const id = Number(btn.dataset.id);
-        const nueva = personal.filter(p => p.id !== id);
-        localStorage.setItem("zentryx_personal", JSON.stringify(nueva));
-        location.reload();
+        const id = btn.dataset.id;
+        db.personal.remove(id);
+        refrescar();
       });
     });
   }, 0);
@@ -55,8 +54,8 @@ export function renderPersonal() {
 
       <div>
         ${
-          personal.length
-            ? personal.map(p => `
+          trabajadores.length
+            ? trabajadores.map(t => `
               <div style="
                 display:flex;
                 justify-content:space-between;
@@ -65,8 +64,8 @@ export function renderPersonal() {
                 background:#f1f5f9;
                 border-radius:8px;
               ">
-                <div>${p.nombre} - ${p.rol}</div>
-                <button class="btn_delete" data-id="${p.id}" style="
+                <div>${t.nombre} - ${t.rol || "sin rol"}</div>
+                <button class="btn_delete" data-id="${t.id}" style="
                   background:#dc2626;
                   color:white;
                   border:none;
@@ -82,4 +81,10 @@ export function renderPersonal() {
 
     </div>
   `;
+}
+
+function refrescar() {
+  const container = document.getElementById("viewContainer");
+  if (!container) return;
+  container.innerHTML = renderPersonal();
 }
