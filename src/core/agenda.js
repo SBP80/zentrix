@@ -1,18 +1,60 @@
-const KEY = "zentrix_agenda_eventos_v1";
+import { db } from "./db.js";
 
-function loadEventos() {
-  try {
-    return JSON.parse(localStorage.getItem(KEY)) || [];
-  } catch (error) {
-    return [];
-  }
+const AGENDA_KEY = "zentrix_agenda_eventos_v1";
+
+export function getEventos() {
+  const manuales = leerEventosManuales();
+  const ausencias = generarEventosDesdeAusencias();
+
+  const mapa = new Map();
+
+  [...manuales, ...ausencias].forEach((evento) => {
+    mapa.set(String(evento.id), evento);
+  });
+
+  return Array.from(mapa.values()).sort(ordenarEventos);
 }
 
-function saveEventos(eventos) {
-  localStorage.setItem(KEY, JSON.stringify(eventos));
+export function addEvento(data) {
+  const lista = leerEventosManuales();
+
+  const nuevo = {
+    id: "ev_" + Date.now(),
+    titulo: String(data.titulo || "").trim(),
+    fecha: data.fecha || "",
+    hora: data.hora || "",
+    tipo: String(data.tipo || "Trabajo").trim(),
+    prioridad: String(data.prioridad || "Media").trim(),
+    usuario: String(data.usuario || "").trim(),
+    extra: String(data.extra || "").trim(),
+    done: false,
+    origen: "manual"
+  };
+
+  lista.push(nuevo);
+  guardarEventosManuales(lista);
+  return nuevo;
+}
+
+export function toggleEvento(id) {
+  const idTxt = String(id);
+  const lista = leerEventosManuales().map((item) => {
+    if (String(item.id) !== idTxt) return item;
+    return { ...item, done: !item.done };
+  });
+
+  guardarEventosManuales(lista);
+}
+
+export function deleteEvento(id) {
+  const idTxt = String(id);
+  const lista = leerEventosManuales().filter((item) => String(item.id) !== idTxt);
+  guardarEventosManuales(lista);
 }
 
 export function getAgendaContexto() {
+  const personal = db.personal.getAll();
+
   return {
     tipos: [
       "Trabajo",
@@ -23,48 +65,70 @@ export function getAgendaContexto() {
       "Aviso"
     ],
     prioridades: ["Alta", "Media", "Baja"],
-    usuarios: ["Operario 1", "Operario 2", "Encargado"]
+    usuarios: personal.length
+      ? personal.map((p) => p.nombre || p.usuario || "Trabajador")
+      : ["Operario 1"]
   };
 }
 
-export function getEventos() {
-  return loadEventos().sort((a, b) => {
-    const fa = `${a.fecha || ""} ${a.hora || ""}`;
-    const fb = `${b.fecha || ""} ${b.hora || ""}`;
-    return fa.localeCompare(fb);
-  });
+function leerEventosManuales() {
+  try {
+    const data = JSON.parse(localStorage.getItem(AGENDA_KEY) || "[]");
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
 }
 
-export function addEvento(evento) {
-  const eventos = loadEventos();
-
-  eventos.push({
-    id: Date.now(),
-    titulo: String(evento.titulo || "").trim(),
-    fecha: evento.fecha || "",
-    hora: evento.hora || "",
-    tipo: evento.tipo || "Trabajo",
-    prioridad: evento.prioridad || "Media",
-    usuario: evento.usuario || "Operario 1",
-    extra: String(evento.extra || "").trim(),
-    done: false
-  });
-
-  saveEventos(eventos);
+function guardarEventosManuales(lista) {
+  localStorage.setItem(AGENDA_KEY, JSON.stringify(Array.isArray(lista) ? lista : []));
 }
 
-export function toggleEvento(id) {
-  const eventos = loadEventos().map((evento) => {
-    if (evento.id === id) {
-      return { ...evento, done: !evento.done };
-    }
-    return evento;
-  });
+function generarEventosDesdeAusencias() {
+  const personal = db.personal.getAll();
+  const ausencias = db.ausencias.getAll();
 
-  saveEventos(eventos);
+  return ausencias
+    .filter((a) => String(a.estado || "") === "aprobada")
+    .map((a) => {
+      const trabajador = personal.find((p) => String(p.id) === String(a.trabajadorId));
+      const nombre = trabajador?.nombre || trabajador?.usuario || "Trabajador";
+      const fecha = a.fechaInicio || "";
+      const fin = a.fechaFin || a.fechaInicio || "";
+
+      return {
+        id: "aus_" + String(a.id),
+        titulo: tituloAusencia(a.tipo, nombre),
+        fecha,
+        hora: "",
+        tipo: tipoAgendaDesdeAusencia(a.tipo),
+        prioridad: "Alta",
+        usuario: nombre,
+        extra: fecha !== fin ? `Hasta ${fin}` : (a.comentario || ""),
+        done: false,
+        origen: "ausencia"
+      };
+    });
 }
 
-export function deleteEvento(id) {
-  const eventos = loadEventos().filter((evento) => evento.id !== id);
-  saveEventos(eventos);
+function tituloAusencia(tipo, nombre) {
+  if (tipo === "vacaciones") return `Vacaciones · ${nombre}`;
+  if (tipo === "moscoso") return `Moscoso · ${nombre}`;
+  if (tipo === "baja") return `Baja · ${nombre}`;
+  if (tipo === "permiso") return `Permiso · ${nombre}`;
+  return `Ausencia · ${nombre}`;
+}
+
+function tipoAgendaDesdeAusencia(tipo) {
+  if (tipo === "vacaciones") return "Vacaciones";
+  if (tipo === "baja") return "Aviso";
+  if (tipo === "moscoso") return "Aviso";
+  if (tipo === "permiso") return "Aviso";
+  return "Aviso";
+}
+
+function ordenarEventos(a, b) {
+  const fechaA = `${a.fecha || ""} ${a.hora || ""}`.trim();
+  const fechaB = `${b.fecha || ""} ${b.hora || ""}`.trim();
+  return fechaA.localeCompare(fechaB);
 }
