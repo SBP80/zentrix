@@ -35,15 +35,17 @@ export function renderAgenda() {
       refrescarAgenda();
     };
 
-    window.toggleEventoUI = function (id) {
-      toggleEvento(id);
-      refrescarAgenda();
-    };
+   window.toggleEventoUI = function (id) {
+  if (String(id).startsWith("aus_")) return;
+  toggleEvento(id);
+  refrescarAgenda();
+};
 
-    window.deleteEventoUI = function (id) {
-      deleteEvento(id);
-      refrescarAgenda();
-    };
+window.deleteEventoUI = function (id) {
+  if (String(id).startsWith("aus_")) return;
+  deleteEvento(id);
+  refrescarAgenda();
+};
   }, 0);
 
   return `
