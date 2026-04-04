@@ -582,22 +582,6 @@ function refrescarPersonal() {
   view.innerHTML = renderPersonal();
 }
 
-function getDireccionTexto(d) {
-  const partes = [
-    d.tipoVia,
-    d.via,
-    d.numero,
-    d.portal ? `Portal ${d.portal}` : "",
-    d.piso ? `Piso ${d.piso}` : "",
-    d.puerta ? `Puerta ${d.puerta}` : "",
-    d.cp,
-    d.poblacion,
-    d.provincia
-  ].filter(Boolean);
-
-  return partes.join(", ");
-}
-
 function campo(label, id, value, extra = "") {
   return `
     <div>
