@@ -19,6 +19,14 @@ function renderApp() {
   }
 
   const usuario = getUsuarioActual();
+  const permisos = usuario.permisosModulos || {};
+
+  const vistasPermitidas = getVistasPermitidas(permisos);
+
+  if (!vistasPermitidas.includes(state.view)) {
+    state.view = vistasPermitidas[0] || "inicio";
+  }
+
   let content = "";
 
   if (state.view === "inicio") content = renderInicio();
@@ -74,10 +82,10 @@ function renderApp() {
             </div>
           </div>
 
-          <button class="nav-btn" data-view="inicio" style="${btnStyle(state.view === "inicio")}">Inicio</button>
-          <button class="nav-btn" data-view="agenda" style="${btnStyle(state.view === "agenda")}">Agenda</button>
-          <button class="nav-btn" data-view="personal" style="${btnStyle(state.view === "personal")}">Personal</button>
-          <button class="nav-btn" data-view="configuracion" style="${btnStyle(state.view === "configuracion")}">Configuración</button>
+          ${renderBotonMenu("inicio", "Inicio", state.view === "inicio", permisos.inicio)}
+          ${renderBotonMenu("agenda", "Agenda", state.view === "agenda", permisos.agenda)}
+          ${renderBotonMenu("personal", "Personal", state.view === "personal", permisos.personal)}
+          ${renderBotonMenu("configuracion", "Configuración", state.view === "configuracion", permisos.configuracion)}
         </div>
 
         <div>
@@ -260,7 +268,7 @@ function intentarLogin() {
   localStorage.setItem(SESSION_KEY, "true");
   localStorage.setItem(SESSION_USER_KEY, String(user.id));
   state.logged = true;
-  state.view = "inicio";
+  state.view = getVistaInicial(user);
   renderApp();
 }
 
@@ -288,8 +296,41 @@ function getUsuarioActual() {
   const usuarios = db.personal.getAll();
   return usuarios.find((u) => String(u.id) === String(id)) || {
     nombre: "Usuario",
-    puesto: "sin rol"
+    puesto: "sin rol",
+    permisosModulos: {
+      inicio: true,
+      agenda: false,
+      personal: false,
+      configuracion: false
+    }
   };
+}
+
+function getVistaInicial(usuario) {
+  const permisos = usuario?.permisosModulos || {};
+
+  if (permisos.inicio) return "inicio";
+  if (permisos.agenda) return "agenda";
+  if (permisos.personal) return "personal";
+  if (permisos.configuracion) return "configuracion";
+
+  return "inicio";
+}
+
+function getVistasPermitidas(permisos) {
+  const vistas = [];
+  if (permisos?.inicio) vistas.push("inicio");
+  if (permisos?.agenda) vistas.push("agenda");
+  if (permisos?.personal) vistas.push("personal");
+  if (permisos?.configuracion) vistas.push("configuracion");
+  return vistas.length ? vistas : ["inicio"];
+}
+
+function renderBotonMenu(view, texto, active, permitido) {
+  if (!permitido) return "";
+  return `
+    <button class="nav-btn" data-view="${view}" style="${btnStyle(active)}">${texto}</button>
+  `;
 }
 
 function btnStyle(active) {
