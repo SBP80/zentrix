@@ -23,14 +23,16 @@ export function renderPersonal() {
   }, 0);
 
   return `
-    <div style="max-width:1200px;width:100%;">
+    <div style="max-width:1240px;width:100%;">
       <div class="panel-card">
-        <h3 style="margin-top:0;">Personal</h3>
-        <p style="color:#64748b;margin-bottom:18px;">Equipo, roles y permisos.</p>
+        <div style="margin-bottom:18px;">
+          <h3 style="margin:0 0 6px 0;">Personal</h3>
+          <p style="margin:0;color:#64748b;">Equipo, roles y permisos.</p>
+        </div>
 
         ${acciones.crear || acciones.editar ? renderFormularioTrabajador(editando, acciones, usuarioActual) : ""}
 
-        <div style="margin-top:24px;display:grid;gap:14px;">
+        <div style="margin-top:20px;display:grid;gap:14px;">
           ${
             trabajadores.length
               ? trabajadores.map((t) => renderTrabajador(t, acciones)).join("")
@@ -68,91 +70,105 @@ function renderFormularioTrabajador(editando, acciones, usuarioActual) {
 
   return `
     <div style="
-      padding:16px;
+      margin-bottom:18px;
       border:1px solid #e2e8f0;
-      border-radius:14px;
-      background:#f8fafc;
+      border-radius:16px;
+      background:#ffffff;
+      overflow:hidden;
     ">
       <div style="
-        font-size:15px;
-        font-weight:700;
-        color:#0f172a;
-        margin-bottom:12px;
+        position:sticky;
+        top:0;
+        z-index:4;
+        background:#ffffff;
+        border-bottom:1px solid #e2e8f0;
+        padding:14px 16px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:12px;
+        flex-wrap:wrap;
       ">
-        ${editando ? "Editar trabajador" : "Nuevo trabajador"}
-      </div>
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#0f172a;">
+            ${editando ? "Editar trabajador" : "Nuevo trabajador"}
+          </div>
+          <div style="font-size:12px;color:#64748b;margin-top:4px;">
+            Formulario compacto para alta y edición.
+          </div>
+        </div>
 
-      <div style="
-        display:grid;
-        grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-        gap:10px;
-      ">
-        ${campo("Nombre completo", "p_nombre", t.nombre || "")}
-        ${campo("Usuario", "p_usuario", t.usuario || "")}
-        ${campo("Contraseña", "p_password", t.password || "")}
-        ${campo("Puesto", "p_puesto", t.puesto || "")}
-        ${campoSelectActivo(t.activo !== false)}
-        ${campo("Teléfono", "p_telefono", t.telefono || "", 'inputmode="tel"')}
-        ${campo("Email", "p_email", t.email || "", 'inputmode="email"')}
-        ${campo("DNI", "p_dni", t.dni || "")}
-        ${campo("Seguridad Social", "p_nss", t.nss || "")}
-        ${campo("Tipo de vía", "p_tipoVia", d.tipoVia || "")}
-        ${campo("Nombre de la vía", "p_via", d.via || "")}
-        ${campo("Número", "p_numero", d.numero || "")}
-        ${campo("Portal", "p_portal", d.portal || "")}
-        ${campo("Piso", "p_piso", d.piso || "")}
-        ${campo("Puerta", "p_puerta", d.puerta || "")}
-        ${campo("Código postal", "p_cp", d.cp || "")}
-        ${campo("Población", "p_poblacion", d.poblacion || "")}
-        ${campo("Provincia", "p_provincia", d.provincia || "")}
-        ${campo("Fecha de alta", "p_fechaAlta", t.fechaAlta || "", 'type="date"')}
-        ${campo("Vacaciones disponibles", "p_vac", String(vacaciones.disponibles ?? 30), 'type="number"')}
-        ${campo("Moscosos disponibles", "p_mos", String(moscosos.disponibles ?? 2), 'type="number"')}
-      </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="btn_guardar_trabajador" type="button" style="${btnPrincipal()}">
+            ${editando ? "Guardar cambios" : "Añadir trabajador"}
+          </button>
 
-      <div style="margin-top:14px;opacity:${puedeTocarPermisos ? "1" : "0.65"};">
-        <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">Permisos por módulos</div>
-        <div style="
-          display:grid;
-          grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-          gap:8px;
-        ">
-          ${check("mod_inicio", "Inicio", !!mod.inicio, !puedeTocarPermisos)}
-          ${check("mod_agenda", "Agenda", !!mod.agenda, !puedeTocarPermisos)}
-          ${check("mod_personal", "Personal", !!mod.personal, !puedeTocarPermisos)}
-          ${check("mod_configuracion", "Configuración", !!mod.configuracion, !puedeTocarPermisos)}
-          ${check("mod_vehiculos", "Vehículos", !!mod.vehiculos, !puedeTocarPermisos)}
-          ${check("mod_herramientas", "Herramientas", !!mod.herramientas, !puedeTocarPermisos)}
-          ${check("mod_clientes", "Clientes", !!mod.clientes, !puedeTocarPermisos)}
-          ${check("mod_obras", "Obras", !!mod.obras, !puedeTocarPermisos)}
+          ${
+            editando
+              ? `<button id="btn_cancelar_trabajador" type="button" style="${btnSecundario()}">Cancelar edición</button>`
+              : ""
+          }
         </div>
       </div>
 
-      <div style="margin-top:14px;opacity:${puedeTocarPermisos ? "1" : "0.65"};">
-        <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">Permisos por acciones</div>
-        <div style="
-          display:grid;
-          grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-          gap:8px;
-        ">
-          ${check("acc_verTodo", "Ver todo", !!acc.verTodo, !puedeTocarPermisos)}
-          ${check("acc_crear", "Crear", !!acc.crear, !puedeTocarPermisos)}
-          ${check("acc_editar", "Editar", !!acc.editar, !puedeTocarPermisos)}
-          ${check("acc_borrar", "Borrar", !!acc.borrar, !puedeTocarPermisos)}
-          ${check("acc_aprobar", "Aprobar", !!acc.aprobar, !puedeTocarPermisos)}
+      <div style="padding:16px;display:grid;gap:14px;">
+        <div style="${sectionBox()}">
+          <div style="${sectionTitle()}">Datos básicos</div>
+          <div style="${grid4()}">
+            ${campo("Nombre completo", "p_nombre", t.nombre || "")}
+            ${campo("Usuario", "p_usuario", t.usuario || "")}
+            ${campo("Contraseña", "p_password", t.password || "")}
+            ${campo("Puesto", "p_puesto", t.puesto || "")}
+            ${campoSelectActivo(t.activo !== false)}
+            ${campo("Teléfono", "p_telefono", t.telefono || "", 'inputmode="tel"')}
+            ${campo("Email", "p_email", t.email || "", 'inputmode="email"')}
+            ${campo("Fecha de alta", "p_fechaAlta", t.fechaAlta || "", 'type="date"')}
+            ${campo("DNI", "p_dni", t.dni || "")}
+            ${campo("Seguridad Social", "p_nss", t.nss || "")}
+            ${campo("Vacaciones disponibles", "p_vac", String(vacaciones.disponibles ?? 30), 'type="number"')}
+            ${campo("Moscosos disponibles", "p_mos", String(moscosos.disponibles ?? 2), 'type="number"')}
+          </div>
         </div>
-      </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
-        <button id="btn_guardar_trabajador" type="button" style="${btnPrincipal()}">
-          ${editando ? "Guardar cambios" : "Añadir trabajador"}
-        </button>
+        <div style="${sectionBox()}">
+          <div style="${sectionTitle()}">Dirección</div>
+          <div style="${grid4()}">
+            ${campo("Tipo de vía", "p_tipoVia", d.tipoVia || "")}
+            ${campo("Nombre de la vía", "p_via", d.via || "")}
+            ${campo("Número", "p_numero", d.numero || "")}
+            ${campo("Portal", "p_portal", d.portal || "")}
+            ${campo("Piso", "p_piso", d.piso || "")}
+            ${campo("Puerta", "p_puerta", d.puerta || "")}
+            ${campo("Código postal", "p_cp", d.cp || "")}
+            ${campo("Población", "p_poblacion", d.poblacion || "")}
+            ${campo("Provincia", "p_provincia", d.provincia || "")}
+          </div>
+        </div>
 
-        ${
-          editando
-            ? `<button id="btn_cancelar_trabajador" type="button" style="${btnSecundario()}">Cancelar edición</button>`
-            : ""
-        }
+        <div style="${sectionBox()}opacity:${puedeTocarPermisos ? "1" : "0.68"};">
+          <div style="${sectionTitle()}">Permisos por módulos</div>
+          <div style="${gridChecks()}">
+            ${check("mod_inicio", "Inicio", !!mod.inicio, !puedeTocarPermisos)}
+            ${check("mod_agenda", "Agenda", !!mod.agenda, !puedeTocarPermisos)}
+            ${check("mod_personal", "Personal", !!mod.personal, !puedeTocarPermisos)}
+            ${check("mod_configuracion", "Configuración", !!mod.configuracion, !puedeTocarPermisos)}
+            ${check("mod_vehiculos", "Vehículos", !!mod.vehiculos, !puedeTocarPermisos)}
+            ${check("mod_herramientas", "Herramientas", !!mod.herramientas, !puedeTocarPermisos)}
+            ${check("mod_clientes", "Clientes", !!mod.clientes, !puedeTocarPermisos)}
+            ${check("mod_obras", "Obras", !!mod.obras, !puedeTocarPermisos)}
+          </div>
+        </div>
+
+        <div style="${sectionBox()}opacity:${puedeTocarPermisos ? "1" : "0.68"};">
+          <div style="${sectionTitle()}">Permisos por acciones</div>
+          <div style="${gridChecks()}">
+            ${check("acc_verTodo", "Ver todo", !!acc.verTodo, !puedeTocarPermisos)}
+            ${check("acc_crear", "Crear", !!acc.crear, !puedeTocarPermisos)}
+            ${check("acc_editar", "Editar", !!acc.editar, !puedeTocarPermisos)}
+            ${check("acc_borrar", "Borrar", !!acc.borrar, !puedeTocarPermisos)}
+            ${check("acc_aprobar", "Aprobar", !!acc.aprobar, !puedeTocarPermisos)}
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -167,7 +183,7 @@ function renderTrabajador(t, acciones) {
 
   return `
     <div style="
-      padding:16px;
+      padding:14px;
       border:1px solid #e2e8f0;
       border-radius:14px;
       background:#fff;
@@ -199,49 +215,69 @@ function renderTrabajador(t, acciones) {
             </span>
           </div>
 
-          <div style="margin-top:6px;font-size:13px;color:#64748b;">
+          <div style="margin-top:4px;font-size:13px;color:#64748b;">
             ${escapeHtml(t.usuario || "-")} · ${escapeHtml(t.puesto || "-")}
           </div>
 
-          <div style="margin-top:8px;display:grid;gap:6px;font-size:13px;color:#334155;">
+          <div style="
+            margin-top:10px;
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+            gap:6px 12px;
+            font-size:13px;
+            color:#334155;
+          ">
             ${t.telefono ? `<div>📞 <a href="tel:${encodeURIComponent(t.telefono)}" style="${linkStyle()}">${escapeHtml(t.telefono)}</a></div>` : ""}
             ${t.email ? `<div>✉ <a href="mailto:${encodeURIComponent(t.email)}" style="${linkStyle()}">${escapeHtml(t.email)}</a></div>` : ""}
-            ${direccionTexto ? `<div>📍 ${escapeHtml(direccionTexto)}</div>` : ""}
+            ${direccionTexto ? `<div style="grid-column:1 / -1;">📍 ${escapeHtml(direccionTexto)}</div>` : ""}
             ${t.dni ? `<div>DNI: ${escapeHtml(t.dni)}</div>` : ""}
             ${t.nss ? `<div>NSS: ${escapeHtml(t.nss)}</div>` : ""}
             ${t.fechaAlta ? `<div>Alta: ${escapeHtml(t.fechaAlta)}</div>` : ""}
           </div>
 
-          <div style="margin-top:10px;font-size:12px;color:#475569;">
-            Vacaciones: ${escapeHtml(String(resumen.vacacionesDisponibles))} disponibles · ${escapeHtml(String(resumen.vacacionesUsadas))} usadas · ${escapeHtml(String(resumen.vacacionesRestantes))} restantes
-          </div>
-
-          <div style="margin-top:4px;font-size:12px;color:#475569;">
-            Moscosos: ${escapeHtml(String(resumen.moscososDisponibles))} disponibles · ${escapeHtml(String(resumen.moscososUsados))} usados · ${escapeHtml(String(resumen.moscososRestantes))} restantes
-          </div>
-
-          <div style="margin-top:10px;">
-            <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Módulos</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              ${pill("Inicio", mod.inicio)}
-              ${pill("Agenda", mod.agenda)}
-              ${pill("Personal", mod.personal)}
-              ${pill("Configuración", mod.configuracion)}
-              ${pill("Vehículos", mod.vehiculos)}
-              ${pill("Herramientas", mod.herramientas)}
-              ${pill("Clientes", mod.clientes)}
-              ${pill("Obras", mod.obras)}
+          <div style="
+            margin-top:10px;
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+            gap:8px;
+          ">
+            <div style="${miniInfoBox()}">
+              Vacaciones: ${escapeHtml(String(resumen.vacacionesDisponibles))} disponibles · ${escapeHtml(String(resumen.vacacionesUsadas))} usadas · ${escapeHtml(String(resumen.vacacionesRestantes))} restantes
+            </div>
+            <div style="${miniInfoBox()}">
+              Moscosos: ${escapeHtml(String(resumen.moscososDisponibles))} disponibles · ${escapeHtml(String(resumen.moscososUsados))} usados · ${escapeHtml(String(resumen.moscososRestantes))} restantes
             </div>
           </div>
 
-          <div style="margin-top:10px;">
-            <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Acciones</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              ${pill("Ver todo", acc.verTodo)}
-              ${pill("Crear", acc.crear)}
-              ${pill("Editar", acc.editar)}
-              ${pill("Borrar", acc.borrar)}
-              ${pill("Aprobar", acc.aprobar)}
+          <div style="
+            margin-top:10px;
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+            gap:10px;
+          ">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Módulos</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${pill("Inicio", mod.inicio)}
+                ${pill("Agenda", mod.agenda)}
+                ${pill("Personal", mod.personal)}
+                ${pill("Configuración", mod.configuracion)}
+                ${pill("Vehículos", mod.vehiculos)}
+                ${pill("Herramientas", mod.herramientas)}
+                ${pill("Clientes", mod.clientes)}
+                ${pill("Obras", mod.obras)}
+              </div>
+            </div>
+
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Acciones</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${pill("Ver todo", acc.verTodo)}
+                ${pill("Crear", acc.crear)}
+                ${pill("Editar", acc.editar)}
+                ${pill("Borrar", acc.borrar)}
+                ${pill("Aprobar", acc.aprobar)}
+              </div>
             </div>
           </div>
         </div>
@@ -261,7 +297,7 @@ function renderTrabajador(t, acciones) {
         </div>
       </div>
 
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;">
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0;">
         <div style="
           display:flex;
           justify-content:space-between;
