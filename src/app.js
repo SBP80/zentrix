@@ -1,5 +1,4 @@
 import { state } from "./core/state.js";
-
 import { renderInicio } from "./core/views/inicio.js";
 import { renderAgenda } from "./core/views/agenda.js";
 import { renderConfiguracion } from "./core/views/configuracion.js";
@@ -17,29 +16,29 @@ function renderApp() {
 
   app.innerHTML = `
     <div style="display:flex;min-height:100vh;">
-
-      <div style="
+      <aside style="
         width:220px;
         background:#0f172a;
         color:#fff;
         padding:20px;
+        box-sizing:border-box;
       ">
-        <h2>Zentryx</h2>
+        <h2 style="margin:0 0 20px 0;">Zentryx</h2>
 
-        <button class="nav-btn" data-view="inicio" style="${btn()}">Inicio</button>
-        <button class="nav-btn" data-view="agenda" style="${btn()}">Agenda</button>
-        <button class="nav-btn" data-view="personal" style="${btn()}">Personal</button>
-        <button class="nav-btn" data-view="configuracion" style="${btn()}">Configuración</button>
-      </div>
+        <button class="nav-btn" data-view="inicio" style="${btnStyle(state.view === "inicio")}">Inicio</button>
+        <button class="nav-btn" data-view="agenda" style="${btnStyle(state.view === "agenda")}">Agenda</button>
+        <button class="nav-btn" data-view="personal" style="${btnStyle(state.view === "personal")}">Personal</button>
+        <button class="nav-btn" data-view="configuracion" style="${btnStyle(state.view === "configuracion")}">Configuración</button>
+      </aside>
 
-      <div id="viewContainer" style="
+      <main id="viewContainer" style="
         flex:1;
         padding:20px;
         background:#f1f5f9;
+        box-sizing:border-box;
       ">
         ${content}
-      </div>
-
+      </main>
     </div>
   `;
 
@@ -47,24 +46,26 @@ function renderApp() {
 }
 
 function activarMenu() {
-  document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.onclick = () => {
+  document.querySelectorAll(".nav-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
       state.view = btn.dataset.view;
       renderApp();
-    };
+    });
   });
 }
 
-function btn() {
+function btnStyle(active) {
   return `
     width:100%;
     margin-bottom:10px;
-    padding:10px;
+    padding:10px 12px;
     border:none;
     border-radius:8px;
-    background:#1e293b;
-    color:white;
+    background:${active ? "#2563eb" : "#1e293b"};
+    color:#fff;
     cursor:pointer;
+    text-align:left;
+    font-weight:700;
   `;
 }
 
