@@ -27,9 +27,15 @@ function renderApp() {
   if (state.view === "configuracion") content = renderConfiguracion();
 
   app.innerHTML = `
-    <div style="display:flex;min-height:100vh;background:#f1f5f9;">
+    <div style="
+      display:flex;
+      height:100vh;
+      background:#f1f5f9;
+      overflow:hidden;
+    ">
       <aside style="
         width:220px;
+        min-width:220px;
         background:#0f172a;
         color:#fff;
         padding:20px;
@@ -37,6 +43,7 @@ function renderApp() {
         display:flex;
         flex-direction:column;
         justify-content:space-between;
+        height:100vh;
       ">
         <div>
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
@@ -50,12 +57,19 @@ function renderApp() {
               justify-content:center;
               font-weight:800;
               font-size:22px;
+              flex:0 0 auto;
             ">Z</div>
 
-            <div>
+            <div style="min-width:0;">
               <div style="font-size:16px;font-weight:800;line-height:1;">Zentryx</div>
-              <div style="font-size:12px;color:#cbd5e1;margin-top:4px;">
-                ${escapeHtml(usuario.nombre || "Usuario")} · ${escapeHtml(usuario.rol || "sin rol")}
+              <div style="
+                font-size:12px;
+                color:#cbd5e1;
+                margin-top:4px;
+                line-height:1.2;
+                word-break:break-word;
+              ">
+                ${escapeHtml(usuario.nombre || "Usuario")} · ${escapeHtml(usuario.puesto || "sin rol")}
               </div>
             </div>
           </div>
@@ -88,6 +102,8 @@ function renderApp() {
         padding:20px;
         background:#f1f5f9;
         box-sizing:border-box;
+        overflow:auto;
+        height:100vh;
       ">
         ${content}
       </main>
@@ -272,7 +288,7 @@ function getUsuarioActual() {
   const usuarios = db.personal.getAll();
   return usuarios.find((u) => String(u.id) === String(id)) || {
     nombre: "Usuario",
-    rol: "sin rol"
+    puesto: "sin rol"
   };
 }
 
