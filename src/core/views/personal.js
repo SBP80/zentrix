@@ -87,7 +87,8 @@ function renderFormularioTrabajador(editando, acciones, usuarioActual) {
   const mod = t.permisosModulos || {};
   const acc = t.permisosAcciones || {};
 
-  const puedeTocarPermisos = !!acciones.aprobar || !editando || String(usuarioActual.id) !== String(t.id);
+  const puedeTocarPermisos =
+    !!acciones.aprobar || !editando || String(usuarioActual.id) !== String(t.id);
 
   return `
     <div style="
@@ -98,9 +99,6 @@ function renderFormularioTrabajador(editando, acciones, usuarioActual) {
       overflow:hidden;
     ">
       <div style="
-        position:sticky;
-        top:0;
-        z-index:4;
         background:#ffffff;
         border-bottom:1px solid #e2e8f0;
         padding:14px 16px;
@@ -166,7 +164,7 @@ function renderFormularioTrabajador(editando, acciones, usuarioActual) {
           </div>
         </div>
 
-        <div style="${sectionBox()}opacity:${puedeTocarPermisos ? "1" : "0.68"};">
+        <div style="${sectionBox()}${puedeTocarPermisos ? "" : "opacity:0.68;"}">
           <div style="${sectionTitle()}">Permisos por módulos</div>
           <div style="${gridChecks()}">
             ${check("mod_inicio", "Inicio", !!mod.inicio, !puedeTocarPermisos)}
@@ -180,7 +178,7 @@ function renderFormularioTrabajador(editando, acciones, usuarioActual) {
           </div>
         </div>
 
-        <div style="${sectionBox()}opacity:${puedeTocarPermisos ? "1" : "0.68"};">
+        <div style="${sectionBox()}${puedeTocarPermisos ? "" : "opacity:0.68;"}">
           <div style="${sectionTitle()}">Permisos por acciones</div>
           <div style="${gridChecks()}">
             ${check("acc_verTodo", "Ver todo", !!acc.verTodo, !puedeTocarPermisos)}
@@ -710,23 +708,27 @@ function guardarTrabajador() {
       disponibles: numberOf("p_mos", 2),
       usados: actual?.moscosos?.usados ?? 0
     },
-    permisosModulos: puedeTocarPermisos ? {
-      inicio: checked("mod_inicio"),
-      agenda: checked("mod_agenda"),
-      personal: checked("mod_personal"),
-      configuracion: checked("mod_configuracion"),
-      vehiculos: checked("mod_vehiculos"),
-      herramientas: checked("mod_herramientas"),
-      clientes: checked("mod_clientes"),
-      obras: checked("mod_obras")
-    } : (actual.permisosModulos || {}),
-    permisosAcciones: puedeTocarPermisos ? {
-      verTodo: checked("acc_verTodo"),
-      crear: checked("acc_crear"),
-      editar: checked("acc_editar"),
-      borrar: checked("acc_borrar"),
-      aprobar: checked("acc_aprobar")
-    } : (actual.permisosAcciones || {})
+    permisosModulos: puedeTocarPermisos
+      ? {
+          inicio: checked("mod_inicio"),
+          agenda: checked("mod_agenda"),
+          personal: checked("mod_personal"),
+          configuracion: checked("mod_configuracion"),
+          vehiculos: checked("mod_vehiculos"),
+          herramientas: checked("mod_herramientas"),
+          clientes: checked("mod_clientes"),
+          obras: checked("mod_obras")
+        }
+      : (actual.permisosModulos || {}),
+    permisosAcciones: puedeTocarPermisos
+      ? {
+          verTodo: checked("acc_verTodo"),
+          crear: checked("acc_crear"),
+          editar: checked("acc_editar"),
+          borrar: checked("acc_borrar"),
+          aprobar: checked("acc_aprobar")
+        }
+      : (actual.permisosAcciones || {})
   };
 
   if (!data.nombre) {
@@ -748,16 +750,18 @@ function guardarTrabajador() {
 function getUsuarioActual() {
   const id = localStorage.getItem(SESSION_USER_KEY) || "";
   const usuarios = db.personal.getAll();
-  return usuarios.find((u) => String(u.id) === String(id)) || {
-    id: "",
-    permisosAcciones: {
-      verTodo: false,
-      crear: false,
-      editar: false,
-      borrar: false,
-      aprobar: false
+  return (
+    usuarios.find((u) => String(u.id) === String(id)) || {
+      id: "",
+      permisosAcciones: {
+        verTodo: false,
+        crear: false,
+        editar: false,
+        borrar: false,
+        aprobar: false
+      }
     }
-  };
+  );
 }
 
 function calcularResumenTrabajador(trabajador, ausencias) {
