@@ -22,23 +22,38 @@ export function renderPersonal() {
     : todos.filter((t) => String(t.id) === String(usuarioActual.id));
 
   const editId = localStorage.getItem(EDIT_ID_KEY) || "";
-  const editando = baseTrabajadores.find((t) => String(t.id) === String(editId)) || null;
+  const editando =
+    baseTrabajadores.find((t) => String(t.id) === String(editId)) || null;
+
   const newFormOpen = localStorage.getItem(NEW_FORM_OPEN_KEY) === "true";
-
   const search = getSearchText();
-const status = getStatusFilter();
-const order = getOrderBy();
-const quickFilter = getQuickFilter();
+  const status = getStatusFilter();
+  const order = getOrderBy();
+  const quickFilter = getQuickFilter();
 
-const trabajadores = filtrarTrabajadores(baseTrabajadores, search, status, order, quickFilter);
-const totalTrabajadores = baseTrabajadores.length;
-const totalActivos = baseTrabajadores.filter((t) => t.activo !== false).length;
-const totalInactivos = baseTrabajadores.filter((t) => t.activo === false).length;
-const totalConAusencias = baseTrabajadores.filter((t) => db.ausencias.getByTrabajador(t.id).length > 0).length;
-const totalAusenciasPendientes = db.ausencias
-  .getAll()
-  .filter((a) => a.estado === "pendiente" && baseTrabajadores.some((t) => String(t.id) === String(a.trabajadorId)))
-  .length;
+  const trabajadores = filtrarTrabajadores(
+    baseTrabajadores,
+    search,
+    status,
+    order,
+    quickFilter
+  );
+
+  const totalTrabajadores = baseTrabajadores.length;
+  const totalActivos = baseTrabajadores.filter((t) => t.activo !== false).length;
+  const totalInactivos = baseTrabajadores.filter((t) => t.activo === false).length;
+  const totalConAusencias = baseTrabajadores.filter(
+    (t) => db.ausencias.getByTrabajador(t.id).length > 0
+  ).length;
+  const totalAusenciasPendientes = db.ausencias
+    .getAll()
+    .filter(
+      (a) =>
+        a.estado === "pendiente" &&
+        baseTrabajadores.some(
+          (t) => String(t.id) === String(a.trabajadorId)
+        )
+    ).length;
 
   setTimeout(() => {
     activarEventosPersonal();
@@ -51,99 +66,102 @@ const totalAusenciasPendientes = db.ausencias
           <h3 style="margin:0 0 6px 0;">Personal</h3>
           <p style="margin:0;color:#64748b;">Equipo, roles y permisos.</p>
         </div>
+
         <div style="
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:10px;
-  margin-bottom:18px;
-">
-  ${summaryCard("Total", totalTrabajadores, "#0f172a")}
-  ${summaryCard("Activos", totalActivos, "#16a34a")}
-  ${summaryCard("Inactivos", totalInactivos, "#dc2626")}
-  ${summaryCard("Con ausencias", totalConAusencias, "#2563eb")}
-  ${summaryCard("Pendientes", totalAusenciasPendientes, "#d97706")}
-</div>
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+          gap:10px;
+          margin-bottom:18px;
+        ">
+          ${summaryCard("Total", totalTrabajadores, "#0f172a")}
+          ${summaryCard("Activos", totalActivos, "#16a34a")}
+          ${summaryCard("Inactivos", totalInactivos, "#dc2626")}
+          ${summaryCard("Con ausencias", totalConAusencias, "#2563eb")}
+          ${summaryCard("Pendientes", totalAusenciasPendientes, "#d97706")}
+        </div>
 
         ${renderBloqueFormulario(editando, acciones, usuarioActual, newFormOpen)}
 
         <div style="
-  margin-top:18px;
-  padding:12px;
-  border:1px solid #e2e8f0;
-  border-radius:12px;
-  background:#f8fafc;
-">
-  <div style="
-    display:grid;
-    grid-template-columns:minmax(240px,1fr) 180px 220px auto;
-    gap:10px;
-    align-items:end;
-  ">
-    <div>
-      <label for="personal_search" style="${labelStyle()}">Buscar trabajador</label>
-      <input
-        id="personal_search"
-        value="${escapeHtmlAttr(search)}"
-        placeholder="Nombre, usuario, puesto, email, teléfono..."
-        style="${inputStyle()}"
-      >
-    </div>
+          margin-top:18px;
+          padding:12px;
+          border:1px solid #e2e8f0;
+          border-radius:12px;
+          background:#f8fafc;
+        ">
+          <div style="
+            display:grid;
+            grid-template-columns:minmax(240px,1fr) 180px 220px auto;
+            gap:10px;
+            align-items:end;
+          ">
+            <div>
+              <label for="personal_search" style="${labelStyle()}">Buscar trabajador</label>
+              <input
+                id="personal_search"
+                value="${escapeHtmlAttr(search)}"
+                placeholder="Nombre, usuario, puesto, email, teléfono..."
+                style="${inputStyle()}"
+              >
+            </div>
 
-    <div>
-      <label for="personal_status" style="${labelStyle()}">Estado</label>
-      <select id="personal_status" style="${inputStyle()}">
-        <option value="todos" ${status === "todos" ? "selected" : ""}>Todos</option>
-        <option value="activos" ${status === "activos" ? "selected" : ""}>Activos</option>
-        <option value="inactivos" ${status === "inactivos" ? "selected" : ""}>Inactivos</option>
-      </select>
-    </div>
+            <div>
+              <label for="personal_status" style="${labelStyle()}">Estado</label>
+              <select id="personal_status" style="${inputStyle()}">
+                <option value="todos" ${status === "todos" ? "selected" : ""}>Todos</option>
+                <option value="activos" ${status === "activos" ? "selected" : ""}>Activos</option>
+                <option value="inactivos" ${status === "inactivos" ? "selected" : ""}>Inactivos</option>
+              </select>
+            </div>
 
-    <div>
-      <label for="personal_order" style="${labelStyle()}">Ordenar</label>
-      <select id="personal_order" style="${inputStyle()}">
-        <option value="nombre_asc" ${order === "nombre_asc" ? "selected" : ""}>Nombre A-Z</option>
-        <option value="nombre_desc" ${order === "nombre_desc" ? "selected" : ""}>Nombre Z-A</option>
-        <option value="alta_desc" ${order === "alta_desc" ? "selected" : ""}>Alta más reciente</option>
-        <option value="alta_asc" ${order === "alta_asc" ? "selected" : ""}>Alta más antigua</option>
-      </select>
-    </div>
+            <div>
+              <label for="personal_order" style="${labelStyle()}">Ordenar</label>
+              <select id="personal_order" style="${inputStyle()}">
+                <option value="nombre_asc" ${order === "nombre_asc" ? "selected" : ""}>Nombre A-Z</option>
+                <option value="nombre_desc" ${order === "nombre_desc" ? "selected" : ""}>Nombre Z-A</option>
+                <option value="alta_desc" ${order === "alta_desc" ? "selected" : ""}>Alta más reciente</option>
+                <option value="alta_asc" ${order === "alta_asc" ? "selected" : ""}>Alta más antigua</option>
+              </select>
+            </div>
 
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button id="btn_limpiar_filtros_personal" type="button" style="${btnSecundario()}">
-        Limpiar
-      </button>
-    </div>
-  </div>
-  <div style="
-  margin-top:12px;
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-">
-  ${quickChip("todos", "Todos", quickFilter === "todos")}
-  ${quickChip("activos", "Activos", quickFilter === "activos")}
-  ${quickChip("inactivos", "Inactivos", quickFilter === "inactivos")}
-  ${quickChip("con_ausencias", "Con ausencias", quickFilter === "con_ausencias")}
-  ${quickChip("sin_ausencias", "Sin ausencias", quickFilter === "sin_ausencias")}
-</div>
-  <div style="
-    margin-top:10px;
-    display:flex;
-    justify-content:space-between;
-    gap:10px;
-    flex-wrap:wrap;
-    font-size:12px;
-    color:#64748b;
-  ">
-    <div>Mostrando ${trabajadores.length} de ${baseTrabajadores.length} trabajadores</div>
-    <div>
-      Búsqueda: ${search ? escapeHtml(search) : "ninguna"} ·
-      Estado: ${escapeHtml(status)} ·
-      Orden: ${escapeHtml(order)} ·
-      Chip: ${escapeHtml(quickFilter)}
-   </div>
-  </div>
-</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button id="btn_limpiar_filtros_personal" type="button" style="${btnSecundario()}">
+                Limpiar
+              </button>
+            </div>
+          </div>
+
+          <div style="
+            margin-top:12px;
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+          ">
+            ${quickChip("todos", "Todos", quickFilter === "todos")}
+            ${quickChip("activos", "Activos", quickFilter === "activos")}
+            ${quickChip("inactivos", "Inactivos", quickFilter === "inactivos")}
+            ${quickChip("con_ausencias", "Con ausencias", quickFilter === "con_ausencias")}
+            ${quickChip("sin_ausencias", "Sin ausencias", quickFilter === "sin_ausencias")}
+          </div>
+
+          <div style="
+            margin-top:10px;
+            display:flex;
+            justify-content:space-between;
+            gap:10px;
+            flex-wrap:wrap;
+            font-size:12px;
+            color:#64748b;
+          ">
+            <div>Mostrando ${trabajadores.length} de ${baseTrabajadores.length} trabajadores</div>
+            <div>
+              Búsqueda: ${search ? escapeHtml(search) : "ninguna"} ·
+              Estado: ${escapeHtml(status)} ·
+              Orden: ${escapeHtml(order)} ·
+              Chip: ${escapeHtml(quickFilter)}
+            </div>
+          </div>
+        </div>
 
         <div style="margin-top:20px;display:grid;gap:14px;">
           ${
@@ -718,30 +736,31 @@ function activarEventosPersonal() {
   });
 
   const statusEl = document.getElementById("personal_status");
-statusEl?.addEventListener("change", () => {
-  setStatusFilter(statusEl.value || "todos");
-  refrescarPersonal();
-});
-
-const orderEl = document.getElementById("personal_order");
-orderEl?.addEventListener("change", () => {
-  setOrderBy(orderEl.value || "nombre_asc");
-  refrescarPersonal();
-});
-  document.querySelectorAll(".btn-quick-filter").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    setQuickFilter(btn.dataset.quick || "todos");
+  statusEl?.addEventListener("change", () => {
+    setStatusFilter(statusEl.value || "todos");
     refrescarPersonal();
   });
-});
 
-document.getElementById("btn_limpiar_filtros_personal")?.addEventListener("click", () => {
-  setSearchText("");
-  setStatusFilter("todos");
-  setOrderBy("nombre_asc");
-  setQuickFilter("todos");
-  refrescarPersonal();
-});
+  const orderEl = document.getElementById("personal_order");
+  orderEl?.addEventListener("change", () => {
+    setOrderBy(orderEl.value || "nombre_asc");
+    refrescarPersonal();
+  });
+
+  document.querySelectorAll(".btn-quick-filter").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setQuickFilter(btn.dataset.quick || "todos");
+      refrescarPersonal();
+    });
+  });
+
+  document.getElementById("btn_limpiar_filtros_personal")?.addEventListener("click", () => {
+    setSearchText("");
+    setStatusFilter("todos");
+    setOrderBy("nombre_asc");
+    setQuickFilter("todos");
+    refrescarPersonal();
+  });
 
   if (acciones.crear || acciones.editar) {
     document.getElementById("btn_guardar_trabajador")?.addEventListener("click", guardarTrabajador);
@@ -961,6 +980,7 @@ function guardarTrabajador() {
 function getUsuarioActual() {
   const id = localStorage.getItem(SESSION_USER_KEY) || "";
   const usuarios = db.personal.getAll();
+
   return (
     usuarios.find((u) => String(u.id) === String(id)) || {
       id: "",
@@ -1017,7 +1037,6 @@ function setQuickFilter(value) {
 
 function filtrarTrabajadores(lista, search, status, order, quickFilter) {
   let salida = [...lista];
-
   const txt = normalizeText(search);
 
   if (txt) {
@@ -1085,33 +1104,6 @@ function filtrarTrabajadores(lista, search, status, order, quickFilter) {
   return salida;
 }
 
-  if (status === "activos") {
-    salida = salida.filter((t) => t.activo !== false);
-  }
-
-  if (status === "inactivos") {
-    salida = salida.filter((t) => t.activo === false);
-  }
-
-  salida.sort((a, b) => {
-    if (order === "nombre_desc") {
-      return String(b.nombre || "").localeCompare(String(a.nombre || ""), "es");
-    }
-
-    if (order === "alta_desc") {
-      return String(b.fechaAlta || "").localeCompare(String(a.fechaAlta || ""), "es");
-    }
-
-    if (order === "alta_asc") {
-      return String(a.fechaAlta || "").localeCompare(String(b.fechaAlta || ""), "es");
-    }
-
-    return String(a.nombre || "").localeCompare(String(b.nombre || ""), "es");
-  });
-
-  return salida;
-}
-
 function normalizeText(value) {
   return String(value || "")
     .toLowerCase()
@@ -1156,8 +1148,10 @@ function contarDias(inicio, fin) {
   if (!inicio || !fin) return 0;
   const d1 = new Date(inicio);
   const d2 = new Date(fin);
+
   if (Number.isNaN(d1.getTime()) || Number.isNaN(d2.getTime())) return 0;
   if (d2 < d1) return 0;
+
   return Math.floor((d2 - d1) / 86400000) + 1;
 }
 
@@ -1168,6 +1162,7 @@ function valueOf(id) {
 function numberOf(id, fallback) {
   const raw = valueOf(id);
   if (raw === "") return fallback;
+
   const n = Number(raw);
   return Number.isFinite(n) ? n : fallback;
 }
@@ -1261,6 +1256,7 @@ function tabBtn(tab, texto, active) {
     </button>
   `;
 }
+
 function quickChip(value, text, active) {
   return `
     <button
@@ -1282,6 +1278,7 @@ function quickChip(value, text, active) {
     </button>
   `;
 }
+
 function summaryCard(label, value, color) {
   return `
     <div style="
