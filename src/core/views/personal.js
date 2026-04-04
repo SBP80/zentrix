@@ -4,6 +4,7 @@ import { getDireccionTexto } from "../data/personal.js";
 const EDIT_ID_KEY = "zentryx_personal_edit_id";
 const EDIT_AUSENCIA_KEY = "zentryx_ausencia_edit_id";
 const SESSION_USER_KEY = "zentrix_session_user_v1";
+const NEW_FORM_OPEN_KEY = "zentryx_personal_new_form_open";
 
 export function renderPersonal() {
   const usuarioActual = getUsuarioActual();
@@ -17,6 +18,7 @@ export function renderPersonal() {
 
   const editId = localStorage.getItem(EDIT_ID_KEY) || "";
   const editando = trabajadores.find((t) => String(t.id) === String(editId)) || null;
+  const newFormOpen = localStorage.getItem(NEW_FORM_OPEN_KEY) === "true";
 
   setTimeout(() => {
     activarEventosPersonal();
@@ -30,7 +32,7 @@ export function renderPersonal() {
           <p style="margin:0;color:#64748b;">Equipo, roles y permisos.</p>
         </div>
 
-        ${acciones.crear || acciones.editar ? renderFormularioTrabajador(editando, acciones, usuarioActual) : ""}
+        ${renderBloqueFormulario(editando, acciones, usuarioActual, newFormOpen)}
 
         <div style="margin-top:20px;display:grid;gap:14px;">
           ${
@@ -52,6 +54,25 @@ export function renderPersonal() {
       </div>
     </div>
   `;
+}
+
+function renderBloqueFormulario(editando, acciones, usuarioActual, newFormOpen) {
+  const puedeCrear = !!acciones.crear;
+  const puedeEditar = !!acciones.editar;
+
+  if (!puedeCrear && !puedeEditar) return "";
+
+  if (!editando && !newFormOpen) {
+    return `
+      <div style="margin-bottom:18px;">
+        <button id="btn_mostrar_nuevo_trabajador" type="button" style="${btnPrincipal()}">
+          + Nuevo trabajador
+        </button>
+      </div>
+    `;
+  }
+
+  return renderFormularioTrabajador(editando, acciones, usuarioActual);
 }
 
 function renderFormularioTrabajador(editando, acciones, usuarioActual) {
@@ -106,7 +127,7 @@ function renderFormularioTrabajador(editando, acciones, usuarioActual) {
           ${
             editando
               ? `<button id="btn_cancelar_trabajador" type="button" style="${btnSecundario()}">Cancelar edición</button>`
-              : ""
+              : `<button id="btn_ocultar_nuevo_trabajador" type="button" style="${btnSecundario()}">Ocultar formulario</button>`
           }
         </div>
       </div>
@@ -505,11 +526,23 @@ function activarEventosPersonal() {
   const usuarioActual = getUsuarioActual();
   const acciones = usuarioActual.permisosAcciones || {};
 
+  document.getElementById("btn_mostrar_nuevo_trabajador")?.addEventListener("click", () => {
+    localStorage.setItem(NEW_FORM_OPEN_KEY, "true");
+    localStorage.removeItem(EDIT_ID_KEY);
+    refrescarPersonal();
+  });
+
+  document.getElementById("btn_ocultar_nuevo_trabajador")?.addEventListener("click", () => {
+    localStorage.removeItem(NEW_FORM_OPEN_KEY);
+    refrescarPersonal();
+  });
+
   if (acciones.crear || acciones.editar) {
     document.getElementById("btn_guardar_trabajador")?.addEventListener("click", guardarTrabajador);
 
     document.getElementById("btn_cancelar_trabajador")?.addEventListener("click", () => {
       localStorage.removeItem(EDIT_ID_KEY);
+      localStorage.removeItem(NEW_FORM_OPEN_KEY);
       refrescarPersonal();
     });
   }
@@ -518,6 +551,7 @@ function activarEventosPersonal() {
     document.querySelectorAll(".btn-editar-trabajador").forEach((btn) => {
       btn.addEventListener("click", () => {
         localStorage.setItem(EDIT_ID_KEY, String(btn.dataset.id));
+        localStorage.removeItem(NEW_FORM_OPEN_KEY);
         refrescarPersonal();
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
@@ -707,6 +741,7 @@ function guardarTrabajador() {
     db.personal.create(data);
   }
 
+  localStorage.removeItem(NEW_FORM_OPEN_KEY);
   refrescarPersonal();
 }
 
@@ -867,19 +902,19 @@ function colorEstado(estado) {
 }
 
 function labelStyle() {
-  return "display:block;margin-bottom:6px;font-size:13px;font-weight:700;color:#334155;";
+  return "display:block;margin-bottom:5px;font-size:12px;font-weight:700;color:#334155;";
 }
 
 function inputStyle() {
-  return "width:100%;min-width:0;padding:10px 12px;height:46px;border:1px solid #ccc;border-radius:10px;background:#fff;box-sizing:border-box;";
+  return "width:100%;min-width:0;padding:8px 10px;height:40px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;box-sizing:border-box;font-size:14px;";
 }
 
 function btnPrincipal() {
-  return "padding:12px 18px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;";
+  return "padding:11px 16px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;";
 }
 
 function btnSecundario() {
-  return "padding:12px 18px;background:#64748b;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;";
+  return "padding:11px 16px;background:#64748b;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;";
 }
 
 function btnEditar() {
@@ -892,6 +927,26 @@ function btnBorrar() {
 
 function linkStyle() {
   return "color:#2563eb;display:inline-block;text-decoration:none;font-weight:700;";
+}
+
+function miniInfoBox() {
+  return "padding:8px 10px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-size:12px;color:#475569;";
+}
+
+function sectionBox() {
+  return "padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;";
+}
+
+function sectionTitle() {
+  return "font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px;";
+}
+
+function grid4() {
+  return "display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;";
+}
+
+function gridChecks() {
+  return "display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;";
 }
 
 function capitaliza(texto) {
