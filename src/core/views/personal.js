@@ -31,6 +31,14 @@ const order = getOrderBy();
 const quickFilter = getQuickFilter();
 
 const trabajadores = filtrarTrabajadores(baseTrabajadores, search, status, order, quickFilter);
+const totalTrabajadores = baseTrabajadores.length;
+const totalActivos = baseTrabajadores.filter((t) => t.activo !== false).length;
+const totalInactivos = baseTrabajadores.filter((t) => t.activo === false).length;
+const totalConAusencias = baseTrabajadores.filter((t) => db.ausencias.getByTrabajador(t.id).length > 0).length;
+const totalAusenciasPendientes = db.ausencias
+  .getAll()
+  .filter((a) => a.estado === "pendiente" && baseTrabajadores.some((t) => String(t.id) === String(a.trabajadorId)))
+  .length;
 
   setTimeout(() => {
     activarEventosPersonal();
@@ -43,6 +51,18 @@ const trabajadores = filtrarTrabajadores(baseTrabajadores, search, status, order
           <h3 style="margin:0 0 6px 0;">Personal</h3>
           <p style="margin:0;color:#64748b;">Equipo, roles y permisos.</p>
         </div>
+        <div style="
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+  margin-bottom:18px;
+">
+  ${summaryCard("Total", totalTrabajadores, "#0f172a")}
+  ${summaryCard("Activos", totalActivos, "#16a34a")}
+  ${summaryCard("Inactivos", totalInactivos, "#dc2626")}
+  ${summaryCard("Con ausencias", totalConAusencias, "#2563eb")}
+  ${summaryCard("Pendientes", totalAusenciasPendientes, "#d97706")}
+</div>
 
         ${renderBloqueFormulario(editando, acciones, usuarioActual, newFormOpen)}
 
@@ -1260,6 +1280,23 @@ function quickChip(value, text, active) {
     >
       ${text}
     </button>
+  `;
+}
+function summaryCard(label, value, color) {
+  return `
+    <div style="
+      padding:12px;
+      border:1px solid #e2e8f0;
+      border-radius:12px;
+      background:#f8fafc;
+    ">
+      <div style="font-size:12px;color:#64748b;margin-bottom:6px;font-weight:700;">
+        ${escapeHtml(label)}
+      </div>
+      <div style="font-size:28px;font-weight:800;color:${color};line-height:1;">
+        ${escapeHtml(String(value))}
+      </div>
+    </div>
   `;
 }
 
