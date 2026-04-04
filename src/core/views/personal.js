@@ -1,4 +1,4 @@
-import { db } from "../db.js";
+import { db } from "../data/db.js";
 
 const EDIT_ID_KEY = "zentryx_personal_edit_id";
 
@@ -362,18 +362,12 @@ function renderAusencia(a) {
 }
 
 function activarEventosPersonal() {
-  const guardar = document.getElementById("btn_guardar_trabajador");
-  if (guardar) {
-    guardar.addEventListener("click", guardarTrabajador);
-  }
+  document.getElementById("btn_guardar_trabajador")?.addEventListener("click", guardarTrabajador);
 
-  const cancelar = document.getElementById("btn_cancelar_trabajador");
-  if (cancelar) {
-    cancelar.addEventListener("click", () => {
-      localStorage.removeItem(EDIT_ID_KEY);
-      refrescarPersonal();
-    });
-  }
+  document.getElementById("btn_cancelar_trabajador")?.addEventListener("click", () => {
+    localStorage.removeItem(EDIT_ID_KEY);
+    refrescarPersonal();
+  });
 
   document.querySelectorAll(".btn-editar-trabajador").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -474,6 +468,7 @@ function guardarTrabajador() {
   }
 
   const editId = localStorage.getItem(EDIT_ID_KEY) || "";
+
   if (editId) {
     const actual = db.personal.getAll().find((t) => String(t.id) === String(editId)) || {};
     db.personal.update(editId, {
@@ -486,10 +481,6 @@ function guardarTrabajador() {
   }
 
   refrescarPersonal();
-}
-
-function renderRol(rol) {
-  return rol || "sin rol";
 }
 
 function calcularResumenTrabajador(trabajador, ausencias) {
