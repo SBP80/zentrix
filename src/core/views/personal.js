@@ -8,6 +8,7 @@ const NEW_FORM_OPEN_KEY = "zentryx_personal_new_form_open";
 const FORM_TAB_KEY = "zentryx_personal_form_tab";
 const SEARCH_KEY = "zentryx_personal_search";
 const FILTER_STATUS_KEY = "zentryx_personal_filter_status";
+const ORDER_KEY = "zentryx_personal_order";
 
 export function renderPersonal() {
   const usuarioActual = getUsuarioActual();
@@ -25,8 +26,9 @@ export function renderPersonal() {
 
   const search = getSearchText();
   const status = getStatusFilter();
+  const order = getOrderBy();
 
-  const trabajadores = filtrarTrabajadores(baseTrabajadores, search, status);
+  const trabajadores = filtrarTrabajadores(baseTrabajadores, search, status, order);
 
   setTimeout(() => {
     activarEventosPersonal();
@@ -43,57 +45,71 @@ export function renderPersonal() {
         ${renderBloqueFormulario(editando, acciones, usuarioActual, newFormOpen)}
 
         <div style="
-          margin-top:18px;
-          padding:12px;
-          border:1px solid #e2e8f0;
-          border-radius:12px;
-          background:#f8fafc;
-        ">
-          <div style="
-            display:grid;
-            grid-template-columns:minmax(240px,1fr) 220px auto;
-            gap:10px;
-            align-items:end;
-          ">
-            <div>
-              <label for="personal_search" style="${labelStyle()}">Buscar trabajador</label>
-              <input
-                id="personal_search"
-                value="${escapeHtmlAttr(search)}"
-                placeholder="Nombre, usuario, puesto, email, teléfono..."
-                style="${inputStyle()}"
-              >
-            </div>
+  margin-top:18px;
+  padding:12px;
+  border:1px solid #e2e8f0;
+  border-radius:12px;
+  background:#f8fafc;
+">
+  <div style="
+    display:grid;
+    grid-template-columns:minmax(240px,1fr) 180px 220px auto;
+    gap:10px;
+    align-items:end;
+  ">
+    <div>
+      <label for="personal_search" style="${labelStyle()}">Buscar trabajador</label>
+      <input
+        id="personal_search"
+        value="${escapeHtmlAttr(search)}"
+        placeholder="Nombre, usuario, puesto, email, teléfono..."
+        style="${inputStyle()}"
+      >
+    </div>
 
-            <div>
-              <label for="personal_status" style="${labelStyle()}">Estado</label>
-              <select id="personal_status" style="${inputStyle()}">
-                <option value="todos" ${status === "todos" ? "selected" : ""}>Todos</option>
-                <option value="activos" ${status === "activos" ? "selected" : ""}>Activos</option>
-                <option value="inactivos" ${status === "inactivos" ? "selected" : ""}>Inactivos</option>
-              </select>
-            </div>
+    <div>
+      <label for="personal_status" style="${labelStyle()}">Estado</label>
+      <select id="personal_status" style="${inputStyle()}">
+        <option value="todos" ${status === "todos" ? "selected" : ""}>Todos</option>
+        <option value="activos" ${status === "activos" ? "selected" : ""}>Activos</option>
+        <option value="inactivos" ${status === "inactivos" ? "selected" : ""}>Inactivos</option>
+      </select>
+    </div>
 
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button id="btn_limpiar_filtros_personal" type="button" style="${btnSecundario()}">
-                Limpiar
-              </button>
-            </div>
-          </div>
+    <div>
+      <label for="personal_order" style="${labelStyle()}">Ordenar</label>
+      <select id="personal_order" style="${inputStyle()}">
+        <option value="nombre_asc" ${order === "nombre_asc" ? "selected" : ""}>Nombre A-Z</option>
+        <option value="nombre_desc" ${order === "nombre_desc" ? "selected" : ""}>Nombre Z-A</option>
+        <option value="alta_desc" ${order === "alta_desc" ? "selected" : ""}>Alta más reciente</option>
+        <option value="alta_asc" ${order === "alta_asc" ? "selected" : ""}>Alta más antigua</option>
+      </select>
+    </div>
 
-          <div style="
-            margin-top:10px;
-            display:flex;
-            justify-content:space-between;
-            gap:10px;
-            flex-wrap:wrap;
-            font-size:12px;
-            color:#64748b;
-          ">
-            <div>Mostrando ${trabajadores.length} de ${baseTrabajadores.length} trabajadores</div>
-            <div>Búsqueda activa: ${search ? escapeHtml(search) : "ninguna"}</div>
-          </div>
-        </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button id="btn_limpiar_filtros_personal" type="button" style="${btnSecundario()}">
+        Limpiar
+      </button>
+    </div>
+  </div>
+
+  <div style="
+    margin-top:10px;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color:#64748b;
+  ">
+    <div>Mostrando ${trabajadores.length} de ${baseTrabajadores.length} trabajadores</div>
+    <div>
+      Búsqueda: ${search ? escapeHtml(search) : "ninguna"} ·
+      Estado: ${escapeHtml(status)} ·
+      Orden: ${escapeHtml(order)}
+    </div>
+  </div>
+</div>
 
         <div style="margin-top:20px;display:grid;gap:14px;">
           ${
@@ -668,16 +684,23 @@ function activarEventosPersonal() {
   });
 
   const statusEl = document.getElementById("personal_status");
-  statusEl?.addEventListener("change", () => {
-    setStatusFilter(statusEl.value || "todos");
-    refrescarPersonal();
-  });
+statusEl?.addEventListener("change", () => {
+  setStatusFilter(statusEl.value || "todos");
+  refrescarPersonal();
+});
 
-  document.getElementById("btn_limpiar_filtros_personal")?.addEventListener("click", () => {
-    setSearchText("");
-    setStatusFilter("todos");
-    refrescarPersonal();
-  });
+const orderEl = document.getElementById("personal_order");
+orderEl?.addEventListener("change", () => {
+  setOrderBy(orderEl.value || "nombre_asc");
+  refrescarPersonal();
+});
+
+document.getElementById("btn_limpiar_filtros_personal")?.addEventListener("click", () => {
+  setSearchText("");
+  setStatusFilter("todos");
+  setOrderBy("nombre_asc");
+  refrescarPersonal();
+});
 
   if (acciones.crear || acciones.editar) {
     document.getElementById("btn_guardar_trabajador")?.addEventListener("click", guardarTrabajador);
@@ -935,7 +958,15 @@ function setStatusFilter(value) {
   localStorage.setItem(FILTER_STATUS_KEY, value);
 }
 
-function filtrarTrabajadores(lista, search, status) {
+function getOrderBy() {
+  return localStorage.getItem(ORDER_KEY) || "nombre_asc";
+}
+
+function setOrderBy(value) {
+  localStorage.setItem(ORDER_KEY, value);
+}
+
+function filtrarTrabajadores(lista, search, status, order) {
   let salida = [...lista];
 
   const txt = normalizeText(search);
@@ -970,7 +1001,23 @@ function filtrarTrabajadores(lista, search, status) {
     salida = salida.filter((t) => t.activo === false);
   }
 
-  return salida.sort((a, b) => String(a.nombre || "").localeCompare(String(b.nombre || ""), "es"));
+  salida.sort((a, b) => {
+    if (order === "nombre_desc") {
+      return String(b.nombre || "").localeCompare(String(a.nombre || ""), "es");
+    }
+
+    if (order === "alta_desc") {
+      return String(b.fechaAlta || "").localeCompare(String(a.fechaAlta || ""), "es");
+    }
+
+    if (order === "alta_asc") {
+      return String(a.fechaAlta || "").localeCompare(String(b.fechaAlta || ""), "es");
+    }
+
+    return String(a.nombre || "").localeCompare(String(b.nombre || ""), "es");
+  });
+
+  return salida;
 }
 
 function normalizeText(value) {
