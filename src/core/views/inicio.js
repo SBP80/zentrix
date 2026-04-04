@@ -15,8 +15,9 @@ export function renderInicio() {
 
   const usuario = getUsuarioActual();
   const tareas = getEventosHoy();
-  const pendientes = tareas.filter((t) => !t.done).length;
-  const hechas = tareas.filter((t) => t.done).length;
+  const pendientes = tareas.filter((t) => !t.done && !esAusencia(t)).length;
+  const hechas = tareas.filter((t) => t.done && !esAusencia(t)).length;
+  const ausenciasHoy = tareas.filter((t) => esAusencia(t)).length;
 
   return `
     <div style="max-width:1100px; width:100%;">
@@ -76,8 +77,8 @@ export function renderInicio() {
         </div>
 
         <div class="panel-card">
-          <div style="font-size:14px; color:#64748b; margin-bottom:8px;">Rol</div>
-          <div style="font-size:22px; font-weight:700; color:#0f172a;">${escapeHtml(usuario.puesto || "sin rol")}</div>
+          <div style="font-size:14px; color:#64748b; margin-bottom:8px;">Ausencias hoy</div>
+          <div style="font-size:30px; font-weight:700; color:#2563eb;">${ausenciasHoy}</div>
         </div>
       </div>
 
@@ -100,40 +101,97 @@ export function renderInicio() {
           <h3 style="margin-top:0; margin-bottom:14px;">Próximos eventos</h3>
 
           <div style="display:grid; gap:10px;">
-            ${tareas.length ? tareas.slice(0, 5).map((t) => `
-              <div style="
-                padding:12px;
-                border:1px solid #d8e1eb;
-                border-left:6px solid ${getTipoColor(t.tipo)};
-                border-radius:12px;
-                background:#fff;
-              ">
-                <div style="font-weight:700; color:#0f172a;">
-                  ${escapeHtml(t.titulo)}
-                </div>
-                <div style="margin-top:6px; font-size:14px; color:#64748b;">
-                  ${escapeHtml(t.fecha || "")}${t.hora ? " · " + escapeHtml(t.hora) : ""}
-                </div>
-                <div style="margin-top:6px; font-size:13px; color:#475569;">
-                  ${escapeHtml(t.tipo || "")}${t.usuario ? " · " + escapeHtml(t.usuario) : ""}
-                </div>
-              </div>
-            `).join("") : `
-              <div style="
-                padding:12px;
-                border:1px dashed #cbd5e1;
-                border-radius:12px;
-                background:#f8fafc;
-                color:#64748b;
-              ">
-                No hay eventos para hoy.
-              </div>
-            `}
+            ${
+              tareas.length
+                ? tareas.slice(0, 5).map((t) => renderTarjetaInicio(t)).join("")
+                : `
+                  <div style="
+                    padding:12px;
+                    border:1px dashed #cbd5e1;
+                    border-radius:12px;
+                    background:#f8fafc;
+                    color:#64748b;
+                  ">
+                    No hay eventos para hoy.
+                  </div>
+                `
+            }
           </div>
         </div>
       </div>
     </div>
   `;
+}
+
+function renderTarjetaInicio(t) {
+  if (esAusencia(t)) {
+    return `
+      <div style="
+        padding:12px;
+        border:1px solid #d8e1eb;
+        border-left:6px solid ${getTipoColor(t.tipo)};
+        border-radius:12px;
+        background:#f8fafc;
+      ">
+        <div style="
+          display:flex;
+          align-items:center;
+          gap:8px;
+          flex-wrap:wrap;
+        ">
+          <div style="font-weight:800; color:#0f172a;">
+            ${escapeHtml(t.titulo)}
+          </div>
+
+          <span style="
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            padding:3px 8px;
+            border-radius:999px;
+            background:#0f172a;
+            color:#fff;
+            font-size:11px;
+            font-weight:700;
+          ">
+            Ausencia
+          </span>
+        </div>
+
+        <div style="margin-top:6px; font-size:14px; color:#64748b;">
+          ${escapeHtml(t.fecha || "")}${t.extra ? " · " + escapeHtml(t.extra) : ""}
+        </div>
+
+        <div style="margin-top:6px; font-size:13px; color:#475569;">
+          ${escapeHtml(t.usuario || "")} · ${escapeHtml(t.tipo || "")}
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div style="
+      padding:12px;
+      border:1px solid #d8e1eb;
+      border-left:6px solid ${getTipoColor(t.tipo)};
+      border-radius:12px;
+      background:#fff;
+    ">
+      <div style="font-weight:700; color:#0f172a;">
+        ${t.done ? "<s>" + escapeHtml(t.titulo) + "</s>" : escapeHtml(t.titulo)}
+      </div>
+      <div style="margin-top:6px; font-size:14px; color:#64748b;">
+        ${escapeHtml(t.fecha || "")}${t.hora ? " · " + escapeHtml(t.hora) : ""}
+      </div>
+      <div style="margin-top:6px; font-size:13px; color:#475569;">
+        ${escapeHtml(t.tipo || "")}${t.usuario ? " · " + escapeHtml(t.usuario) : ""}
+      </div>
+    </div>
+  `;
+}
+
+function esAusencia(t) {
+  return String(t.id || "").startsWith("aus_");
 }
 
 function getUsuarioActual() {
@@ -167,7 +225,13 @@ function getEventosHoy() {
     try {
       const data = JSON.parse(localStorage.getItem(key) || "[]");
       if (Array.isArray(data) && data.length) {
-        return data.filter((e) => e.fecha === hoy);
+        return data
+          .filter((e) => e.fecha === hoy)
+          .sort((a, b) => {
+            const aa = `${a.fecha || ""} ${a.hora || ""}`.trim();
+            const bb = `${b.fecha || ""} ${b.hora || ""}`.trim();
+            return aa.localeCompare(bb);
+          });
       }
     } catch (error) {
       // nada
