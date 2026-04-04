@@ -140,6 +140,67 @@ window.deleteEventoUI = function (id) {
 
 function renderEvento(evento) {
   const color = getColorTipo(evento.tipo);
+  const esAusencia = String(evento.id).startsWith("aus_");
+
+  if (esAusencia) {
+    return `
+      <div style="
+        padding:10px 12px;
+        border:1px solid #d8e1eb;
+        border-left:8px solid ${color};
+        border-radius:12px;
+        background:#f8fafc;
+      ">
+        <div style="
+          display:flex;
+          align-items:flex-start;
+          justify-content:space-between;
+          gap:12px;
+        ">
+          <div style="min-width:0;flex:1;">
+            <div style="
+              display:flex;
+              align-items:center;
+              gap:8px;
+              flex-wrap:wrap;
+              margin-bottom:4px;
+            ">
+              <div style="
+                font-size:15px;
+                font-weight:800;
+                color:#0f172a;
+                line-height:1.3;
+              ">
+                ${escapeHtml(evento.titulo)}
+              </div>
+
+              <span style="
+                display:inline-flex;
+                align-items:center;
+                justify-content:center;
+                padding:3px 8px;
+                border-radius:999px;
+                background:#0f172a;
+                color:#fff;
+                font-size:11px;
+                font-weight:700;
+              ">
+                Ausencia
+              </span>
+            </div>
+
+            <div style="font-size:13px;color:#475569;">
+              ${evento.fecha || "Sin fecha"}${evento.extra ? " · " + escapeHtml(evento.extra) : ""}
+            </div>
+
+            <div style="margin-top:4px;font-size:12px;color:#64748b;">
+              ${escapeHtml(evento.usuario)} · ${escapeHtml(evento.tipo)}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 
   return `
     <div style="
@@ -166,7 +227,7 @@ function renderEvento(evento) {
           <input
             type="checkbox"
             ${evento.done ? "checked" : ""}
-            onclick="event.stopPropagation(); toggleEventoUI(${evento.id})"
+            onclick="event.stopPropagation(); toggleEventoUI('${evento.id}')"
             style="width:18px; height:18px; margin-top:3px; flex:0 0 auto;"
           >
 
@@ -199,7 +260,7 @@ function renderEvento(evento) {
 
         <button
           type="button"
-          onclick="deleteEventoUI(${evento.id})"
+          onclick="deleteEventoUI('${evento.id}')"
           style="
             width:42px;
             height:42px;
