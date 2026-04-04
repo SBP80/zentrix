@@ -5,6 +5,7 @@ const EDIT_ID_KEY = "zentryx_personal_edit_id";
 const EDIT_AUSENCIA_KEY = "zentryx_ausencia_edit_id";
 const SESSION_USER_KEY = "zentrix_session_user_v1";
 const NEW_FORM_OPEN_KEY = "zentryx_personal_new_form_open";
+const FORM_TAB_KEY = "zentryx_personal_form_tab";
 
 export function renderPersonal() {
   const usuarioActual = getUsuarioActual();
@@ -90,6 +91,8 @@ function renderFormularioTrabajador(editando, acciones, usuarioActual) {
   const puedeTocarPermisos =
     !!acciones.aprobar || !editando || String(usuarioActual.id) !== String(t.id);
 
+  const tab = getFormTab();
+
   return `
     <div style="
       margin-bottom:18px;
@@ -113,7 +116,7 @@ function renderFormularioTrabajador(editando, acciones, usuarioActual) {
             ${editando ? "Editar trabajador" : "Nuevo trabajador"}
           </div>
           <div style="font-size:12px;color:#64748b;margin-top:4px;">
-            Formulario compacto para alta y edición.
+            Formulario por pestañas.
           </div>
         </div>
 
@@ -130,64 +133,119 @@ function renderFormularioTrabajador(editando, acciones, usuarioActual) {
         </div>
       </div>
 
-      <div style="padding:16px;display:grid;gap:14px;">
-        <div style="${sectionBox()}">
-          <div style="${sectionTitle()}">Datos básicos</div>
-          <div style="${grid4()}">
-            ${campo("Nombre completo", "p_nombre", t.nombre || "")}
-            ${campo("Usuario", "p_usuario", t.usuario || "")}
-            ${campo("Contraseña", "p_password", t.password || "")}
-            ${campo("Puesto", "p_puesto", t.puesto || "")}
-            ${campoSelectActivo(t.activo !== false)}
-            ${campo("Teléfono", "p_telefono", t.telefono || "", 'inputmode="tel"')}
-            ${campo("Email", "p_email", t.email || "", 'inputmode="email"')}
-            ${campo("Fecha de alta", "p_fechaAlta", t.fechaAlta || "", 'type="date"')}
-            ${campo("DNI", "p_dni", t.dni || "")}
-            ${campo("Seguridad Social", "p_nss", t.nss || "")}
-            ${campo("Vacaciones disponibles", "p_vac", String(vacaciones.disponibles ?? 30), 'type="number"')}
-            ${campo("Moscosos disponibles", "p_mos", String(moscosos.disponibles ?? 2), 'type="number"')}
-          </div>
+      <div style="padding:16px;">
+        <div style="
+          display:flex;
+          gap:8px;
+          flex-wrap:wrap;
+          margin-bottom:14px;
+        ">
+          ${tabBtn("datos", "Datos", tab === "datos")}
+          ${tabBtn("direccion", "Dirección", tab === "direccion")}
+          ${tabBtn("permisos", "Permisos", tab === "permisos")}
+          ${tabBtn("resumen", "Resumen", tab === "resumen")}
         </div>
 
-        <div style="${sectionBox()}">
-          <div style="${sectionTitle()}">Dirección</div>
-          <div style="${grid4()}">
-            ${campo("Tipo de vía", "p_tipoVia", d.tipoVia || "")}
-            ${campo("Nombre de la vía", "p_via", d.via || "")}
-            ${campo("Número", "p_numero", d.numero || "")}
-            ${campo("Portal", "p_portal", d.portal || "")}
-            ${campo("Piso", "p_piso", d.piso || "")}
-            ${campo("Puerta", "p_puerta", d.puerta || "")}
-            ${campo("Código postal", "p_cp", d.cp || "")}
-            ${campo("Población", "p_poblacion", d.poblacion || "")}
-            ${campo("Provincia", "p_provincia", d.provincia || "")}
-          </div>
-        </div>
+        ${
+          tab === "datos"
+            ? `
+              <div style="${sectionBox()}">
+                <div style="${sectionTitle()}">Datos básicos</div>
+                <div style="${grid4()}">
+                  ${campo("Nombre completo", "p_nombre", t.nombre || "")}
+                  ${campo("Usuario", "p_usuario", t.usuario || "")}
+                  ${campo("Contraseña", "p_password", t.password || "")}
+                  ${campo("Puesto", "p_puesto", t.puesto || "")}
+                  ${campoSelectActivo(t.activo !== false)}
+                  ${campo("Teléfono", "p_telefono", t.telefono || "", 'inputmode="tel"')}
+                  ${campo("Email", "p_email", t.email || "", 'inputmode="email"')}
+                  ${campo("Fecha de alta", "p_fechaAlta", t.fechaAlta || "", 'type="date"')}
+                  ${campo("DNI", "p_dni", t.dni || "")}
+                  ${campo("Seguridad Social", "p_nss", t.nss || "")}
+                  ${campo("Vacaciones disponibles", "p_vac", String(vacaciones.disponibles ?? 30), 'type="number"')}
+                  ${campo("Moscosos disponibles", "p_mos", String(moscosos.disponibles ?? 2), 'type="number"')}
+                </div>
+              </div>
+            `
+            : ""
+        }
 
-        <div style="${sectionBox()}${puedeTocarPermisos ? "" : "opacity:0.68;"}">
-          <div style="${sectionTitle()}">Permisos por módulos</div>
-          <div style="${gridChecks()}">
-            ${check("mod_inicio", "Inicio", !!mod.inicio, !puedeTocarPermisos)}
-            ${check("mod_agenda", "Agenda", !!mod.agenda, !puedeTocarPermisos)}
-            ${check("mod_personal", "Personal", !!mod.personal, !puedeTocarPermisos)}
-            ${check("mod_configuracion", "Configuración", !!mod.configuracion, !puedeTocarPermisos)}
-            ${check("mod_vehiculos", "Vehículos", !!mod.vehiculos, !puedeTocarPermisos)}
-            ${check("mod_herramientas", "Herramientas", !!mod.herramientas, !puedeTocarPermisos)}
-            ${check("mod_clientes", "Clientes", !!mod.clientes, !puedeTocarPermisos)}
-            ${check("mod_obras", "Obras", !!mod.obras, !puedeTocarPermisos)}
-          </div>
-        </div>
+        ${
+          tab === "direccion"
+            ? `
+              <div style="${sectionBox()}">
+                <div style="${sectionTitle()}">Dirección</div>
+                <div style="${grid4()}">
+                  ${campo("Tipo de vía", "p_tipoVia", d.tipoVia || "")}
+                  ${campo("Nombre de la vía", "p_via", d.via || "")}
+                  ${campo("Número", "p_numero", d.numero || "")}
+                  ${campo("Portal", "p_portal", d.portal || "")}
+                  ${campo("Piso", "p_piso", d.piso || "")}
+                  ${campo("Puerta", "p_puerta", d.puerta || "")}
+                  ${campo("Código postal", "p_cp", d.cp || "")}
+                  ${campo("Población", "p_poblacion", d.poblacion || "")}
+                  ${campo("Provincia", "p_provincia", d.provincia || "")}
+                </div>
+              </div>
+            `
+            : ""
+        }
 
-        <div style="${sectionBox()}${puedeTocarPermisos ? "" : "opacity:0.68;"}">
-          <div style="${sectionTitle()}">Permisos por acciones</div>
-          <div style="${gridChecks()}">
-            ${check("acc_verTodo", "Ver todo", !!acc.verTodo, !puedeTocarPermisos)}
-            ${check("acc_crear", "Crear", !!acc.crear, !puedeTocarPermisos)}
-            ${check("acc_editar", "Editar", !!acc.editar, !puedeTocarPermisos)}
-            ${check("acc_borrar", "Borrar", !!acc.borrar, !puedeTocarPermisos)}
-            ${check("acc_aprobar", "Aprobar", !!acc.aprobar, !puedeTocarPermisos)}
-          </div>
-        </div>
+        ${
+          tab === "permisos"
+            ? `
+              <div style="display:grid;gap:14px;">
+                <div style="${sectionBox()}${puedeTocarPermisos ? "" : "opacity:0.68;"}">
+                  <div style="${sectionTitle()}">Permisos por módulos</div>
+                  <div style="${gridChecks()}">
+                    ${check("mod_inicio", "Inicio", !!mod.inicio, !puedeTocarPermisos)}
+                    ${check("mod_agenda", "Agenda", !!mod.agenda, !puedeTocarPermisos)}
+                    ${check("mod_personal", "Personal", !!mod.personal, !puedeTocarPermisos)}
+                    ${check("mod_configuracion", "Configuración", !!mod.configuracion, !puedeTocarPermisos)}
+                    ${check("mod_vehiculos", "Vehículos", !!mod.vehiculos, !puedeTocarPermisos)}
+                    ${check("mod_herramientas", "Herramientas", !!mod.herramientas, !puedeTocarPermisos)}
+                    ${check("mod_clientes", "Clientes", !!mod.clientes, !puedeTocarPermisos)}
+                    ${check("mod_obras", "Obras", !!mod.obras, !puedeTocarPermisos)}
+                  </div>
+                </div>
+
+                <div style="${sectionBox()}${puedeTocarPermisos ? "" : "opacity:0.68;"}">
+                  <div style="${sectionTitle()}">Permisos por acciones</div>
+                  <div style="${gridChecks()}">
+                    ${check("acc_verTodo", "Ver todo", !!acc.verTodo, !puedeTocarPermisos)}
+                    ${check("acc_crear", "Crear", !!acc.crear, !puedeTocarPermisos)}
+                    ${check("acc_editar", "Editar", !!acc.editar, !puedeTocarPermisos)}
+                    ${check("acc_borrar", "Borrar", !!acc.borrar, !puedeTocarPermisos)}
+                    ${check("acc_aprobar", "Aprobar", !!acc.aprobar, !puedeTocarPermisos)}
+                  </div>
+                </div>
+              </div>
+            `
+            : ""
+        }
+
+        ${
+          tab === "resumen"
+            ? `
+              <div style="display:grid;gap:14px;">
+                <div style="${sectionBox()}">
+                  <div style="${sectionTitle()}">Resumen rápido</div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+                    <div style="${miniInfoBox()}">Nombre: ${escapeHtml(t.nombre || "-")}</div>
+                    <div style="${miniInfoBox()}">Usuario: ${escapeHtml(t.usuario || "-")}</div>
+                    <div style="${miniInfoBox()}">Puesto: ${escapeHtml(t.puesto || "-")}</div>
+                    <div style="${miniInfoBox()}">Estado: ${t.activo === false ? "Inactivo" : "Activo"}</div>
+                    <div style="${miniInfoBox()}">Vacaciones disponibles: ${escapeHtml(String(vacaciones.disponibles ?? 30))}</div>
+                    <div style="${miniInfoBox()}">Moscosos disponibles: ${escapeHtml(String(moscosos.disponibles ?? 2))}</div>
+                    <div style="${miniInfoBox()}">Email: ${escapeHtml(t.email || "-")}</div>
+                    <div style="${miniInfoBox()}">Teléfono: ${escapeHtml(t.telefono || "-")}</div>
+                    <div style="${miniInfoBox()}">Dirección: ${escapeHtml(getDireccionTexto(d) || "-")}</div>
+                  </div>
+                </div>
+              </div>
+            `
+            : ""
+        }
       </div>
     </div>
   `;
@@ -527,6 +585,7 @@ function activarEventosPersonal() {
   document.getElementById("btn_mostrar_nuevo_trabajador")?.addEventListener("click", () => {
     localStorage.setItem(NEW_FORM_OPEN_KEY, "true");
     localStorage.removeItem(EDIT_ID_KEY);
+    setFormTab("datos");
     refrescarPersonal();
   });
 
@@ -535,12 +594,20 @@ function activarEventosPersonal() {
     refrescarPersonal();
   });
 
+  document.querySelectorAll(".btn-form-tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setFormTab(btn.dataset.tab || "datos");
+      refrescarPersonal();
+    });
+  });
+
   if (acciones.crear || acciones.editar) {
     document.getElementById("btn_guardar_trabajador")?.addEventListener("click", guardarTrabajador);
 
     document.getElementById("btn_cancelar_trabajador")?.addEventListener("click", () => {
       localStorage.removeItem(EDIT_ID_KEY);
       localStorage.removeItem(NEW_FORM_OPEN_KEY);
+      setFormTab("datos");
       refrescarPersonal();
     });
   }
@@ -550,6 +617,7 @@ function activarEventosPersonal() {
       btn.addEventListener("click", () => {
         localStorage.setItem(EDIT_ID_KEY, String(btn.dataset.id));
         localStorage.removeItem(NEW_FORM_OPEN_KEY);
+        setFormTab("datos");
         refrescarPersonal();
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
@@ -744,6 +812,7 @@ function guardarTrabajador() {
   }
 
   localStorage.removeItem(NEW_FORM_OPEN_KEY);
+  setFormTab("datos");
   refrescarPersonal();
 }
 
@@ -762,6 +831,14 @@ function getUsuarioActual() {
       }
     }
   );
+}
+
+function getFormTab() {
+  return localStorage.getItem(FORM_TAB_KEY) || "datos";
+}
+
+function setFormTab(tab) {
+  localStorage.setItem(FORM_TAB_KEY, tab);
 }
 
 function calcularResumenTrabajador(trabajador, ausencias) {
@@ -882,6 +959,27 @@ function pill(texto, ok) {
     ">
       ${escapeHtml(texto)}
     </span>
+  `;
+}
+
+function tabBtn(tab, texto, active) {
+  return `
+    <button
+      type="button"
+      class="btn-form-tab"
+      data-tab="${tab}"
+      style="
+        padding:10px 14px;
+        border:none;
+        border-radius:10px;
+        cursor:pointer;
+        font-weight:700;
+        background:${active ? "#2563eb" : "#e2e8f0"};
+        color:${active ? "#fff" : "#0f172a"};
+      "
+    >
+      ${texto}
+    </button>
   `;
 }
 
