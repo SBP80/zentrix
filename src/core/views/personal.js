@@ -1405,3 +1405,39 @@ function escapeHtml(texto) {
 function escapeHtmlAttr(texto) {
   return escapeHtml(texto);
 }
+function renderAusencia(a, acciones) {
+  const dias = contarDias(a.fechaInicio, a.fechaFin);
+
+  return `
+    <div style="
+      padding:10px;
+      border:1px solid #e2e8f0;
+      border-radius:10px;
+      background:#f8fafc;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    ">
+      <div style="font-size:13px;">
+        <b>${escapeHtml(a.tipo)}</b> · 
+        ${escapeHtml(a.fechaInicio)} → ${escapeHtml(a.fechaFin)} 
+        (${dias} días)
+      </div>
+
+      <div style="display:flex;gap:6px;">
+        ${
+          acciones.editar
+            ? `<button class="btn-editar-ausencia" data-id="${a.id}" style="${btnEditar()}">Editar</button>`
+            : ""
+        }
+
+        ${
+          acciones.borrar
+            ? `<button class="btn-borrar-ausencia" data-id="${a.id}" style="${btnBorrar()}">✕</button>`
+            : ""
+        }
+      </div>
+    </div>
+  `;
+}
