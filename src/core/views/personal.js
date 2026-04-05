@@ -73,11 +73,11 @@ export function renderPersonal() {
           gap:10px;
           margin-bottom:18px;
         ">
-          ${summaryCard("Total", totalTrabajadores, "#0f172a")}
-          ${summaryCard("Activos", totalActivos, "#16a34a")}
-          ${summaryCard("Inactivos", totalInactivos, "#dc2626")}
-          ${summaryCard("Con ausencias", totalConAusencias, "#2563eb")}
-          ${summaryCard("Pendientes", totalAusenciasPendientes, "#d97706")}
+          ${summaryCard("Total", totalTrabajadores, "#0f172a", "todos", quickFilter === "todos")}
+          ${summaryCard("Activos", totalActivos, "#16a34a", "activos", quickFilter === "activos")}
+          ${summaryCard("Inactivos", totalInactivos, "#dc2626", "inactivos", quickFilter === "inactivos")}
+          ${summaryCard("Con ausencias", totalConAusencias, "#2563eb", "con_ausencias", quickFilter === "con_ausencias")}
+          ${summaryCard("Pendientes", totalAusenciasPendientes, "#d97706", "pendientes", quickFilter === "pendientes")}
         </div>
 
         ${renderBloqueFormulario(editando, acciones, usuarioActual, newFormOpen)}
@@ -754,6 +754,13 @@ function activarEventosPersonal() {
     });
   });
 
+  document.querySelectorAll(".btn-summary-filter").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setQuickFilter(btn.dataset.quick || "todos");
+      refrescarPersonal();
+    });
+  });
+
   document.getElementById("btn_limpiar_filtros_personal")?.addEventListener("click", () => {
     setSearchText("");
     setStatusFilter("todos");
@@ -1085,6 +1092,14 @@ function filtrarTrabajadores(lista, search, status, order, quickFilter) {
     salida = salida.filter((t) => db.ausencias.getByTrabajador(t.id).length === 0);
   }
 
+  if (quickFilter === "pendientes") {
+    salida = salida.filter((t) =>
+      db.ausencias
+        .getByTrabajador(t.id)
+        .some((a) => a.estado === "pendiente")
+    );
+  }
+
   salida.sort((a, b) => {
     if (order === "nombre_desc") {
       return String(b.nombre || "").localeCompare(String(a.nombre || ""), "es");
@@ -1279,21 +1294,29 @@ function quickChip(value, text, active) {
   `;
 }
 
-function summaryCard(label, value, color) {
+function summaryCard(label, value, color, quickValue, active) {
   return `
-    <div style="
-      padding:12px;
-      border:1px solid #e2e8f0;
-      border-radius:12px;
-      background:#f8fafc;
-    ">
+    <button
+      type="button"
+      class="btn-summary-filter"
+      data-quick="${quickValue}"
+      style="
+        padding:12px;
+        border:1px solid ${active ? color : "#e2e8f0"};
+        border-radius:12px;
+        background:${active ? "#ffffff" : "#f8fafc"};
+        cursor:pointer;
+        text-align:left;
+        box-shadow:${active ? "0 0 0 2px rgba(15,23,42,0.06)" : "none"};
+      "
+    >
       <div style="font-size:12px;color:#64748b;margin-bottom:6px;font-weight:700;">
         ${escapeHtml(label)}
       </div>
       <div style="font-size:28px;font-weight:800;color:${color};line-height:1;">
         ${escapeHtml(String(value))}
       </div>
-    </div>
+    </button>
   `;
 }
 
