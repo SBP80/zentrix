@@ -424,6 +424,55 @@ function renderTrabajador(t, acciones) {
             ${escapeHtml(t.usuario || "-")} · ${escapeHtml(t.puesto || "-")}
           </div>
 
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            ${
+              t.telefono
+                ? `
+                  <a href="tel:${encodeURIComponent(t.telefono)}" style="${btnQuick('#16a34a')}">
+                    Llamar
+                  </a>
+                `
+                : ""
+            }
+            ${
+              t.email
+                ? `
+                  <a href="mailto:${encodeURIComponent(t.email)}" style="${btnQuick('#2563eb')}">
+                    Email
+                  </a>
+                `
+                : ""
+            }
+            ${
+              acciones.crear
+                ? `
+                  <button
+                    type="button"
+                    class="btn-focus-ausencia"
+                    data-id="${escapeHtmlAttr(t.id)}"
+                    style="${btnQuick('#0f766e')}"
+                  >
+                    Añadir ausencia
+                  </button>
+                `
+                : ""
+            }
+            ${
+              acciones.editar
+                ? `
+                  <button
+                    type="button"
+                    class="btn-editar-trabajador"
+                    data-id="${escapeHtmlAttr(t.id)}"
+                    style="${btnQuick('#7c3aed')}"
+                  >
+                    Editar
+                  </button>
+                `
+                : ""
+            }
+          </div>
+
           <div style="
             margin-top:10px;
             display:grid;
@@ -502,7 +551,7 @@ function renderTrabajador(t, acciones) {
         </div>
       </div>
 
-      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0;">
+      <div id="ausencias_wrap_${escapeHtmlAttr(t.id)}" style="margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0;">
         <div style="
           display:flex;
           justify-content:space-between;
@@ -767,6 +816,19 @@ function activarEventosPersonal() {
     setOrderBy("nombre_asc");
     setQuickFilter("todos");
     refrescarPersonal();
+  });
+
+  document.querySelectorAll(".btn-focus-ausencia").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      const target = document.getElementById(`ausencias_wrap_${id}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      target.style.boxShadow = "0 0 0 2px rgba(37,99,235,0.15)";
+      setTimeout(() => {
+        target.style.boxShadow = "none";
+      }, 1200);
+    });
   });
 
   if (acciones.crear || acciones.editar) {
@@ -1364,6 +1426,10 @@ function btnBorrar() {
   return "background:#dc2626;color:#fff;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;";
 }
 
+function btnQuick(color) {
+  return "display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;background:" + color + ";color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px;text-decoration:none;";
+}
+
 function linkStyle() {
   return "color:#2563eb;display:inline-block;text-decoration:none;font-weight:700;";
 }
@@ -1405,3 +1471,15 @@ function escapeHtml(texto) {
 function escapeHtmlAttr(texto) {
   return escapeHtml(texto);
 }
+Muy bien ya está 
+Vamos a continuar y no quiero retroceder más
+Problemas a mejorar 
+1- el botón nuevo trabajador no entra a la página de nuevo trabajador 
+2- desde inicio o cualquier otro módulo se debe poder editar y crear usuarios nuevos sin cambiar esto 
+3- si entro a editar trabajador el botón guardar cambios no hace nada 
+4- creo que también sería bueno mostrar el rol junto al nombre de usuario 
+5- el botón del chip o cuadro de pendientes creo que no funciona 
+Si encuentras más errores importantes arréglalos también
+Pero asegúrate bien de no liar nada y piensa lo muy bien 
+Dame código completo de este archivo si es ahí o de donde aya que tocar 
+Pero revisa bien lo que te e dicho bien revisado toda la lógica և flujo de trabajo
