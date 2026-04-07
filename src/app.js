@@ -2,7 +2,7 @@ import { state } from "./core/state.js";
 import { db } from "./core/db.js";
 import { renderInicio } from "./core/views/inicio.js";
 import { renderAgenda } from "./core/views/agenda.js";
-import { renderConfiguracion } from "./core/views/configuracion.js";
+import { renderConfiguracion } from "./core/views/configuracion.js?v=9024";
 import { renderPersonal } from "./core/views/personal.js";
 
 const app = document.getElementById("app");
