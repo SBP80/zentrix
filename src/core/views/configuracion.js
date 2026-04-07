@@ -2,70 +2,38 @@ import { db } from "../db.js";
 
 const SESSION_USER_KEY = "zentrix_session_user_v1";
 const CONFIG_EDIT_ID_KEY = "zentryx_config_edit_id";
-const CONFIG_SEARCH_KEY = "zentryx_config_search";
-const CONFIG_ROLE_FILTER_KEY = "zentryx_config_role_filter";
-const CONFIG_STATUS_FILTER_KEY = "zentryx_config_status_filter";
 const CONFIG_NEW_OPEN_KEY = "zentryx_config_new_open";
 
 export function renderConfiguracion() {
   const usuarioActual = getUsuarioActual();
   const acciones = usuarioActual.permisosAcciones || {};
-  const puedeEditar = !!acciones.editar || !!acciones.aprobar;
   const puedeCrear = !!acciones.crear || !!acciones.aprobar;
+  const puedeEditar = !!acciones.editar || !!acciones.aprobar;
   const puedeBorrar = !!acciones.borrar || !!acciones.aprobar;
-
-  const search = getSearch();
-  const roleFilter = getRoleFilter();
-  const statusFilter = getStatusFilter();
 
   const usuarios = db.personal.getAll();
   const editId = localStorage.getItem(CONFIG_EDIT_ID_KEY) || "";
   const editando =
     usuarios.find((u) => String(u.id) === String(editId)) || null;
-  const newOpen = localStorage.getItem(CONFIG_NEW_OPEN_KEY) === "true";
-
-  const filtrados = filtrarUsuarios(usuarios, search, roleFilter, statusFilter);
-
-  const total = usuarios.length;
-  const activos = usuarios.filter((u) => u.activo !== false).length;
-  const inactivos = usuarios.filter((u) => u.activo === false).length;
-  const admins = usuarios.filter((u) => getRol(u) === "admin").length;
-  const encargados = usuarios.filter((u) => getRol(u) === "encargado").length;
-  const operarios = usuarios.filter((u) => getRol(u) === "operario").length;
+  const nuevoAbierto = localStorage.getItem(CONFIG_NEW_OPEN_KEY) === "true";
 
   setTimeout(() => {
     activarEventosConfiguracion();
   }, 0);
 
   return `
-    <div style="max-width:1200px;width:100%;">
+    <div style="max-width:1100px;width:100%;">
       <div class="panel-card">
-        <div style="margin-bottom:18px;">
-          <h3 style="margin:0 0 6px 0;">Configuración</h3>
-          <p style="margin:0;color:#64748b;">
-            Gestión real de usuarios, accesos y permisos.
-          </p>
-        </div>
-
-        <div style="
-          display:grid;
-          grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-          gap:10px;
-          margin-bottom:18px;
-        ">
-          ${statCard("Total", total, "#0f172a")}
-          ${statCard("Activos", activos, "#16a34a")}
-          ${statCard("Inactivos", inactivos, "#dc2626")}
-          ${statCard("Admin", admins, "#7c3aed")}
-          ${statCard("Encargado", encargados, "#2563eb")}
-          ${statCard("Operario", operarios, "#0f766e")}
-        </div>
+        <h3 style="margin-top:0;">Configuración</h3>
+        <p style="color:#64748b;margin-bottom:20px;">
+          Gestión real de usuarios del sistema.
+        </p>
 
         ${
-          puedeCrear && !newOpen && !editando
+          puedeCrear && !editando && !nuevoAbierto
             ? `
               <div style="margin-bottom:18px;">
-                <button id="btn_nuevo_usuario_config" type="button" style="${btnPrincipal()}">
+                <button id="btnNuevoUsuarioConfig" type="button" style="${btnPrincipal()}">
                   + Nuevo usuario
                 </button>
               </div>
@@ -74,98 +42,26 @@ export function renderConfiguracion() {
         }
 
         ${
-          (puedeCrear && newOpen) || (puedeEditar && editando)
-            ? renderFormularioUsuario(editando, usuarioActual)
+          (puedeCrear && nuevoAbierto) || (puedeEditar && editando)
+            ? renderFormularioUsuario(editando)
             : ""
         }
 
-        <div style="
-          margin-top:18px;
-          padding:12px;
-          border:1px solid #e2e8f0;
-          border-radius:12px;
-          background:#f8fafc;
-        ">
-          <div style="
-            display:grid;
-            grid-template-columns:minmax(240px,1fr) 180px 180px auto;
-            gap:10px;
-            align-items:end;
-          ">
-            <div>
-              <label for="cfg_search" style="${labelStyle()}">Buscar usuario</label>
-              <input
-                id="cfg_search"
-                value="${escapeHtmlAttr(search)}"
-                placeholder="Nombre, usuario, email, puesto..."
-                style="${inputStyle()}"
-              >
-            </div>
-
-            <div>
-              <label for="cfg_role" style="${labelStyle()}">Rol</label>
-              <select id="cfg_role" style="${inputStyle()}">
-                <option value="todos" ${roleFilter === "todos" ? "selected" : ""}>Todos</option>
-                <option value="admin" ${roleFilter === "admin" ? "selected" : ""}>Admin</option>
-                <option value="encargado" ${roleFilter === "encargado" ? "selected" : ""}>Encargado</option>
-                <option value="operario" ${roleFilter === "operario" ? "selected" : ""}>Operario</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="cfg_status" style="${labelStyle()}">Estado</label>
-              <select id="cfg_status" style="${inputStyle()}">
-                <option value="todos" ${statusFilter === "todos" ? "selected" : ""}>Todos</option>
-                <option value="activos" ${statusFilter === "activos" ? "selected" : ""}>Activos</option>
-                <option value="inactivos" ${statusFilter === "inactivos" ? "selected" : ""}>Inactivos</option>
-              </select>
-            </div>
-
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button id="btn_limpiar_config" type="button" style="${btnSecundario()}">
-                Limpiar
-              </button>
-            </div>
-          </div>
-
-          <div style="
-            margin-top:10px;
-            display:flex;
-            justify-content:space-between;
-            gap:10px;
-            flex-wrap:wrap;
-            font-size:12px;
-            color:#64748b;
-          ">
-            <div>Mostrando ${filtrados.length} de ${usuarios.length} usuarios</div>
-            <div>
-              Búsqueda: ${search ? escapeHtml(search) : "ninguna"} ·
-              Rol: ${escapeHtml(roleFilter)} ·
-              Estado: ${escapeHtml(statusFilter)}
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-top:20px;display:grid;gap:12px;">
+        <div style="display:grid;gap:12px;">
           ${
-            filtrados.length
-              ? filtrados.map((u) =>
-                  renderTarjetaUsuario(
-                    u,
-                    usuarioActual,
-                    puedeEditar,
-                    puedeBorrar
-                  )
+            usuarios.length
+              ? usuarios.map((u) =>
+                  renderTarjetaUsuario(u, usuarioActual, puedeEditar, puedeBorrar)
                 ).join("")
               : `
                 <div style="
                   padding:14px;
                   border:1px dashed #cbd5e1;
                   border-radius:12px;
-                  color:#64748b;
                   background:#f8fafc;
+                  color:#64748b;
                 ">
-                  No hay usuarios que coincidan con el filtro.
+                  No hay usuarios.
                 </div>
               `
           }
@@ -175,121 +71,73 @@ export function renderConfiguracion() {
   `;
 }
 
-function renderFormularioUsuario(editando, usuarioActual) {
+function renderFormularioUsuario(editando) {
   const u = editando || {};
-  const mod = u.permisosModulos || {};
-  const acc = u.permisosAcciones || {};
-  const d = u.direccion || {};
-  const puedeTocarPermisos =
-    !!usuarioActual?.permisosAcciones?.aprobar ||
-    !editando ||
-    String(usuarioActual.id) !== String(u.id);
+  const rol = getRol(u);
 
   return `
     <div style="
       margin-bottom:18px;
       border:1px solid #e2e8f0;
-      border-radius:16px;
+      border-radius:14px;
       background:#fff;
-      overflow:hidden;
+      padding:16px;
     ">
-      <div style="
-        border-bottom:1px solid #e2e8f0;
-        padding:14px 16px;
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        gap:12px;
-        flex-wrap:wrap;
-      ">
-        <div>
-          <div style="font-size:16px;font-weight:800;color:#0f172a;">
-            ${editando ? "Editar usuario" : "Nuevo usuario"}
-          </div>
-          <div style="font-size:12px;color:#64748b;margin-top:4px;">
-            Usuario real del sistema.
-          </div>
-        </div>
+      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:12px;">
+        ${editando ? "Editar usuario" : "Nuevo usuario"}
+      </div>
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button id="btn_guardar_config_usuario" type="button" style="${btnPrincipal()}">
-            ${editando ? "Guardar cambios" : "Crear usuario"}
-          </button>
-          <button id="btn_cancelar_config_usuario" type="button" style="${btnSecundario()}">
-            Cancelar
-          </button>
+      <div style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+        gap:10px;
+      ">
+        ${campo("Nombre completo", "cfg_nombre", u.nombre || "")}
+        ${campo("Usuario", "cfg_usuario", u.usuario || "")}
+        ${campo("Contraseña", "cfg_password", u.password || "")}
+        ${campo("Puesto", "cfg_puesto", u.puesto || "")}
+        ${campo("Teléfono", "cfg_telefono", u.telefono || "", 'inputmode="tel"')}
+        ${campo("Email", "cfg_email", u.email || "", 'inputmode="email"')}
+        ${campo("DNI", "cfg_dni", u.dni || "")}
+        ${campo("Seguridad Social", "cfg_nss", u.nss || "")}
+        ${campo("Fecha de alta", "cfg_fechaAlta", u.fechaAlta || "", 'type="date"')}
+        ${campoSelectRol(rol)}
+        ${campoSelectActivo(u.activo !== false)}
+      </div>
+
+      <div style="margin-top:14px;">
+        <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">Permisos por módulos</div>
+        <div style="${gridChecks()}">
+          ${check("cfg_mod_inicio", "Inicio", !!u.permisosModulos?.inicio)}
+          ${check("cfg_mod_agenda", "Agenda", !!u.permisosModulos?.agenda)}
+          ${check("cfg_mod_personal", "Personal", !!u.permisosModulos?.personal)}
+          ${check("cfg_mod_configuracion", "Configuración", !!u.permisosModulos?.configuracion)}
+          ${check("cfg_mod_vehiculos", "Vehículos", !!u.permisosModulos?.vehiculos)}
+          ${check("cfg_mod_herramientas", "Herramientas", !!u.permisosModulos?.herramientas)}
+          ${check("cfg_mod_clientes", "Clientes", !!u.permisosModulos?.clientes)}
+          ${check("cfg_mod_obras", "Obras", !!u.permisosModulos?.obras)}
         </div>
       </div>
 
-      <div style="padding:16px;">
-        <div style="${sectionBox()}">
-          <div style="${sectionTitle()}">Datos básicos</div>
-          <div style="${grid4()}">
-            ${campo("Nombre completo", "cfg_nombre", u.nombre || "")}
-            ${campo("Usuario", "cfg_usuario", u.usuario || "")}
-            ${campo("Contraseña", "cfg_password", u.password || "")}
-            ${campo("Rol", "cfg_rol", getRol(u), 'list="cfg_roles_list"')}
-            ${campo("Puesto", "cfg_puesto", u.puesto || "")}
-            ${campoSelectActivo(u.activo !== false)}
-            ${campo("Teléfono", "cfg_telefono", u.telefono || "", 'inputmode="tel"')}
-            ${campo("Email", "cfg_email", u.email || "", 'inputmode="email"')}
-            ${campo("Fecha de alta", "cfg_fechaAlta", u.fechaAlta || "", 'type="date"')}
-            ${campo("DNI", "cfg_dni", u.dni || "")}
-            ${campo("Seguridad Social", "cfg_nss", u.nss || "")}
-          </div>
-
-          <datalist id="cfg_roles_list">
-            <option value="admin"></option>
-            <option value="encargado"></option>
-            <option value="operario"></option>
-          </datalist>
+      <div style="margin-top:14px;">
+        <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">Permisos por acciones</div>
+        <div style="${gridChecks()}">
+          ${check("cfg_acc_verTodo", "Ver todo", !!u.permisosAcciones?.verTodo)}
+          ${check("cfg_acc_crear", "Crear", !!u.permisosAcciones?.crear)}
+          ${check("cfg_acc_editar", "Editar", !!u.permisosAcciones?.editar)}
+          ${check("cfg_acc_borrar", "Borrar", !!u.permisosAcciones?.borrar)}
+          ${check("cfg_acc_aprobar", "Aprobar", !!u.permisosAcciones?.aprobar)}
         </div>
+      </div>
 
-        <div style="height:14px;"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+        <button id="btnGuardarUsuarioConfig" type="button" style="${btnPrincipal()}">
+          ${editando ? "Guardar cambios" : "Crear usuario"}
+        </button>
 
-        <div style="${sectionBox()}">
-          <div style="${sectionTitle()}">Dirección</div>
-          <div style="${grid4()}">
-            ${campo("Tipo de vía", "cfg_tipoVia", d.tipoVia || "")}
-            ${campo("Nombre de la vía", "cfg_via", d.via || "")}
-            ${campo("Número", "cfg_numero", d.numero || "")}
-            ${campo("Portal", "cfg_portal", d.portal || "")}
-            ${campo("Piso", "cfg_piso", d.piso || "")}
-            ${campo("Puerta", "cfg_puerta", d.puerta || "")}
-            ${campo("Código postal", "cfg_cp", d.cp || "")}
-            ${campo("Población", "cfg_poblacion", d.poblacion || "")}
-            ${campo("Provincia", "cfg_provincia", d.provincia || "")}
-          </div>
-        </div>
-
-        <div style="height:14px;"></div>
-
-        <div style="${sectionBox()}${puedeTocarPermisos ? "" : "opacity:0.68;"}">
-          <div style="${sectionTitle()}">Permisos por módulos</div>
-          <div style="${gridChecks()}">
-            ${check("cfg_mod_inicio", "Inicio", !!mod.inicio, !puedeTocarPermisos)}
-            ${check("cfg_mod_agenda", "Agenda", !!mod.agenda, !puedeTocarPermisos)}
-            ${check("cfg_mod_personal", "Personal", !!mod.personal, !puedeTocarPermisos)}
-            ${check("cfg_mod_configuracion", "Configuración", !!mod.configuracion, !puedeTocarPermisos)}
-            ${check("cfg_mod_vehiculos", "Vehículos", !!mod.vehiculos, !puedeTocarPermisos)}
-            ${check("cfg_mod_herramientas", "Herramientas", !!mod.herramientas, !puedeTocarPermisos)}
-            ${check("cfg_mod_clientes", "Clientes", !!mod.clientes, !puedeTocarPermisos)}
-            ${check("cfg_mod_obras", "Obras", !!mod.obras, !puedeTocarPermisos)}
-          </div>
-        </div>
-
-        <div style="height:14px;"></div>
-
-        <div style="${sectionBox()}${puedeTocarPermisos ? "" : "opacity:0.68;"}">
-          <div style="${sectionTitle()}">Permisos por acciones</div>
-          <div style="${gridChecks()}">
-            ${check("cfg_acc_verTodo", "Ver todo", !!acc.verTodo, !puedeTocarPermisos)}
-            ${check("cfg_acc_crear", "Crear", !!acc.crear, !puedeTocarPermisos)}
-            ${check("cfg_acc_editar", "Editar", !!acc.editar, !puedeTocarPermisos)}
-            ${check("cfg_acc_borrar", "Borrar", !!acc.borrar, !puedeTocarPermisos)}
-            ${check("cfg_acc_aprobar", "Aprobar", !!acc.aprobar, !puedeTocarPermisos)}
-          </div>
-        </div>
+        <button id="btnCancelarUsuarioConfig" type="button" style="${btnSecundario()}">
+          Cancelar
+        </button>
       </div>
     </div>
   `;
@@ -297,11 +145,6 @@ function renderFormularioUsuario(editando, usuarioActual) {
 
 function renderTarjetaUsuario(u, usuarioActual, puedeEditar, puedeBorrar) {
   const rol = getRol(u);
-  const colorRol =
-    rol === "admin" ? "#7c3aed" :
-    rol === "encargado" ? "#2563eb" :
-    "#0f766e";
-
   const puedeBorrarEste = puedeBorrar && String(u.id) !== String(usuarioActual.id);
 
   return `
@@ -328,7 +171,7 @@ function renderTarjetaUsuario(u, usuarioActual, puedeEditar, puedeBorrar) {
             justify-content:center;
             padding:3px 8px;
             border-radius:999px;
-            background:${colorRol};
+            background:${colorRol(rol)};
             color:#fff;
             font-size:11px;
             font-weight:700;
@@ -356,7 +199,7 @@ function renderTarjetaUsuario(u, usuarioActual, puedeEditar, puedeBorrar) {
         </div>
 
         <div style="
-          margin-top:10px;
+          margin-top:8px;
           display:grid;
           grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
           gap:6px 12px;
@@ -368,43 +211,18 @@ function renderTarjetaUsuario(u, usuarioActual, puedeEditar, puedeBorrar) {
           ${u.fechaAlta ? `<div>Alta: ${escapeHtml(u.fechaAlta)}</div>` : ""}
           ${u.dni ? `<div>DNI: ${escapeHtml(u.dni)}</div>` : ""}
         </div>
-
-        <div style="margin-top:10px;">
-          <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Módulos</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            ${pill("Inicio", !!u.permisosModulos?.inicio)}
-            ${pill("Agenda", !!u.permisosModulos?.agenda)}
-            ${pill("Personal", !!u.permisosModulos?.personal)}
-            ${pill("Configuración", !!u.permisosModulos?.configuracion)}
-            ${pill("Vehículos", !!u.permisosModulos?.vehiculos)}
-            ${pill("Herramientas", !!u.permisosModulos?.herramientas)}
-            ${pill("Clientes", !!u.permisosModulos?.clientes)}
-            ${pill("Obras", !!u.permisosModulos?.obras)}
-          </div>
-        </div>
-
-        <div style="margin-top:10px;">
-          <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;">Acciones</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            ${pill("Ver todo", !!u.permisosAcciones?.verTodo)}
-            ${pill("Crear", !!u.permisosAcciones?.crear)}
-            ${pill("Editar", !!u.permisosAcciones?.editar)}
-            ${pill("Borrar", !!u.permisosAcciones?.borrar)}
-            ${pill("Aprobar", !!u.permisosAcciones?.aprobar)}
-          </div>
-        </div>
       </div>
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         ${
           puedeEditar
-            ? `<button type="button" class="btn-editar-config-usuario" data-id="${escapeHtmlAttr(u.id)}" style="${btnEditar()}">Editar</button>`
+            ? `<button type="button" class="btnEditarConfigUsuario" data-id="${escapeHtmlAttr(u.id)}" style="${btnEditar()}">Editar</button>`
             : ""
         }
 
         ${
           puedeBorrarEste
-            ? `<button type="button" class="btn-eliminar-config-usuario" data-id="${escapeHtmlAttr(u.id)}" data-nombre="${escapeHtmlAttr(u.nombre || "")}" style="${btnBorrar()}">✕</button>`
+            ? `<button type="button" class="btnEliminarConfigUsuario" data-id="${escapeHtmlAttr(u.id)}" data-nombre="${escapeHtmlAttr(u.nombre || "")}" style="${btnBorrar()}">✕</button>`
             : ""
         }
       </div>
@@ -413,30 +231,23 @@ function renderTarjetaUsuario(u, usuarioActual, puedeEditar, puedeBorrar) {
 }
 
 function activarEventosConfiguracion() {
-  const usuarioActual = getUsuarioActual();
-  const acciones = usuarioActual.permisosAcciones || {};
-  const puedeEditar = !!acciones.editar || !!acciones.aprobar;
-  const puedeCrear = !!acciones.crear || !!acciones.aprobar;
-  const puedeBorrar = !!acciones.borrar || !!acciones.aprobar;
-
-  document.getElementById("btn_nuevo_usuario_config")?.addEventListener("click", () => {
+  document.getElementById("btnNuevoUsuarioConfig")?.addEventListener("click", () => {
     localStorage.setItem(CONFIG_NEW_OPEN_KEY, "true");
     localStorage.removeItem(CONFIG_EDIT_ID_KEY);
     refrescarConfiguracion();
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
-  document.getElementById("btn_cancelar_config_usuario")?.addEventListener("click", () => {
+  document.getElementById("btnCancelarUsuarioConfig")?.addEventListener("click", () => {
     localStorage.removeItem(CONFIG_EDIT_ID_KEY);
     localStorage.removeItem(CONFIG_NEW_OPEN_KEY);
     refrescarConfiguracion();
   });
 
-  document.getElementById("btn_guardar_config_usuario")?.addEventListener("click", guardarUsuarioConfiguracion);
+  document.getElementById("btnGuardarUsuarioConfig")?.addEventListener("click", guardarUsuarioConfiguracion);
 
-  document.querySelectorAll(".btn-editar-config-usuario").forEach((btn) => {
+  document.querySelectorAll(".btnEditarConfigUsuario").forEach((btn) => {
     btn.addEventListener("click", () => {
-      if (!puedeEditar) return;
       localStorage.setItem(CONFIG_EDIT_ID_KEY, String(btn.dataset.id));
       localStorage.removeItem(CONFIG_NEW_OPEN_KEY);
       refrescarConfiguracion();
@@ -444,9 +255,8 @@ function activarEventosConfiguracion() {
     });
   });
 
-  document.querySelectorAll(".btn-eliminar-config-usuario").forEach((btn) => {
+  document.querySelectorAll(".btnEliminarConfigUsuario").forEach((btn) => {
     btn.addEventListener("click", () => {
-      if (!puedeBorrar) return;
       const nombre = btn.dataset.nombre || "este usuario";
       const ok = window.confirm(`Vas a borrar a ${nombre}. ¿Confirmas?`);
       if (!ok) return;
@@ -454,90 +264,46 @@ function activarEventosConfiguracion() {
       refrescarConfiguracion();
     });
   });
-
-  document.getElementById("cfg_search")?.addEventListener("input", (e) => {
-    setSearch(e.target.value || "");
-    refrescarConfiguracion();
-  });
-
-  document.getElementById("cfg_role")?.addEventListener("change", (e) => {
-    setRoleFilter(e.target.value || "todos");
-    refrescarConfiguracion();
-  });
-
-  document.getElementById("cfg_status")?.addEventListener("change", (e) => {
-    setStatusFilter(e.target.value || "todos");
-    refrescarConfiguracion();
-  });
-
-  document.getElementById("btn_limpiar_config")?.addEventListener("click", () => {
-    setSearch("");
-    setRoleFilter("todos");
-    setStatusFilter("todos");
-    refrescarConfiguracion();
-  });
-
-  if (!puedeCrear && !puedeEditar) {
-    document.getElementById("btn_guardar_config_usuario")?.setAttribute("disabled", "disabled");
-  }
 }
 
 function guardarUsuarioConfiguracion() {
-  const usuarioActual = getUsuarioActual();
-  const acciones = usuarioActual.permisosAcciones || {};
-  const puedeEditar = !!acciones.editar || !!acciones.aprobar;
-  const puedeCrear = !!acciones.crear || !!acciones.aprobar;
-
   const editId = localStorage.getItem(CONFIG_EDIT_ID_KEY) || "";
-
-  if (!editId && !puedeCrear) return;
-  if (editId && !puedeEditar) return;
-
   const actual = editId
     ? db.personal.getAll().find((u) => String(u.id) === String(editId)) || {}
     : {};
 
-  const puedeTocarPermisos = !!acciones.aprobar || !editId;
-
-  const rol = sanitizeRol(valueOf("cfg_rol"));
-
   const data = {
     nombre: valueOf("cfg_nombre"),
     usuario: valueOf("cfg_usuario"),
-    rol,
     password: valueOf("cfg_password"),
     puesto: valueOf("cfg_puesto"),
-    activo: valueOf("cfg_activo") !== "false",
     telefono: valueOf("cfg_telefono"),
     email: valueOf("cfg_email"),
     dni: valueOf("cfg_dni"),
     nss: valueOf("cfg_nss"),
-    direccion: {
-      tipoVia: valueOf("cfg_tipoVia"),
-      via: valueOf("cfg_via"),
-      numero: valueOf("cfg_numero"),
-      portal: valueOf("cfg_portal"),
-      piso: valueOf("cfg_piso"),
-      puerta: valueOf("cfg_puerta"),
-      cp: valueOf("cfg_cp"),
-      poblacion: valueOf("cfg_poblacion"),
-      provincia: valueOf("cfg_provincia")
-    },
     fechaAlta: valueOf("cfg_fechaAlta"),
-    vacaciones: {
-      disponibles: Number(actual?.vacaciones?.disponibles ?? 30),
-      usadas: Number(actual?.vacaciones?.usadas ?? 0)
+    activo: valueOf("cfg_activo") !== "false",
+    rol: sanitizeRol(valueOf("cfg_rol")),
+    direccion: actual.direccion || {},
+    vacaciones: actual.vacaciones || { disponibles: 30, usadas: 0 },
+    moscosos: actual.moscosos || { disponibles: 2, usados: 0 },
+    permisosModulos: {
+      inicio: checked("cfg_mod_inicio"),
+      agenda: checked("cfg_mod_agenda"),
+      personal: checked("cfg_mod_personal"),
+      configuracion: checked("cfg_mod_configuracion"),
+      vehiculos: checked("cfg_mod_vehiculos"),
+      herramientas: checked("cfg_mod_herramientas"),
+      clientes: checked("cfg_mod_clientes"),
+      obras: checked("cfg_mod_obras")
     },
-    moscosos: {
-      disponibles: Number(actual?.moscosos?.disponibles ?? 2),
-      usados: Number(actual?.moscosos?.usados ?? 0)
-    },
-    permisosModulos: puedeTocarPermisos
-      ? permisosPorRolBase(rol).permisosModulos
-      : (actual.permisosModulos || {}),
-    permisosAcciones: puedeTocarPermisos
-      ? permisosPorRolBase(rol).permisosAcciones
-      : (actual.permisosAcciones || {})
+    permisosAcciones: {
+      verTodo: checked("cfg_acc_verTodo"),
+      crear: checked("cfg_acc_crear"),
+      editar: checked("cfg_acc_editar"),
+      borrar: checked("cfg_acc_borrar"),
+      aprobar: checked("cfg_acc_aprobar")
+    }
   };
 
   if (!data.nombre) {
@@ -551,7 +317,7 @@ function guardarUsuarioConfiguracion() {
   }
 
   if (!editId && !data.password) {
-    alert("La contraseña es obligatoria para un usuario nuevo.");
+    alert("La contraseña es obligatoria.");
     return;
   }
 
@@ -563,157 +329,11 @@ function guardarUsuarioConfiguracion() {
     });
     localStorage.removeItem(CONFIG_EDIT_ID_KEY);
   } else {
-    db.personal.create({
-      ...data,
-      permisosModulos: puedeTocarPermisos
-        ? leerPermisosModulosDesdeFormulario() || data.permisosModulos
-        : data.permisosModulos,
-      permisosAcciones: puedeTocarPermisos
-        ? leerPermisosAccionesDesdeFormulario() || data.permisosAcciones
-        : data.permisosAcciones
-    });
-  }
-
-  if (puedeTocarPermisos && editId) {
-    db.personal.update(editId, {
-      permisosModulos: leerPermisosModulosDesdeFormulario(),
-      permisosAcciones: leerPermisosAccionesDesdeFormulario()
-    });
+    db.personal.create(data);
   }
 
   localStorage.removeItem(CONFIG_NEW_OPEN_KEY);
   refrescarConfiguracion();
-}
-
-function permisosPorRolBase(rol) {
-  if (rol === "admin") {
-    return {
-      permisosModulos: {
-        inicio: true,
-        agenda: true,
-        personal: true,
-        configuracion: true,
-        vehiculos: true,
-        herramientas: true,
-        clientes: true,
-        obras: true
-      },
-      permisosAcciones: {
-        verTodo: true,
-        crear: true,
-        editar: true,
-        borrar: true,
-        aprobar: true
-      }
-    };
-  }
-
-  if (rol === "encargado") {
-    return {
-      permisosModulos: {
-        inicio: true,
-        agenda: true,
-        personal: true,
-        configuracion: false,
-        vehiculos: true,
-        herramientas: true,
-        clientes: true,
-        obras: true
-      },
-      permisosAcciones: {
-        verTodo: true,
-        crear: true,
-        editar: true,
-        borrar: false,
-        aprobar: false
-      }
-    };
-  }
-
-  return {
-    permisosModulos: {
-      inicio: true,
-      agenda: true,
-      personal: false,
-      configuracion: false,
-      vehiculos: false,
-      herramientas: false,
-      clientes: false,
-      obras: false
-    },
-    permisosAcciones: {
-      verTodo: false,
-      crear: false,
-      editar: false,
-      borrar: false,
-      aprobar: false
-    }
-  };
-}
-
-function leerPermisosModulosDesdeFormulario() {
-  return {
-    inicio: checked("cfg_mod_inicio"),
-    agenda: checked("cfg_mod_agenda"),
-    personal: checked("cfg_mod_personal"),
-    configuracion: checked("cfg_mod_configuracion"),
-    vehiculos: checked("cfg_mod_vehiculos"),
-    herramientas: checked("cfg_mod_herramientas"),
-    clientes: checked("cfg_mod_clientes"),
-    obras: checked("cfg_mod_obras")
-  };
-}
-
-function leerPermisosAccionesDesdeFormulario() {
-  return {
-    verTodo: checked("cfg_acc_verTodo"),
-    crear: checked("cfg_acc_crear"),
-    editar: checked("cfg_acc_editar"),
-    borrar: checked("cfg_acc_borrar"),
-    aprobar: checked("cfg_acc_aprobar")
-  };
-}
-
-function filtrarUsuarios(lista, search, roleFilter, statusFilter) {
-  let salida = [...lista];
-  const txt = normalizeText(search);
-
-  if (txt) {
-    salida = salida.filter((u) => {
-      const bolsa = [
-        u.nombre,
-        u.usuario,
-        getRol(u),
-        u.puesto,
-        u.email,
-        u.telefono,
-        u.dni
-      ]
-        .filter(Boolean)
-        .map(normalizeText)
-        .join(" ");
-
-      return bolsa.includes(txt);
-    });
-  }
-
-  if (roleFilter !== "todos") {
-    salida = salida.filter((u) => getRol(u) === roleFilter);
-  }
-
-  if (statusFilter === "activos") {
-    salida = salida.filter((u) => u.activo !== false);
-  }
-
-  if (statusFilter === "inactivos") {
-    salida = salida.filter((u) => u.activo === false);
-  }
-
-  salida.sort((a, b) => {
-    return String(a.nombre || "").localeCompare(String(b.nombre || ""), "es");
-  });
-
-  return salida;
 }
 
 function getUsuarioActual() {
@@ -749,36 +369,16 @@ function sanitizeRol(value) {
   return "operario";
 }
 
-function normalizeText(value) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
+function colorRol(rol) {
+  if (rol === "admin") return "#7c3aed";
+  if (rol === "encargado") return "#2563eb";
+  return "#0f766e";
 }
 
-function getSearch() {
-  return localStorage.getItem(CONFIG_SEARCH_KEY) || "";
-}
-
-function setSearch(value) {
-  localStorage.setItem(CONFIG_SEARCH_KEY, value);
-}
-
-function getRoleFilter() {
-  return localStorage.getItem(CONFIG_ROLE_FILTER_KEY) || "todos";
-}
-
-function setRoleFilter(value) {
-  localStorage.setItem(CONFIG_ROLE_FILTER_KEY, value);
-}
-
-function getStatusFilter() {
-  return localStorage.getItem(CONFIG_STATUS_FILTER_KEY) || "todos";
-}
-
-function setStatusFilter(value) {
-  localStorage.setItem(CONFIG_STATUS_FILTER_KEY, value);
+function refrescarConfiguracion() {
+  const container = document.getElementById("viewContainer");
+  if (!container) return;
+  container.innerHTML = renderConfiguracion();
 }
 
 function valueOf(id) {
@@ -789,35 +389,24 @@ function checked(id) {
   return !!document.getElementById(id)?.checked;
 }
 
-function refrescarConfiguracion() {
-  const container = document.getElementById("viewContainer");
-  if (!container) return;
-  container.innerHTML = renderConfiguracion();
-}
-
-function statCard(label, value, color) {
-  return `
-    <div style="
-      padding:12px;
-      border:1px solid #e2e8f0;
-      border-radius:12px;
-      background:#f8fafc;
-    ">
-      <div style="font-size:12px;color:#64748b;margin-bottom:6px;font-weight:700;">
-        ${escapeHtml(label)}
-      </div>
-      <div style="font-size:28px;font-weight:800;color:${color};line-height:1;">
-        ${escapeHtml(String(value))}
-      </div>
-    </div>
-  `;
-}
-
 function campo(label, id, value, extra = "") {
   return `
     <div>
       <label for="${id}" style="${labelStyle()}">${escapeHtml(label)}</label>
       <input id="${id}" value="${escapeHtmlAttr(value)}" ${extra} style="${inputStyle()}">
+    </div>
+  `;
+}
+
+function campoSelectRol(valor) {
+  return `
+    <div>
+      <label for="cfg_rol" style="${labelStyle()}">Rol</label>
+      <select id="cfg_rol" style="${inputStyle()}">
+        <option value="admin" ${valor === "admin" ? "selected" : ""}>Admin</option>
+        <option value="encargado" ${valor === "encargado" ? "selected" : ""}>Encargado</option>
+        <option value="operario" ${valor === "operario" ? "selected" : ""}>Operario</option>
+      </select>
     </div>
   `;
 }
@@ -834,7 +423,7 @@ function campoSelectActivo(valor) {
   `;
 }
 
-function check(id, texto, valor, disabled = false) {
+function check(id, texto, valor) {
   return `
     <label style="
       display:flex;
@@ -848,27 +437,9 @@ function check(id, texto, valor, disabled = false) {
       color:#0f172a;
       font-weight:700;
     ">
-      <input id="${id}" type="checkbox" ${valor ? "checked" : ""} ${disabled ? "disabled" : ""}>
+      <input id="${id}" type="checkbox" ${valor ? "checked" : ""}>
       <span>${escapeHtml(texto)}</span>
     </label>
-  `;
-}
-
-function pill(texto, ok) {
-  return `
-    <span style="
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:4px 8px;
-      border-radius:999px;
-      background:${ok ? "#16a34a" : "#94a3b8"};
-      color:#fff;
-      font-size:11px;
-      font-weight:700;
-    ">
-      ${escapeHtml(texto)}
-    </span>
   `;
 }
 
@@ -894,18 +465,6 @@ function labelStyle() {
 
 function inputStyle() {
   return "width:100%;min-width:0;padding:8px 10px;height:40px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;box-sizing:border-box;font-size:14px;";
-}
-
-function sectionBox() {
-  return "padding:12px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;";
-}
-
-function sectionTitle() {
-  return "font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px;";
-}
-
-function grid4() {
-  return "display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;";
 }
 
 function gridChecks() {
