@@ -13,232 +13,152 @@ export function renderConfiguracion() {
 
   const usuarios = db.personal.getAll();
   const editId = localStorage.getItem(CONFIG_EDIT_ID_KEY) || "";
-  const editando =
-    usuarios.find((u) => String(u.id) === String(editId)) || null;
+  const editando = usuarios.find(function (u) {
+    return String(u.id) === String(editId);
+  }) || null;
+
   const nuevoAbierto = localStorage.getItem(CONFIG_NEW_OPEN_KEY) === "true";
 
-  setTimeout(() => {
+  setTimeout(function () {
     activarEventosConfiguracion();
   }, 0);
 
-  return `
-    <div style="max-width:1100px;width:100%;">
-      <div class="panel-card">
-        <h3 style="margin-top:0;">Configuración</h3>
-        <p style="color:#64748b;margin-bottom:20px;">
-          Gestión real de usuarios del sistema.
-        </p>
+  var html = "";
+  html += '<div style="max-width:1100px;width:100%;">';
+  html += '  <div class="panel-card">';
+  html += '    <h3 style="margin-top:0;">Configuración</h3>';
+  html += '    <p style="color:#64748b;margin-bottom:20px;">Gestión real de usuarios del sistema.</p>';
 
-        ${
-          puedeCrear && !editando && !nuevoAbierto
-            ? `
-              <div style="margin-bottom:18px;">
-                <button id="btnNuevoUsuarioConfig" type="button" style="${btnPrincipal()}">
-                  + Nuevo usuario
-                </button>
-              </div>
-            `
-            : ""
-        }
+  if (puedeCrear && !editando && !nuevoAbierto) {
+    html += '    <div style="margin-bottom:18px;">';
+    html += '      <button id="btnNuevoUsuarioConfig" type="button" style="' + btnPrincipal() + '">+ Nuevo usuario</button>';
+    html += '    </div>';
+  }
 
-        ${
-          (puedeCrear && nuevoAbierto) || (puedeEditar && editando)
-            ? renderFormularioUsuario(editando)
-            : ""
-        }
+  if ((puedeCrear && nuevoAbierto) || (puedeEditar && editando)) {
+    html += renderFormularioUsuario(editando);
+  }
 
-        <div style="display:grid;gap:12px;">
-          ${
-            usuarios.length
-              ? usuarios.map((u) =>
-                  renderTarjetaUsuario(u, usuarioActual, puedeEditar, puedeBorrar)
-                ).join("")
-              : `
-                <div style="
-                  padding:14px;
-                  border:1px dashed #cbd5e1;
-                  border-radius:12px;
-                  background:#f8fafc;
-                  color:#64748b;
-                ">
-                  No hay usuarios.
-                </div>
-              `
-          }
-        </div>
-      </div>
-    </div>
-  `;
+  html += '    <div style="display:grid;gap:12px;">';
+
+  if (usuarios.length) {
+    html += usuarios.map(function (u) {
+      return renderTarjetaUsuario(u, usuarioActual, puedeEditar, puedeBorrar);
+    }).join("");
+  } else {
+    html += '      <div style="padding:14px;border:1px dashed #cbd5e1;border-radius:12px;background:#f8fafc;color:#64748b;">No hay usuarios.</div>';
+  }
+
+  html += '    </div>';
+  html += '  </div>';
+  html += '</div>';
+
+  return html;
 }
 
 function renderFormularioUsuario(editando) {
   const u = editando || {};
   const rol = getRol(u);
 
-  return `
-    <div style="
-      margin-bottom:18px;
-      border:1px solid #e2e8f0;
-      border-radius:14px;
-      background:#fff;
-      padding:16px;
-    ">
-      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:12px;">
-        ${editando ? "Editar usuario" : "Nuevo usuario"}
-      </div>
+  var html = "";
+  html += '<div style="margin-bottom:18px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;padding:16px;">';
+  html += '  <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:12px;">' + escapeHtml(editando ? "Editar usuario" : "Nuevo usuario") + "</div>";
 
-      <div style="
-        display:grid;
-        grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-        gap:10px;
-      ">
-        ${campo("Nombre completo", "cfg_nombre", u.nombre || "")}
-        ${campo("Usuario", "cfg_usuario", u.usuario || "")}
-        ${campo("Contraseña", "cfg_password", u.password || "")}
-        ${campo("Puesto", "cfg_puesto", u.puesto || "")}
-        ${campo("Teléfono", "cfg_telefono", u.telefono || "", 'inputmode="tel"')}
-        ${campo("Email", "cfg_email", u.email || "", 'inputmode="email"')}
-        ${campo("DNI", "cfg_dni", u.dni || "")}
-        ${campo("Seguridad Social", "cfg_nss", u.nss || "")}
-        ${campo("Fecha de alta", "cfg_fechaAlta", u.fechaAlta || "", 'type="date"')}
-        ${campoSelectRol(rol)}
-        ${campoSelectActivo(u.activo !== false)}
-      </div>
+  html += '  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">';
+  html += campo("Nombre completo", "cfg_nombre", u.nombre || "");
+  html += campo("Usuario", "cfg_usuario", u.usuario || "");
+  html += campo("Contraseña", "cfg_password", u.password || "");
+  html += campo("Puesto", "cfg_puesto", u.puesto || "");
+  html += campo("Teléfono", "cfg_telefono", u.telefono || "", 'inputmode="tel"');
+  html += campo("Email", "cfg_email", u.email || "", 'inputmode="email"');
+  html += campo("DNI", "cfg_dni", u.dni || "");
+  html += campo("Seguridad Social", "cfg_nss", u.nss || "");
+  html += campo("Fecha de alta", "cfg_fechaAlta", u.fechaAlta || "", 'type="date"');
+  html += campoSelectRol(rol);
+  html += campoSelectActivo(u.activo !== false);
+  html += "  </div>";
 
-      <div style="margin-top:14px;">
-        <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">Permisos por módulos</div>
-        <div style="${gridChecks()}">
-          ${check("cfg_mod_inicio", "Inicio", !!u.permisosModulos?.inicio)}
-          ${check("cfg_mod_agenda", "Agenda", !!u.permisosModulos?.agenda)}
-          ${check("cfg_mod_personal", "Personal", !!u.permisosModulos?.personal)}
-          ${check("cfg_mod_configuracion", "Configuración", !!u.permisosModulos?.configuracion)}
-          ${check("cfg_mod_vehiculos", "Vehículos", !!u.permisosModulos?.vehiculos)}
-          ${check("cfg_mod_herramientas", "Herramientas", !!u.permisosModulos?.herramientas)}
-          ${check("cfg_mod_clientes", "Clientes", !!u.permisosModulos?.clientes)}
-          ${check("cfg_mod_obras", "Obras", !!u.permisosModulos?.obras)}
-        </div>
-      </div>
+  html += '  <div style="margin-top:14px;">';
+  html += '    <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">Permisos por módulos</div>';
+  html += '    <div style="' + gridChecks() + '">';
+  html += check("cfg_mod_inicio", "Inicio", !!(u.permisosModulos && u.permisosModulos.inicio));
+  html += check("cfg_mod_agenda", "Agenda", !!(u.permisosModulos && u.permisosModulos.agenda));
+  html += check("cfg_mod_personal", "Personal", !!(u.permisosModulos && u.permisosModulos.personal));
+  html += check("cfg_mod_configuracion", "Configuración", !!(u.permisosModulos && u.permisosModulos.configuracion));
+  html += check("cfg_mod_vehiculos", "Vehículos", !!(u.permisosModulos && u.permisosModulos.vehiculos));
+  html += check("cfg_mod_herramientas", "Herramientas", !!(u.permisosModulos && u.permisosModulos.herramientas));
+  html += check("cfg_mod_clientes", "Clientes", !!(u.permisosModulos && u.permisosModulos.clientes));
+  html += check("cfg_mod_obras", "Obras", !!(u.permisosModulos && u.permisosModulos.obras));
+  html += "    </div>";
+  html += "  </div>";
 
-      <div style="margin-top:14px;">
-        <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">Permisos por acciones</div>
-        <div style="${gridChecks()}">
-          ${check("cfg_acc_verTodo", "Ver todo", !!u.permisosAcciones?.verTodo)}
-          ${check("cfg_acc_crear", "Crear", !!u.permisosAcciones?.crear)}
-          ${check("cfg_acc_editar", "Editar", !!u.permisosAcciones?.editar)}
-          ${check("cfg_acc_borrar", "Borrar", !!u.permisosAcciones?.borrar)}
-          ${check("cfg_acc_aprobar", "Aprobar", !!u.permisosAcciones?.aprobar)}
-        </div>
-      </div>
+  html += '  <div style="margin-top:14px;">';
+  html += '    <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">Permisos por acciones</div>';
+  html += '    <div style="' + gridChecks() + '">';
+  html += check("cfg_acc_verTodo", "Ver todo", !!(u.permisosAcciones && u.permisosAcciones.verTodo));
+  html += check("cfg_acc_crear", "Crear", !!(u.permisosAcciones && u.permisosAcciones.crear));
+  html += check("cfg_acc_editar", "Editar", !!(u.permisosAcciones && u.permisosAcciones.editar));
+  html += check("cfg_acc_borrar", "Borrar", !!(u.permisosAcciones && u.permisosAcciones.borrar));
+  html += check("cfg_acc_aprobar", "Aprobar", !!(u.permisosAcciones && u.permisosAcciones.aprobar));
+  html += "    </div>";
+  html += "  </div>";
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
-        <button id="btnGuardarUsuarioConfig" type="button" style="${btnPrincipal()}">
-          ${editando ? "Guardar cambios" : "Crear usuario"}
-        </button>
+  html += '  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">';
+  html += '    <button id="btnGuardarUsuarioConfig" type="button" style="' + btnPrincipal() + '">' + escapeHtml(editando ? "Guardar cambios" : "Crear usuario") + "</button>";
+  html += '    <button id="btnCancelarUsuarioConfig" type="button" style="' + btnSecundario() + '">Cancelar</button>';
+  html += "  </div>";
 
-        <button id="btnCancelarUsuarioConfig" type="button" style="${btnSecundario()}">
-          Cancelar
-        </button>
-      </div>
-    </div>
-  `;
+  html += "</div>";
+  return html;
 }
 
 function renderTarjetaUsuario(u, usuarioActual, puedeEditar, puedeBorrar) {
   const rol = getRol(u);
   const puedeBorrarEste = puedeBorrar && String(u.id) !== String(usuarioActual.id);
 
-  return `
-    <div style="
-      padding:14px;
-      border:1px solid #d8e1eb;
-      border-radius:12px;
-      background:#fff;
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:12px;
-      flex-wrap:wrap;
-    ">
-      <div style="flex:1;min-width:260px;">
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <div style="font-weight:800;color:#0f172a;font-size:16px;">
-            ${escapeHtml(u.nombre || "Sin nombre")}
-          </div>
+  var html = "";
+  html += '<div style="padding:14px;border:1px solid #d8e1eb;border-radius:12px;background:#fff;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">';
+  html += '  <div style="flex:1;min-width:260px;">';
 
-          <span style="
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            padding:3px 8px;
-            border-radius:999px;
-            background:${colorRol(rol)};
-            color:#fff;
-            font-size:11px;
-            font-weight:700;
-          ">
-            ${escapeHtml(rol)}
-          </span>
+  html += '    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">';
+  html += '      <div style="font-weight:800;color:#0f172a;font-size:16px;">' + escapeHtml(u.nombre || "Sin nombre") + "</div>";
+  html += '      <span style="display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:999px;background:' + colorRol(rol) + ';color:#fff;font-size:11px;font-weight:700;">' + escapeHtml(rol) + "</span>";
+  html += '      <span style="display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:999px;background:' + (u.activo === false ? "#dc2626" : "#16a34a") + ';color:#fff;font-size:11px;font-weight:700;">' + (u.activo === false ? "Inactivo" : "Activo") + "</span>";
+  html += "    </div>";
 
-          <span style="
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            padding:3px 8px;
-            border-radius:999px;
-            background:${u.activo === false ? "#dc2626" : "#16a34a"};
-            color:#fff;
-            font-size:11px;
-            font-weight:700;
-          ">
-            ${u.activo === false ? "Inactivo" : "Activo"}
-          </span>
-        </div>
+  html += '    <div style="margin-top:6px;font-size:13px;color:#64748b;">' + escapeHtml(u.usuario || "-") + " · " + escapeHtml(u.puesto || "-") + "</div>";
 
-        <div style="margin-top:6px;font-size:13px;color:#64748b;">
-          ${escapeHtml(u.usuario || "-")} · ${escapeHtml(u.puesto || "-")}
-        </div>
+  html += '    <div style="margin-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px 12px;font-size:13px;color:#334155;">';
+  if (u.email) html += "<div>✉ " + escapeHtml(u.email) + "</div>";
+  if (u.telefono) html += "<div>📞 " + escapeHtml(u.telefono) + "</div>";
+  if (u.fechaAlta) html += "<div>Alta: " + escapeHtml(u.fechaAlta) + "</div>";
+  if (u.dni) html += "<div>DNI: " + escapeHtml(u.dni) + "</div>";
+  html += "    </div>";
 
-        <div style="
-          margin-top:8px;
-          display:grid;
-          grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-          gap:6px 12px;
-          font-size:13px;
-          color:#334155;
-        ">
-          ${u.email ? `<div>✉ ${escapeHtml(u.email)}</div>` : ""}
-          ${u.telefono ? `<div>📞 ${escapeHtml(u.telefono)}</div>` : ""}
-          ${u.fechaAlta ? `<div>Alta: ${escapeHtml(u.fechaAlta)}</div>` : ""}
-          ${u.dni ? `<div>DNI: ${escapeHtml(u.dni)}</div>` : ""}
-        </div>
-      </div>
+  html += "  </div>";
 
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        ${
-          puedeEditar
-            ? `<button type="button" class="btnEditarConfigUsuario" data-id="${escapeHtmlAttr(u.id)}" style="${btnEditar()}">Editar</button>`
-            : ""
-        }
+  html += '  <div style="display:flex;gap:8px;flex-wrap:wrap;">';
+  if (puedeEditar) {
+    html += '<button type="button" class="btnEditarConfigUsuario" data-id="' + escapeHtmlAttr(u.id) + '" style="' + btnEditar() + '">Editar</button>';
+  }
+  if (puedeBorrarEste) {
+    html += '<button type="button" class="btnEliminarConfigUsuario" data-id="' + escapeHtmlAttr(u.id) + '" data-nombre="' + escapeHtmlAttr(u.nombre || "") + '" style="' + btnBorrar() + '">✕</button>';
+  }
+  html += "  </div>";
 
-        ${
-          puedeBorrarEste
-            ? `<button type="button" class="btnEliminarConfigUsuario" data-id="${escapeHtmlAttr(u.id)}" data-nombre="${escapeHtmlAttr(u.nombre || "")}" style="${btnBorrar()}">✕</button>`
-            : ""
-        }
-      </div>
-    </div>
-  `;
+  html += "</div>";
+  return html;
 }
 
 function activarEventosConfiguracion() {
-  document.getElementById("btnNuevoUsuarioConfig")?.addEventListener("click", () => {
+  document.getElementById("btnNuevoUsuarioConfig")?.addEventListener("click", function () {
     localStorage.setItem(CONFIG_NEW_OPEN_KEY, "true");
     localStorage.removeItem(CONFIG_EDIT_ID_KEY);
     refrescarConfiguracion();
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
-  document.getElementById("btnCancelarUsuarioConfig")?.addEventListener("click", () => {
+  document.getElementById("btnCancelarUsuarioConfig")?.addEventListener("click", function () {
     localStorage.removeItem(CONFIG_EDIT_ID_KEY);
     localStorage.removeItem(CONFIG_NEW_OPEN_KEY);
     refrescarConfiguracion();
@@ -246,8 +166,8 @@ function activarEventosConfiguracion() {
 
   document.getElementById("btnGuardarUsuarioConfig")?.addEventListener("click", guardarUsuarioConfiguracion);
 
-  document.querySelectorAll(".btnEditarConfigUsuario").forEach((btn) => {
-    btn.addEventListener("click", () => {
+  document.querySelectorAll(".btnEditarConfigUsuario").forEach(function (btn) {
+    btn.addEventListener("click", function () {
       localStorage.setItem(CONFIG_EDIT_ID_KEY, String(btn.dataset.id));
       localStorage.removeItem(CONFIG_NEW_OPEN_KEY);
       refrescarConfiguracion();
@@ -255,10 +175,10 @@ function activarEventosConfiguracion() {
     });
   });
 
-  document.querySelectorAll(".btnEliminarConfigUsuario").forEach((btn) => {
-    btn.addEventListener("click", () => {
+  document.querySelectorAll(".btnEliminarConfigUsuario").forEach(function (btn) {
+    btn.addEventListener("click", function () {
       const nombre = btn.dataset.nombre || "este usuario";
-      const ok = window.confirm(`Vas a borrar a ${nombre}. ¿Confirmas?`);
+      const ok = window.confirm("Vas a borrar a " + nombre + ". ¿Confirmas?");
       if (!ok) return;
       db.personal.remove(btn.dataset.id);
       refrescarConfiguracion();
@@ -269,7 +189,9 @@ function activarEventosConfiguracion() {
 function guardarUsuarioConfiguracion() {
   const editId = localStorage.getItem(CONFIG_EDIT_ID_KEY) || "";
   const actual = editId
-    ? db.personal.getAll().find((u) => String(u.id) === String(editId)) || {}
+    ? db.personal.getAll().find(function (u) {
+        return String(u.id) === String(editId);
+      }) || {}
     : {};
 
   const data = {
@@ -340,7 +262,9 @@ function getUsuarioActual() {
   const id = localStorage.getItem(SESSION_USER_KEY) || "";
   const usuarios = db.personal.getAll();
 
-  return usuarios.find((u) => String(u.id) === String(id)) || {
+  return usuarios.find(function (u) {
+    return String(u.id) === String(id);
+  }) || {
     id: "",
     nombre: "Usuario",
     permisosAcciones: {
@@ -354,11 +278,11 @@ function getUsuarioActual() {
 }
 
 function getRol(u) {
-  const rol = sanitizeRol(u?.rol || "");
+  const rol = sanitizeRol(u && u.rol ? u.rol : "");
   if (rol) return rol;
 
-  if (u?.permisosAcciones?.aprobar || u?.permisosAcciones?.verTodo) return "admin";
-  if (u?.permisosAcciones?.editar) return "encargado";
+  if (u && u.permisosAcciones && (u.permisosAcciones.aprobar || u.permisosAcciones.verTodo)) return "admin";
+  if (u && u.permisosAcciones && u.permisosAcciones.editar) return "encargado";
   return "operario";
 }
 
@@ -389,58 +313,47 @@ function checked(id) {
   return !!document.getElementById(id)?.checked;
 }
 
-function campo(label, id, value, extra = "") {
-  return `
-    <div>
-      <label for="${id}" style="${labelStyle()}">${escapeHtml(label)}</label>
-      <input id="${id}" value="${escapeHtmlAttr(value)}" ${extra} style="${inputStyle()}">
-    </div>
-  `;
+function campo(label, id, value, extra) {
+  return (
+    '<div>' +
+      '<label for="' + id + '" style="' + labelStyle() + '">' + escapeHtml(label) + '</label>' +
+      '<input id="' + id + '" value="' + escapeHtmlAttr(value || "") + '" ' + (extra || "") + ' style="' + inputStyle() + '">' +
+    '</div>'
+  );
 }
 
 function campoSelectRol(valor) {
-  return `
-    <div>
-      <label for="cfg_rol" style="${labelStyle()}">Rol</label>
-      <select id="cfg_rol" style="${inputStyle()}">
-        <option value="admin" ${valor === "admin" ? "selected" : ""}>Admin</option>
-        <option value="encargado" ${valor === "encargado" ? "selected" : ""}>Encargado</option>
-        <option value="operario" ${valor === "operario" ? "selected" : ""}>Operario</option>
-      </select>
-    </div>
-  `;
+  return (
+    '<div>' +
+      '<label for="cfg_rol" style="' + labelStyle() + '">Rol</label>' +
+      '<select id="cfg_rol" style="' + inputStyle() + '">' +
+        '<option value="admin" ' + (valor === "admin" ? "selected" : "") + '>Admin</option>' +
+        '<option value="encargado" ' + (valor === "encargado" ? "selected" : "") + '>Encargado</option>' +
+        '<option value="operario" ' + (valor === "operario" ? "selected" : "") + '>Operario</option>' +
+      '</select>' +
+    '</div>'
+  );
 }
 
 function campoSelectActivo(valor) {
-  return `
-    <div>
-      <label for="cfg_activo" style="${labelStyle()}">Estado</label>
-      <select id="cfg_activo" style="${inputStyle()}">
-        <option value="true" ${valor ? "selected" : ""}>Activo</option>
-        <option value="false" ${!valor ? "selected" : ""}>Inactivo</option>
-      </select>
-    </div>
-  `;
+  return (
+    '<div>' +
+      '<label for="cfg_activo" style="' + labelStyle() + '">Estado</label>' +
+      '<select id="cfg_activo" style="' + inputStyle() + '">' +
+        '<option value="true" ' + (valor ? "selected" : "") + '>Activo</option>' +
+        '<option value="false" ' + (!valor ? "selected" : "") + '>Inactivo</option>' +
+      '</select>' +
+    '</div>'
+  );
 }
 
 function check(id, texto, valor) {
-  return `
-    <label style="
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding:10px 12px;
-      border:1px solid #dbe4ee;
-      border-radius:10px;
-      background:#fff;
-      font-size:14px;
-      color:#0f172a;
-      font-weight:700;
-    ">
-      <input id="${id}" type="checkbox" ${valor ? "checked" : ""}>
-      <span>${escapeHtml(texto)}</span>
-    </label>
-  `;
+  return (
+    '<label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #dbe4ee;border-radius:10px;background:#fff;font-size:14px;color:#0f172a;font-weight:700;">' +
+      '<input id="' + id + '" type="checkbox" ' + (valor ? "checked" : "") + '>' +
+      '<span>' + escapeHtml(texto) + '</span>' +
+    '</label>'
+  );
 }
 
 function btnPrincipal() {
