@@ -1,27 +1,73 @@
 const app = document.getElementById("app");
 
-app.innerHTML = `
-  <div style="
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:#f1f5f9;
-    font-family:Arial,sans-serif;
-  ">
+function renderApp() {
+  app.innerHTML = `
     <div style="
-      background:#ffffff;
-      border:1px solid #cbd5e1;
-      border-radius:16px;
-      padding:30px;
-      max-width:700px;
-      width:100%;
-      text-align:center;
+      min-height:100vh;
+      background:#f1f5f9;
+      padding:24px;
+      font-family:Arial,sans-serif;
     ">
-      <h1 style="margin:0 0 12px 0;color:#0f172a;">Zentryx</h1>
-      <p style="margin:0;color:#475569;font-size:18px;">
-        Prueba mínima cargada correctamente.
-      </p>
+      <div style="
+        max-width:1000px;
+        margin:0 auto;
+        background:#fff;
+        border:1px solid #dbe4ee;
+        border-radius:16px;
+        padding:20px;
+      ">
+        <h1 style="margin:0 0 20px 0;">Zentryx</h1>
+
+        <div style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+          gap:10px;
+          margin-bottom:20px;
+        ">
+          <button onclick="setView('inicio')" style="${btn()}">Inicio</button>
+          <button onclick="setView('agenda')" style="${btn()}">Agenda</button>
+          <button onclick="setView('personal')" style="${btn()}">Personal</button>
+          <button onclick="setView('config')" style="${btn()}">Configuración</button>
+        </div>
+
+        <div id="view"></div>
+      </div>
     </div>
-  </div>
-`;
+  `;
+
+  setView("inicio");
+}
+
+window.setView = function (view) {
+  const container = document.getElementById("view");
+
+  if (view === "inicio") {
+    container.innerHTML = "Pantalla Inicio OK";
+  }
+
+  if (view === "agenda") {
+    container.innerHTML = "Pantalla Agenda OK";
+  }
+
+  if (view === "personal") {
+    container.innerHTML = "Pantalla Personal OK";
+  }
+
+  if (view === "config") {
+    container.innerHTML = "Pantalla Configuración OK";
+  }
+};
+
+function btn() {
+  return `
+    height:42px;
+    border:none;
+    border-radius:10px;
+    background:#2563eb;
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
+  `;
+}
+
+renderApp();
