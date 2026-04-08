@@ -141,7 +141,7 @@ function renderFormulario(editando) {
 function renderTrabajador(t) {
   const direccion = t.direccion || {};
   const direccionTexto = getDireccionTexto(direccion);
-  const ausencias = db.ausencias.getByTrabajador(t.id);
+  const ausencias = ordenarAusencias(db.ausencias.getByTrabajador(t.id));
   const resumen = calcularResumenTrabajador(t, ausencias);
 
   const telefonoNormalizado = normalizarTelefono(t.telefono || "");
@@ -163,15 +163,11 @@ function renderTrabajador(t) {
       background:#fff;
       box-sizing:border-box;
     ">
-      <div style="
-        display:flex;
-        flex-direction:column;
-        gap:8px;
-      ">
+      <div style="display:grid;gap:8px;">
         <div>
           <div style="
             font-weight:800;
-            font-size:17px;
+            font-size:18px;
             color:#0f172a;
             word-break:break-word;
           ">
@@ -188,22 +184,13 @@ function renderTrabajador(t) {
           </div>
         </div>
 
-        <div style="
-          display:flex;
-          flex-wrap:wrap;
-          gap:8px;
-        ">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <span style="${pill(t.activo !== false ? "#16a34a" : "#dc2626")}">
             ${t.activo !== false ? "Activo" : "Inactivo"}
           </span>
         </div>
 
-        <div style="
-          display:grid;
-          gap:6px;
-          font-size:13px;
-          color:#334155;
-        ">
+        <div style="display:grid;gap:6px;font-size:13px;color:#334155;">
           ${
             t.telefono
               ? `
@@ -229,24 +216,6 @@ function renderTrabajador(t) {
               : ""
           }
 
-          ${t.fechaAlta ? `<div>Alta: ${escapeHtml(formatFecha(t.fechaAlta))}</div>` : ""}
-          ${t.dni ? `<div>DNI: ${escapeHtml(t.dni)}</div>` : ""}
-          ${t.nss ? `<div>NSS: ${escapeHtml(t.nss)}</div>` : ""}
-
-          <div style="
-            display:grid;
-            grid-template-columns:1fr;
-            gap:6px;
-            margin-top:4px;
-          ">
-            <div style="${miniBox()}">
-              Vacaciones: ${resumen.vacacionesDisponibles} disp. · ${resumen.vacacionesUsadas} usadas · ${resumen.vacacionesRestantes} restantes
-            </div>
-            <div style="${miniBox()}">
-              Moscosos: ${resumen.moscososDisponibles} disp. · ${resumen.moscososUsados} usados · ${resumen.moscososRestantes} restantes
-            </div>
-          </div>
-
           ${
             direccionTexto
               ? `
@@ -259,6 +228,19 @@ function renderTrabajador(t) {
               `
               : ""
           }
+
+          ${t.fechaAlta ? `<div>Alta: ${escapeHtml(formatFecha(t.fechaAlta))}</div>` : ""}
+          ${t.dni ? `<div>DNI: ${escapeHtml(t.dni)}</div>` : ""}
+          ${t.nss ? `<div>NSS: ${escapeHtml(t.nss)}</div>` : ""}
+        </div>
+
+        <div style="display:grid;gap:6px;">
+          <div style="${miniBox()}">
+            Vacaciones: ${resumen.vacacionesDisponibles} disp. · ${resumen.vacacionesUsadas} usadas · ${resumen.vacacionesRestantes} restantes
+          </div>
+          <div style="${miniBox()}">
+            Moscosos: ${resumen.moscososDisponibles} disp. · ${resumen.moscososUsados} usados · ${resumen.moscososRestantes} restantes
+          </div>
         </div>
 
         <div style="
@@ -534,6 +516,7 @@ function calcularResumenTrabajador(trabajador, ausencias) {
   let moscososUsadosAusencias = 0;
 
   ausencias.forEach((a) => {
+    if (String(a.estado || "") === "rechazada") return;
     const dias = contarDias(a.fechaInicio, a.fechaFin);
     if (a.tipo === "vacaciones") vacacionesUsadasAusencias += dias;
     if (a.tipo === "moscoso") moscososUsadosAusencias += dias;
@@ -555,6 +538,14 @@ function calcularResumenTrabajador(trabajador, ausencias) {
     moscososUsados,
     moscososRestantes: moscososDisponibles - moscososUsados
   };
+}
+
+function ordenarAusencias(lista) {
+  return [...lista].sort((a, b) => {
+    const aa = new Date(a.fechaInicio || 0).getTime();
+    const bb = new Date(b.fechaInicio || 0).getTime();
+    return aa - bb;
+  });
 }
 
 function refrescar() {
