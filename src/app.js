@@ -1,4 +1,5 @@
 import { renderInicio } from "./core/views/inicio.js";
+import { renderAgenda } from "./core/views/agenda.js";
 
 const app = document.getElementById("app");
 
@@ -45,27 +46,10 @@ function renderApp() {
 
 function renderView() {
   if (currentView === "inicio") return renderInicio();
-  if (currentView === "agenda") return renderAgendaSimple();
+  if (currentView === "agenda") return renderAgenda();
   if (currentView === "personal") return renderPersonalSimple();
   if (currentView === "configuracion") return renderConfiguracionSimple();
   return renderInicio();
-}
-
-function renderAgendaSimple() {
-  return `
-    <div style="
-      border:1px solid #dbe4ee;
-      border-radius:16px;
-      background:#f8fafc;
-      padding:24px;
-      color:#0f172a;
-    ">
-      <div style="font-size:28px;font-weight:800;margin-bottom:10px;">Agenda</div>
-      <div style="font-size:15px;color:#64748b;">
-        Módulo temporal en modo seguro.
-      </div>
-    </div>
-  `;
 }
 
 function renderPersonalSimple() {
