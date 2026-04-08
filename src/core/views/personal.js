@@ -73,27 +73,48 @@ function renderFormulario(editando) {
         ${editando ? "Editar trabajador" : "Nuevo trabajador"}
       </div>
 
-      <input id="p_nombre" placeholder="Nombre completo" value="${escapeHtmlAttr(t.nombre || "")}" style="${input()}">
-      <input id="p_usuario" placeholder="Usuario" value="${escapeHtmlAttr(t.usuario || "")}" style="${input()}">
-      <input id="p_password" placeholder="Contraseña" value="${escapeHtmlAttr(t.password || "")}" style="${input()}">
-      <input id="p_puesto" placeholder="Puesto" value="${escapeHtmlAttr(t.puesto || "")}" style="${input()}">
-      <input id="p_telefono" placeholder="Teléfono" value="${escapeHtmlAttr(t.telefono || "")}" style="${input()}">
-      <input id="p_email" placeholder="Email" value="${escapeHtmlAttr(t.email || "")}" style="${input()}">
-      <input id="p_dni" placeholder="DNI" value="${escapeHtmlAttr(t.dni || "")}" style="${input()}">
-      <input id="p_nss" placeholder="Seguridad Social" value="${escapeHtmlAttr(t.nss || "")}" style="${input()}">
-      <input id="p_fechaAlta" type="date" value="${escapeHtmlAttr(t.fechaAlta || "")}" style="${input()}">
+      ${campo("Nombre completo", "p_nombre", t.nombre || "")}
+      ${campo("Usuario", "p_usuario", t.usuario || "")}
+      ${campo("Contraseña", "p_password", t.password || "")}
+      ${campo("Puesto", "p_puesto", t.puesto || "")}
+      ${campo("Teléfono", "p_telefono", t.telefono || "", 'inputmode="tel"')}
+      ${campo("Email", "p_email", t.email || "", 'inputmode="email"')}
+      ${campo("DNI", "p_dni", t.dni || "")}
+      ${campo("Seguridad Social", "p_nss", t.nss || "")}
+      ${campo("Fecha de alta", "p_fechaAlta", t.fechaAlta || "", 'type="date"')}
 
-      <select id="p_activo" style="${input()}">
-        <option value="true" ${t.activo !== false ? "selected" : ""}>Activo</option>
-        <option value="false" ${t.activo === false ? "selected" : ""}>Inactivo</option>
-      </select>
+      ${campoSelect(
+        "Estado",
+        "p_activo",
+        [
+          { value: "true", text: "Activo" },
+          { value: "false", text: "Inactivo" }
+        ],
+        t.activo !== false ? "true" : "false"
+      )}
 
-      <input id="p_tipoVia" placeholder="Tipo de vía" value="${escapeHtmlAttr(d.tipoVia || "")}" style="${input()}">
-      <input id="p_via" placeholder="Nombre de la vía" value="${escapeHtmlAttr(d.via || "")}" style="${input()}">
-      <input id="p_numero" placeholder="Número" value="${escapeHtmlAttr(d.numero || "")}" style="${input()}">
-      <input id="p_cp" placeholder="Código postal" value="${escapeHtmlAttr(d.cp || "")}" style="${input()}">
-      <input id="p_poblacion" placeholder="Población" value="${escapeHtmlAttr(d.poblacion || "")}" style="${input()}">
-      <input id="p_provincia" placeholder="Provincia" value="${escapeHtmlAttr(d.provincia || "")}" style="${input()}">
+      ${campoSelect(
+        "Tipo de vía",
+        "p_tipoVia",
+        [
+          { value: "", text: "Selecciona tipo de vía" },
+          { value: "Calle", text: "Calle" },
+          { value: "Avenida", text: "Avenida" },
+          { value: "Paseo", text: "Paseo" },
+          { value: "Plaza", text: "Plaza" },
+          { value: "Camino", text: "Camino" },
+          { value: "Carretera", text: "Carretera" },
+          { value: "Ronda", text: "Ronda" },
+          { value: "Travesía", text: "Travesía" }
+        ],
+        d.tipoVia || ""
+      )}
+
+      ${campo("Nombre de la vía", "p_via", d.via || "")}
+      ${campo("Número", "p_numero", d.numero || "")}
+      ${campo("Código postal", "p_cp", d.cp || "")}
+      ${campo("Población", "p_poblacion", d.poblacion || "")}
+      ${campo("Provincia", "p_provincia", d.provincia || "")}
 
       <button id="btnGuardarTrabajador" style="${btnPrincipal()}">
         ${editando ? "Guardar cambios" : "+ Crear trabajador"}
@@ -163,7 +184,7 @@ function renderTrabajador(t) {
         ">
           ${t.telefono ? `<div>📞 ${escapeHtml(t.telefono)}</div>` : ""}
           ${t.email ? `<div>✉ ${escapeHtml(t.email)}</div>` : ""}
-          ${t.fechaAlta ? `<div>Alta: ${escapeHtml(t.fechaAlta)}</div>` : ""}
+          ${t.fechaAlta ? `<div>Alta: ${escapeHtml(formatFecha(t.fechaAlta))}</div>` : ""}
           ${t.dni ? `<div>DNI: ${escapeHtml(t.dni)}</div>` : ""}
           ${t.nss ? `<div>NSS: ${escapeHtml(t.nss)}</div>` : ""}
           ${direccionTexto ? `<div>📍 ${escapeHtml(direccionTexto)}</div>` : ""}
@@ -212,16 +233,20 @@ function renderTrabajador(t) {
           gap:6px;
           margin-bottom:10px;
         ">
-          <select id="aus_tipo_${escapeHtmlAttr(t.id)}" style="${input()}">
-            <option value="vacaciones">Vacaciones</option>
-            <option value="moscoso">Moscoso</option>
-            <option value="baja">Baja</option>
-            <option value="permiso">Permiso</option>
-          </select>
+          ${campoSelectInline(
+            `aus_tipo_${escapeHtmlAttr(t.id)}`,
+            [
+              { value: "vacaciones", text: "Vacaciones" },
+              { value: "moscoso", text: "Moscoso" },
+              { value: "baja", text: "Baja" },
+              { value: "permiso", text: "Permiso" }
+            ],
+            "vacaciones"
+          )}
 
-          <input id="aus_inicio_${escapeHtmlAttr(t.id)}" type="date" style="${input()}">
-          <input id="aus_fin_${escapeHtmlAttr(t.id)}" type="date" style="${input()}">
-          <input id="aus_com_${escapeHtmlAttr(t.id)}" placeholder="Comentario" style="${input()}">
+          ${campoInline(`aus_inicio_${escapeHtmlAttr(t.id)}`, "", 'type="date"')}
+          ${campoInline(`aus_fin_${escapeHtmlAttr(t.id)}`, "", 'type="date"')}
+          ${campoInline(`aus_com_${escapeHtmlAttr(t.id)}`, "Comentario")}
 
           <button class="btn-add-aus" data-id="${escapeHtmlAttr(t.id)}" style="${btnPrincipal()}">
             + Añadir ausencia
@@ -254,7 +279,7 @@ function renderAusencia(a) {
       box-sizing:border-box;
     ">
       <b>${escapeHtml(capitaliza(a.tipo || ""))}</b> ·
-      ${escapeHtml(a.fechaInicio || "")} → ${escapeHtml(a.fechaFin || "")}
+      ${escapeHtml(formatFecha(a.fechaInicio || ""))} → ${escapeHtml(formatFecha(a.fechaFin || ""))}
       ${dias > 0 ? `(${dias} día${dias === 1 ? "" : "s"})` : ""}
       ${a.comentario ? `<div style="margin-top:4px;color:#64748b;">${escapeHtml(a.comentario)}</div>` : ""}
     </div>
@@ -404,9 +429,66 @@ function contarDias(inicio, fin) {
   return Math.floor((d2 - d1) / 86400000) + 1;
 }
 
-function capitaliza(texto) {
-  const t = String(texto || "");
-  return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
+function formatFecha(fecha) {
+  if (!fecha) return "";
+  const d = new Date(fecha);
+  if (Number.isNaN(d.getTime())) return fecha;
+
+  const dia = String(d.getDate()).padStart(2, "0");
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const anio = String(d.getFullYear());
+
+  return `${dia}/${mes}/${anio}`;
+}
+
+function campo(label, id, valueText, extra = "") {
+  return `
+    <div style="display:grid;gap:4px;">
+      <label for="${id}" style="${labelStyle()}">${escapeHtml(label)}</label>
+      <input id="${id}" value="${escapeHtmlAttr(valueText)}" ${extra} style="${input()}">
+    </div>
+  `;
+}
+
+function campoSelect(label, id, options, selectedValue) {
+  return `
+    <div style="display:grid;gap:4px;">
+      <label for="${id}" style="${labelStyle()}">${escapeHtml(label)}</label>
+      <select id="${id}" style="${input()}">
+        ${options.map((opt) => `
+          <option value="${escapeHtmlAttr(opt.value)}" ${String(opt.value) === String(selectedValue) ? "selected" : ""}>
+            ${escapeHtml(opt.text)}
+          </option>
+        `).join("")}
+      </select>
+    </div>
+  `;
+}
+
+function campoInline(id, placeholder, extra = "") {
+  return `
+    <input id="${id}" placeholder="${escapeHtmlAttr(placeholder)}" ${extra} style="${input()}">
+  `;
+}
+
+function campoSelectInline(id, options, selectedValue) {
+  return `
+    <select id="${id}" style="${input()}">
+      ${options.map((opt) => `
+        <option value="${escapeHtmlAttr(opt.value)}" ${String(opt.value) === String(selectedValue) ? "selected" : ""}>
+          ${escapeHtml(opt.text)}
+        </option>
+      `).join("")}
+    </select>
+  `;
+}
+
+function labelStyle() {
+  return `
+    font-size:12px;
+    font-weight:700;
+    color:#475569;
+  `;
 }
 
 function input() {
@@ -472,6 +554,11 @@ function pill(color) {
     font-size:11px;
     font-weight:700;
   `;
+}
+
+function capitaliza(texto) {
+  const t = String(texto || "");
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
 }
 
 function escapeHtml(texto) {
