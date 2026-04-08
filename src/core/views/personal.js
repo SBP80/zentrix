@@ -113,6 +113,9 @@ function renderFormulario(editando) {
 
       ${campo("Nombre de la vía", "p_via", d.via || "")}
       ${campo("Número", "p_numero", d.numero || "")}
+      ${campo("Portal", "p_portal", d.portal || "")}
+      ${campo("Piso", "p_piso", d.piso || "")}
+      ${campo("Puerta", "p_puerta", d.puerta || "")}
       ${campo("Código postal", "p_cp", d.cp || "")}
       ${campo("Población", "p_poblacion", d.poblacion || "")}
       ${campo("Provincia", "p_provincia", d.provincia || "")}
@@ -450,9 +453,9 @@ function guardarTrabajador() {
       tipoVia: tipoViaFinal,
       via: value("p_via"),
       numero: value("p_numero"),
-      portal: actual.direccion?.portal || "",
-      piso: actual.direccion?.piso || "",
-      puerta: actual.direccion?.puerta || "",
+      portal: value("p_portal"),
+      piso: value("p_piso"),
+      puerta: value("p_puerta"),
       cp: value("p_cp"),
       poblacion: value("p_poblacion"),
       provincia: value("p_provincia")
