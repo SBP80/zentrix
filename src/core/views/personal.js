@@ -85,6 +85,11 @@ function renderFormulario(editando) {
       ${campo("Seguridad Social", "p_nss", t.nss || "")}
       ${campo("Fecha de alta", "p_fechaAlta", t.fechaAlta || "", 'type="date"')}
 
+      ${campoNumero("Vacaciones disponibles", "p_vac_disp", String(t.vacaciones?.disponibles ?? 30))}
+      ${campoNumero("Vacaciones usadas", "p_vac_usadas", String(t.vacaciones?.usadas ?? 0))}
+      ${campoNumero("Moscosos disponibles", "p_mos_disp", String(t.moscosos?.disponibles ?? 2))}
+      ${campoNumero("Moscosos usados", "p_mos_usadas", String(t.moscosos?.usados ?? 0))}
+
       ${campoSelect(
         "Estado",
         "p_activo",
@@ -137,9 +142,11 @@ function renderTrabajador(t) {
   const direccion = t.direccion || {};
   const direccionTexto = getDireccionTexto(direccion);
   const ausencias = db.ausencias.getByTrabajador(t.id);
+  const resumen = calcularResumenTrabajador(t, ausencias);
 
   const telefonoNormalizado = normalizarTelefono(t.telefono || "");
   const telefonoHref = telefonoNormalizado ? `tel:${telefonoNormalizado}` : "";
+  const smsHref = telefonoNormalizado ? `sms:${telefonoNormalizado}` : "";
   const whatsappHref = telefonoNormalizado ? `https://wa.me/${telefonoNormalizado}` : "";
   const emailHref = t.email ? `mailto:${String(t.email).trim()}` : "";
 
@@ -205,6 +212,7 @@ function renderTrabajador(t) {
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                   <a href="${escapeHtmlAttr(telefonoHref)}" style="${btnMini("#2563eb")}">Llamar</a>
+                  <a href="${escapeHtmlAttr(smsHref)}" style="${btnMini("#7c3aed")}">SMS</a>
                   <a href="${escapeHtmlAttr(whatsappHref)}" target="_blank" rel="noopener noreferrer" style="${btnMini("#16a34a")}">WhatsApp</a>
                 </div>
               `
@@ -224,6 +232,20 @@ function renderTrabajador(t) {
           ${t.fechaAlta ? `<div>Alta: ${escapeHtml(formatFecha(t.fechaAlta))}</div>` : ""}
           ${t.dni ? `<div>DNI: ${escapeHtml(t.dni)}</div>` : ""}
           ${t.nss ? `<div>NSS: ${escapeHtml(t.nss)}</div>` : ""}
+
+          <div style="
+            display:grid;
+            grid-template-columns:1fr;
+            gap:6px;
+            margin-top:4px;
+          ">
+            <div style="${miniBox()}">
+              Vacaciones: ${resumen.vacacionesDisponibles} disp. · ${resumen.vacacionesUsadas} usadas · ${resumen.vacacionesRestantes} restantes
+            </div>
+            <div style="${miniBox()}">
+              Moscosos: ${resumen.moscososDisponibles} disp. · ${resumen.moscososUsados} usados · ${resumen.moscososRestantes} restantes
+            </div>
+          </div>
 
           ${
             direccionTexto
@@ -460,8 +482,14 @@ function guardarTrabajador() {
       poblacion: value("p_poblacion"),
       provincia: value("p_provincia")
     },
-    vacaciones: actual.vacaciones || { disponibles: 30, usadas: 0 },
-    moscosos: actual.moscosos || { disponibles: 2, usados: 0 },
+    vacaciones: {
+      disponibles: numberValue("p_vac_disp", actual.vacaciones?.disponibles ?? 30),
+      usadas: numberValue("p_vac_usadas", actual.vacaciones?.usadas ?? 0)
+    },
+    moscosos: {
+      disponibles: numberValue("p_mos_disp", actual.moscosos?.disponibles ?? 2),
+      usados: numberValue("p_mos_usadas", actual.moscosos?.usados ?? 0)
+    },
     permisosModulos: actual.permisosModulos || {
       inicio: true,
       agenda: true,
@@ -501,6 +529,34 @@ function guardarTrabajador() {
   refrescar();
 }
 
+function calcularResumenTrabajador(trabajador, ausencias) {
+  let vacacionesUsadasAusencias = 0;
+  let moscososUsadosAusencias = 0;
+
+  ausencias.forEach((a) => {
+    const dias = contarDias(a.fechaInicio, a.fechaFin);
+    if (a.tipo === "vacaciones") vacacionesUsadasAusencias += dias;
+    if (a.tipo === "moscoso") moscososUsadosAusencias += dias;
+  });
+
+  const vacacionesDisponibles = Number(trabajador?.vacaciones?.disponibles ?? 30);
+  const vacacionesUsadasBase = Number(trabajador?.vacaciones?.usadas ?? 0);
+  const vacacionesUsadas = Math.max(vacacionesUsadasBase, vacacionesUsadasAusencias);
+
+  const moscososDisponibles = Number(trabajador?.moscosos?.disponibles ?? 2);
+  const moscososUsadosBase = Number(trabajador?.moscosos?.usados ?? 0);
+  const moscososUsados = Math.max(moscososUsadosBase, moscososUsadosAusencias);
+
+  return {
+    vacacionesDisponibles,
+    vacacionesUsadas,
+    vacacionesRestantes: vacacionesDisponibles - vacacionesUsadas,
+    moscososDisponibles,
+    moscososUsados,
+    moscososRestantes: moscososDisponibles - moscososUsados
+  };
+}
+
 function refrescar() {
   const cont = document.getElementById("viewContainer");
   if (!cont) return;
@@ -509,6 +565,13 @@ function refrescar() {
 
 function value(id) {
   return document.getElementById(id)?.value?.trim() || "";
+}
+
+function numberValue(id, fallback) {
+  const txt = value(id);
+  if (txt === "") return Number(fallback || 0);
+  const n = Number(txt);
+  return Number.isFinite(n) ? n : Number(fallback || 0);
 }
 
 function contarDias(inicio, fin) {
@@ -544,6 +607,15 @@ function campo(label, id, valueText, extra = "") {
     <div style="display:grid;gap:4px;">
       <label for="${id}" style="${labelStyle()}">${escapeHtml(label)}</label>
       <input id="${id}" value="${escapeHtmlAttr(valueText)}" ${extra} style="${input()}">
+    </div>
+  `;
+}
+
+function campoNumero(label, id, valueText) {
+  return `
+    <div style="display:grid;gap:4px;">
+      <label for="${id}" style="${labelStyle()}">${escapeHtml(label)}</label>
+      <input id="${id}" type="number" value="${escapeHtmlAttr(valueText)}" style="${input()}">
     </div>
   `;
 }
@@ -667,6 +739,18 @@ function btnMiniBoton(color) {
     color:#fff;
     font-weight:700;
     font-size:12px;
+    box-sizing:border-box;
+  `;
+}
+
+function miniBox() {
+  return `
+    padding:8px 10px;
+    border:1px solid #e2e8f0;
+    border-radius:10px;
+    background:#f8fafc;
+    font-size:12px;
+    color:#475569;
     box-sizing:border-box;
   `;
 }
