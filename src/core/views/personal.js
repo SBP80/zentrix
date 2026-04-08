@@ -18,10 +18,11 @@ export function renderPersonal() {
         border-radius:16px;
         background:#ffffff;
         padding:16px;
+        box-sizing:border-box;
       ">
         <h2 style="margin:0 0 6px 0;">Personal</h2>
         <p style="margin:0 0 16px 0;color:#64748b;">
-          Gestión de trabajadores.
+          Gestión de trabajadores y ausencias.
         </p>
 
         ${renderFormulario(editando)}
@@ -62,6 +63,7 @@ function renderFormulario(editando) {
       border:1px solid #e2e8f0;
       border-radius:12px;
       background:#f8fafc;
+      box-sizing:border-box;
     ">
       <div style="
         font-size:16px;
@@ -108,6 +110,7 @@ function renderFormulario(editando) {
 
 function renderTrabajador(t) {
   const direccionTexto = getDireccionTexto(t.direccion || {});
+  const ausencias = db.ausencias.getByTrabajador(t.id);
 
   return `
     <div style="
@@ -115,6 +118,7 @@ function renderTrabajador(t) {
       border-radius:12px;
       padding:12px;
       background:#fff;
+      box-sizing:border-box;
     ">
       <div style="
         display:flex;
@@ -188,6 +192,71 @@ function renderTrabajador(t) {
           </button>
         </div>
       </div>
+
+      <div style="
+        margin-top:14px;
+        padding-top:12px;
+        border-top:1px solid #e2e8f0;
+      ">
+        <div style="
+          font-size:13px;
+          font-weight:800;
+          margin-bottom:8px;
+          color:#0f172a;
+        ">
+          Ausencias
+        </div>
+
+        <div style="
+          display:grid;
+          gap:6px;
+          margin-bottom:10px;
+        ">
+          <select id="aus_tipo_${escapeHtmlAttr(t.id)}" style="${input()}">
+            <option value="vacaciones">Vacaciones</option>
+            <option value="moscoso">Moscoso</option>
+            <option value="baja">Baja</option>
+            <option value="permiso">Permiso</option>
+          </select>
+
+          <input id="aus_inicio_${escapeHtmlAttr(t.id)}" type="date" style="${input()}">
+          <input id="aus_fin_${escapeHtmlAttr(t.id)}" type="date" style="${input()}">
+          <input id="aus_com_${escapeHtmlAttr(t.id)}" placeholder="Comentario" style="${input()}">
+
+          <button class="btn-add-aus" data-id="${escapeHtmlAttr(t.id)}" style="${btnPrincipal()}">
+            + Añadir ausencia
+          </button>
+        </div>
+
+        <div style="display:grid;gap:6px;">
+          ${
+            ausencias.length
+              ? ausencias.map((a) => renderAusencia(a)).join("")
+              : `<div style="font-size:12px;color:#64748b;">Sin ausencias</div>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAusencia(a) {
+  const dias = contarDias(a.fechaInicio, a.fechaFin);
+
+  return `
+    <div style="
+      padding:8px;
+      border:1px solid #e2e8f0;
+      border-radius:8px;
+      font-size:12px;
+      background:#f8fafc;
+      color:#334155;
+      box-sizing:border-box;
+    ">
+      <b>${escapeHtml(capitaliza(a.tipo || ""))}</b> ·
+      ${escapeHtml(a.fechaInicio || "")} → ${escapeHtml(a.fechaFin || "")}
+      ${dias > 0 ? `(${dias} día${dias === 1 ? "" : "s"})` : ""}
+      ${a.comentario ? `<div style="margin-top:4px;color:#64748b;">${escapeHtml(a.comentario)}</div>` : ""}
     </div>
   `;
 }
@@ -216,6 +285,37 @@ function activarEventos() {
       if (String(localStorage.getItem(EDIT_ID_KEY) || "") === String(btn.dataset.id)) {
         localStorage.removeItem(EDIT_ID_KEY);
       }
+      refrescar();
+    });
+  });
+
+  document.querySelectorAll(".btn-add-aus").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      const tipo = value(`aus_tipo_${id}`);
+      const inicio = value(`aus_inicio_${id}`);
+      const fin = value(`aus_fin_${id}`);
+      const comentario = value(`aus_com_${id}`);
+
+      if (!inicio || !fin) {
+        alert("Faltan fechas");
+        return;
+      }
+
+      if (new Date(fin) < new Date(inicio)) {
+        alert("La fecha fin no puede ser menor que la fecha inicio");
+        return;
+      }
+
+      db.ausencias.create({
+        trabajadorId: id,
+        tipo,
+        fechaInicio: inicio,
+        fechaFin: fin,
+        comentario,
+        estado: "aprobada"
+      });
+
       refrescar();
     });
   });
@@ -293,6 +393,20 @@ function refrescar() {
 
 function value(id) {
   return document.getElementById(id)?.value?.trim() || "";
+}
+
+function contarDias(inicio, fin) {
+  if (!inicio || !fin) return 0;
+  const d1 = new Date(inicio);
+  const d2 = new Date(fin);
+  if (Number.isNaN(d1.getTime()) || Number.isNaN(d2.getTime())) return 0;
+  if (d2 < d1) return 0;
+  return Math.floor((d2 - d1) / 86400000) + 1;
+}
+
+function capitaliza(texto) {
+  const t = String(texto || "");
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
 }
 
 function input() {
