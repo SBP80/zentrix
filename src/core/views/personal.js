@@ -52,6 +52,8 @@ export function renderPersonal() {
 function renderFormulario(editando) {
   const t = editando || {};
   const d = t.direccion || {};
+  const tipoVia = d.tipoVia || "";
+  const usaTipoViaManual = !!tipoVia && !TIPOS_VIA.includes(tipoVia);
 
   return `
     <div style="
@@ -98,17 +100,16 @@ function renderFormulario(editando) {
         "p_tipoVia",
         [
           { value: "", text: "Selecciona tipo de vía" },
-          { value: "Calle", text: "Calle" },
-          { value: "Avenida", text: "Avenida" },
-          { value: "Paseo", text: "Paseo" },
-          { value: "Plaza", text: "Plaza" },
-          { value: "Camino", text: "Camino" },
-          { value: "Carretera", text: "Carretera" },
-          { value: "Ronda", text: "Ronda" },
-          { value: "Travesía", text: "Travesía" }
+          ...TIPOS_VIA.map((item) => ({ value: item, text: item })),
+          { value: "__otro__", text: "Otro" }
         ],
-        d.tipoVia || ""
+        usaTipoViaManual ? "__otro__" : tipoVia
       )}
+
+      <div id="bloque_tipo_via_manual" style="display:${usaTipoViaManual ? "grid" : "none"};gap:4px;">
+        <label for="p_tipoViaManual" style="${labelStyle()}">Escribe el tipo de vía</label>
+        <input id="p_tipoViaManual" value="${escapeHtmlAttr(usaTipoViaManual ? tipoVia : "")}" style="${input()}">
+      </div>
 
       ${campo("Nombre de la vía", "p_via", d.via || "")}
       ${campo("Número", "p_numero", d.numero || "")}
@@ -130,8 +131,19 @@ function renderFormulario(editando) {
 }
 
 function renderTrabajador(t) {
-  const direccionTexto = getDireccionTexto(t.direccion || {});
+  const direccion = t.direccion || {};
+  const direccionTexto = getDireccionTexto(direccion);
   const ausencias = db.ausencias.getByTrabajador(t.id);
+
+  const telefonoNormalizado = normalizarTelefono(t.telefono || "");
+  const telefonoHref = telefonoNormalizado ? `tel:${telefonoNormalizado}` : "";
+  const whatsappHref = telefonoNormalizado ? `https://wa.me/${telefonoNormalizado}` : "";
+  const emailHref = t.email ? `mailto:${String(t.email).trim()}` : "";
+
+  const direccionCodificada = direccionTexto ? encodeURIComponent(direccionTexto) : "";
+  const appleMapsHref = direccionTexto ? `https://maps.apple.com/?q=${direccionCodificada}` : "";
+  const googleMapsHref = direccionTexto ? `https://www.google.com/maps/search/?api=1&query=${direccionCodificada}` : "";
+  const wazeHref = direccionTexto ? `https://waze.com/ul?q=${direccionCodificada}&navigate=yes` : "";
 
   return `
     <div style="
@@ -182,12 +194,46 @@ function renderTrabajador(t) {
           font-size:13px;
           color:#334155;
         ">
-          ${t.telefono ? `<div>📞 ${escapeHtml(t.telefono)}</div>` : ""}
-          ${t.email ? `<div>✉ ${escapeHtml(t.email)}</div>` : ""}
+          ${
+            t.telefono
+              ? `
+                <div>
+                  📞 <a href="${escapeHtmlAttr(telefonoHref)}" style="${linkStyle()}">${escapeHtml(t.telefono)}</a>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <a href="${escapeHtmlAttr(telefonoHref)}" style="${btnMini("#2563eb")}">Llamar</a>
+                  <a href="${escapeHtmlAttr(whatsappHref)}" target="_blank" rel="noopener noreferrer" style="${btnMini("#16a34a")}">WhatsApp</a>
+                </div>
+              `
+              : ""
+          }
+
+          ${
+            t.email
+              ? `
+                <div>
+                  ✉ <a href="${escapeHtmlAttr(emailHref)}" style="${linkStyle()}">${escapeHtml(t.email)}</a>
+                </div>
+              `
+              : ""
+          }
+
           ${t.fechaAlta ? `<div>Alta: ${escapeHtml(formatFecha(t.fechaAlta))}</div>` : ""}
           ${t.dni ? `<div>DNI: ${escapeHtml(t.dni)}</div>` : ""}
           ${t.nss ? `<div>NSS: ${escapeHtml(t.nss)}</div>` : ""}
-          ${direccionTexto ? `<div>📍 ${escapeHtml(direccionTexto)}</div>` : ""}
+
+          ${
+            direccionTexto
+              ? `
+                <div>📍 ${escapeHtml(direccionTexto)}</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <a href="${escapeHtmlAttr(appleMapsHref)}" target="_blank" rel="noopener noreferrer" style="${btnMini("#64748b")}">Mapas</a>
+                  <a href="${escapeHtmlAttr(googleMapsHref)}" target="_blank" rel="noopener noreferrer" style="${btnMini("#2563eb")}">Google Maps</a>
+                  <a href="${escapeHtmlAttr(wazeHref)}" target="_blank" rel="noopener noreferrer" style="${btnMini("#0ea5e9")}">Waze</a>
+                </div>
+              `
+              : ""
+          }
         </div>
 
         <div style="
@@ -277,11 +323,25 @@ function renderAusencia(a) {
       background:#f8fafc;
       color:#334155;
       box-sizing:border-box;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
     ">
-      <b>${escapeHtml(capitaliza(a.tipo || ""))}</b> ·
-      ${escapeHtml(formatFecha(a.fechaInicio || ""))} → ${escapeHtml(formatFecha(a.fechaFin || ""))}
-      ${dias > 0 ? `(${dias} día${dias === 1 ? "" : "s"})` : ""}
-      ${a.comentario ? `<div style="margin-top:4px;color:#64748b;">${escapeHtml(a.comentario)}</div>` : ""}
+      <div>
+        <b>${escapeHtml(capitaliza(a.tipo || ""))}</b> ·
+        ${escapeHtml(formatFecha(a.fechaInicio || ""))} → ${escapeHtml(formatFecha(a.fechaFin || ""))}
+        ${dias > 0 ? `(${dias} día${dias === 1 ? "" : "s"})` : ""}
+      </div>
+
+      ${a.comentario ? `<div style="color:#64748b;">${escapeHtml(a.comentario)}</div>` : ""}
+
+      <button
+        class="btn-borrar-ausencia"
+        data-id="${escapeHtmlAttr(a.id)}"
+        style="${btnMiniBoton("#dc2626")}"
+      >
+        Borrar ausencia
+      </button>
     </div>
   `;
 }
@@ -293,6 +353,8 @@ function activarEventos() {
     localStorage.removeItem(EDIT_ID_KEY);
     refrescar();
   });
+
+  document.getElementById("p_tipoVia")?.addEventListener("change", actualizarCampoTipoViaManual);
 
   document.querySelectorAll(".btn-editar").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -344,6 +406,22 @@ function activarEventos() {
       refrescar();
     });
   });
+
+  document.querySelectorAll(".btn-borrar-ausencia").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const ok = confirm("¿Borrar ausencia?");
+      if (!ok) return;
+      db.ausencias.remove(btn.dataset.id);
+      refrescar();
+    });
+  });
+}
+
+function actualizarCampoTipoViaManual() {
+  const select = document.getElementById("p_tipoVia");
+  const bloque = document.getElementById("bloque_tipo_via_manual");
+  if (!select || !bloque) return;
+  bloque.style.display = select.value === "__otro__" ? "grid" : "none";
 }
 
 function guardarTrabajador() {
@@ -351,6 +429,11 @@ function guardarTrabajador() {
   const actual = editId
     ? db.personal.getAll().find((t) => String(t.id) === String(editId)) || {}
     : {};
+
+  const tipoViaSeleccionado = value("p_tipoVia");
+  const tipoViaManual = value("p_tipoViaManual");
+  const tipoViaFinal =
+    tipoViaSeleccionado === "__otro__" ? tipoViaManual : tipoViaSeleccionado;
 
   const data = {
     nombre: value("p_nombre"),
@@ -364,7 +447,7 @@ function guardarTrabajador() {
     fechaAlta: value("p_fechaAlta"),
     activo: value("p_activo") !== "false",
     direccion: {
-      tipoVia: value("p_tipoVia"),
+      tipoVia: tipoViaFinal,
       via: value("p_via"),
       numero: value("p_numero"),
       portal: actual.direccion?.portal || "",
@@ -397,6 +480,11 @@ function guardarTrabajador() {
 
   if (!data.nombre) {
     alert("El nombre es obligatorio");
+    return;
+  }
+
+  if (tipoViaSeleccionado === "__otro__" && !tipoViaManual) {
+    alert("Escribe el tipo de vía");
     return;
   }
 
@@ -439,6 +527,13 @@ function formatFecha(fecha) {
   const anio = String(d.getFullYear());
 
   return `${dia}/${mes}/${anio}`;
+}
+
+function normalizarTelefono(telefono) {
+  const limpio = String(telefono || "").replace(/[^\d+]/g, "");
+  if (!limpio) return "";
+  if (limpio.startsWith("+")) return limpio.replace(/[^\d]/g, "");
+  return limpio.replace(/[^\d]/g, "");
 }
 
 function campo(label, id, valueText, extra = "") {
@@ -542,6 +637,45 @@ function btnBorrar() {
   `;
 }
 
+function btnMini(color) {
+  return `
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:8px 10px;
+    border:none;
+    border-radius:10px;
+    background:${color};
+    color:#fff;
+    font-weight:700;
+    font-size:12px;
+    text-decoration:none;
+    box-sizing:border-box;
+  `;
+}
+
+function btnMiniBoton(color) {
+  return `
+    width:100%;
+    padding:10px;
+    border:none;
+    border-radius:10px;
+    background:${color};
+    color:#fff;
+    font-weight:700;
+    font-size:12px;
+    box-sizing:border-box;
+  `;
+}
+
+function linkStyle() {
+  return `
+    color:#2563eb;
+    text-decoration:none;
+    font-weight:700;
+  `;
+}
+
 function pill(color) {
   return `
     display:inline-flex;
@@ -573,3 +707,14 @@ function escapeHtml(texto) {
 function escapeHtmlAttr(texto) {
   return escapeHtml(texto);
 }
+
+const TIPOS_VIA = [
+  "Calle",
+  "Avenida",
+  "Paseo",
+  "Plaza",
+  "Camino",
+  "Carretera",
+  "Ronda",
+  "Travesía"
+];
