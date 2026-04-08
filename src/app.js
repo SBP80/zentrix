@@ -1,3 +1,5 @@
+import { renderInicio } from "./core/views/inicio.js";
+
 const app = document.getElementById("app");
 
 let currentView = "inicio";
@@ -43,92 +45,13 @@ function renderApp() {
 
 function renderView() {
   if (currentView === "inicio") return renderInicio();
-  if (currentView === "agenda") return renderSimple("Agenda");
-  if (currentView === "personal") return renderSimple("Personal");
-  if (currentView === "configuracion") return renderSimple("Configuración");
+  if (currentView === "agenda") return renderAgendaSimple();
+  if (currentView === "personal") return renderPersonalSimple();
+  if (currentView === "configuracion") return renderConfiguracionSimple();
   return renderInicio();
 }
 
-function renderInicio() {
-  const ahora = new Date();
-
-  const fecha = ahora.toLocaleDateString("es-ES", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric"
-  });
-
-  const hora = ahora.toLocaleTimeString("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-
-  return `
-    <div style="display:grid;gap:18px;">
-      <div style="
-        border:1px solid #dbe4ee;
-        border-radius:16px;
-        background:#f8fafc;
-        padding:20px;
-        display:flex;
-        justify-content:space-between;
-        gap:20px;
-        flex-wrap:wrap;
-      ">
-        <div>
-          <div style="font-size:30px;font-weight:800;color:#0f172a;">Inicio</div>
-          <div style="margin-top:8px;font-size:16px;color:#64748b;text-transform:capitalize;">
-            ${fecha}
-          </div>
-        </div>
-
-        <div style="text-align:right;">
-          <div style="font-size:38px;font-weight:800;color:#0f172a;">
-            ${hora}
-          </div>
-          <div style="margin-top:8px;font-size:14px;color:#64748b;">
-            Base estable recuperada
-          </div>
-        </div>
-      </div>
-
-      <div style="
-        display:grid;
-        grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-        gap:14px;
-      ">
-        ${card("Agenda", "Pendiente")}
-        ${card("Personal", "Pendiente")}
-        ${card("Configuración", "Pendiente")}
-        ${card("Notas rápidas", "Las añadimos después")}
-      </div>
-
-      <div style="
-        border:1px solid #dbe4ee;
-        border-radius:16px;
-        background:#fff;
-        padding:20px;
-      ">
-        <div style="font-size:20px;font-weight:800;color:#0f172a;margin-bottom:12px;">
-          Accesos rápidos
-        </div>
-
-        <div style="
-          display:grid;
-          grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-          gap:10px;
-        ">
-          <button onclick="setView('agenda')" style="${quickBtn("#2563eb")}">Abrir agenda</button>
-          <button onclick="setView('personal')" style="${quickBtn("#0f766e")}">Abrir personal</button>
-          <button onclick="setView('configuracion')" style="${quickBtn("#7c3aed")}">Abrir configuración</button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderSimple(nombre) {
+function renderAgendaSimple() {
   return `
     <div style="
       border:1px solid #dbe4ee;
@@ -137,9 +60,55 @@ function renderSimple(nombre) {
       padding:24px;
       color:#0f172a;
     ">
-      <div style="font-size:28px;font-weight:800;margin-bottom:10px;">${nombre}</div>
+      <div style="font-size:28px;font-weight:800;margin-bottom:10px;">Agenda</div>
       <div style="font-size:15px;color:#64748b;">
-        Módulo aislado para reconstrucción segura.
+        Módulo temporal en modo seguro.
+      </div>
+    </div>
+  `;
+}
+
+function renderPersonalSimple() {
+  return `
+    <div style="
+      border:1px solid #dbe4ee;
+      border-radius:16px;
+      background:#f8fafc;
+      padding:24px;
+      color:#0f172a;
+    ">
+      <div style="font-size:28px;font-weight:800;margin-bottom:10px;">Personal</div>
+      <div style="font-size:15px;color:#64748b;">
+        Módulo temporal en modo seguro.
+      </div>
+    </div>
+  `;
+}
+
+function renderConfiguracionSimple() {
+  return `
+    <div style="display:grid;gap:18px;">
+      <div style="
+        border:1px solid #dbe4ee;
+        border-radius:16px;
+        background:#f8fafc;
+        padding:20px;
+      ">
+        <div style="font-size:28px;font-weight:800;color:#0f172a;">Configuración</div>
+        <div style="margin-top:8px;font-size:15px;color:#64748b;">
+          Base simple estable para seguir reconstruyendo.
+        </div>
+      </div>
+
+      <div style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+        gap:14px;
+      ">
+        ${card("Usuarios", "Pendiente")}
+        ${card("Roles", "Pendiente")}
+        ${card("Permisos", "Pendiente")}
+        ${card("Ajustes", "Pendiente")}
       </div>
     </div>
   `;
@@ -156,21 +125,6 @@ function card(titulo, texto) {
       <div style="font-size:15px;color:#64748b;margin-bottom:8px;">${titulo}</div>
       <div style="font-size:22px;font-weight:800;color:#0f172a;">${texto}</div>
     </div>
-  `;
-}
-
-function quickBtn(color) {
-  return `
-    min-height:48px;
-    border:none;
-    border-radius:12px;
-    background:${color};
-    color:#ffffff;
-    font-size:15px;
-    font-weight:700;
-    cursor:pointer;
-    padding:0 14px;
-    text-align:left;
   `;
 }
 
