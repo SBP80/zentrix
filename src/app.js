@@ -2,7 +2,6 @@ import { renderInicio } from "./core/views/inicio.js";
 import { renderAgenda } from "./core/views/agenda.js";
 import { renderPersonal } from "./core/views/personal.js";
 import { renderConfiguracion } from "./core/views/configuracion.js";
-import { buscarGlobal } from "./core/search.js";
 
 const app = document.getElementById("app");
 
@@ -44,35 +43,6 @@ function renderApp() {
             line-height:1;
             word-break:break-word;
           ">Zentryx</h1>
-
-          <div style="
-            display:grid;
-            gap:8px;
-            width:100%;
-            min-width:0;
-          ">
-            <input
-              id="globalSearch"
-              placeholder="Buscar trabajador, tarea, agenda..."
-              style="
-                width:100%;
-                height:48px;
-                border:1px solid #cbd5e1;
-                border-radius:12px;
-                padding:0 12px;
-                font-size:15px;
-                box-sizing:border-box;
-                min-width:0;
-              "
-            >
-
-            <div id="searchResults" style="
-              display:grid;
-              gap:8px;
-              width:100%;
-              min-width:0;
-            "></div>
-          </div>
         </div>
 
         <div style="
@@ -99,8 +69,6 @@ function renderApp() {
       </div>
     </div>
   `;
-
-  activarBuscadorGlobal();
 }
 
 function renderView() {
@@ -128,93 +96,6 @@ function wrapView(content) {
   `;
 }
 
-function activarBuscadorGlobal() {
-  const input = document.getElementById("globalSearch");
-  if (!input) return;
-
-  input.addEventListener("input", () => {
-    const resultados = buscarGlobal(input.value);
-    pintarResultados(resultados);
-  });
-}
-
-function pintarResultados(lista) {
-  const cont = document.getElementById("searchResults");
-  if (!cont) return;
-
-  if (!Array.isArray(lista) || !lista.length) {
-    cont.innerHTML = "";
-    return;
-  }
-
-  cont.innerHTML = lista
-    .slice(0, 10)
-    .map((r) => `
-      <button
-        type="button"
-        class="resultado-global"
-        data-tipo="${escapeHtmlAttr(r.tipo || "")}"
-        data-id="${escapeHtmlAttr(r.id || "")}"
-        style="
-          width:100%;
-          text-align:left;
-          padding:10px;
-          border:1px solid #e2e8f0;
-          border-radius:10px;
-          background:#fff;
-          cursor:pointer;
-          box-sizing:border-box;
-        "
-      >
-        <div style="
-          font-weight:700;
-          color:#0f172a;
-          word-break:break-word;
-        ">
-          ${escapeHtml(r.titulo || "")}
-        </div>
-
-        <div style="
-          font-size:12px;
-          color:#64748b;
-          margin-top:4px;
-          word-break:break-word;
-        ">
-          ${escapeHtml(r.subtitulo || "")}
-        </div>
-      </button>
-    `)
-    .join("");
-
-  document.querySelectorAll(".resultado-global").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      abrirResultadoBusqueda(btn.dataset.tipo || "", btn.dataset.id || "");
-    });
-  });
-}
-
-function abrirResultadoBusqueda(tipo, id) {
-  if (tipo === "personal") {
-    currentView = "personal";
-    renderApp();
-    setTimeout(() => {
-      const botones = document.querySelectorAll(".btn-editar");
-      const boton = Array.from(botones).find((b) => String(b.dataset.id) === String(id));
-      boton?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 50);
-    return;
-  }
-
-  if (tipo === "agenda") {
-    currentView = "agenda";
-    renderApp();
-    return;
-  }
-
-  currentView = "inicio";
-  renderApp();
-}
-
 function btn(active) {
   return `
     width:100%;
@@ -229,19 +110,6 @@ function btn(active) {
     padding:0 16px;
     box-sizing:border-box;
   `;
-}
-
-function escapeHtml(texto) {
-  return String(texto || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function escapeHtmlAttr(texto) {
-  return escapeHtml(texto);
 }
 
 window.setView = function (view) {
