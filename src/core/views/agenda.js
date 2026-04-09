@@ -3,7 +3,8 @@ import {
   addEvento,
   toggleEvento,
   deleteEvento,
-  getAgendaContexto
+  getAgendaContexto,
+  validarAsignacionAgenda
 } from "../agenda.js";
 
 export function renderAgenda() {
@@ -22,6 +23,17 @@ export function renderAgenda() {
 
       if (!titulo || !fecha) return;
 
+      const validacion = validarAsignacionAgenda({
+        usuario,
+        fecha,
+        tipo
+      });
+
+      if (!validacion.ok) {
+        const seguir = window.confirm(validacion.mensaje);
+        if (!seguir) return;
+      }
+
       addEvento({
         titulo,
         fecha,
@@ -35,17 +47,17 @@ export function renderAgenda() {
       refrescarAgenda();
     };
 
-   window.toggleEventoUI = function (id) {
-  if (String(id).startsWith("aus_")) return;
-  toggleEvento(id);
-  refrescarAgenda();
-};
+    window.toggleEventoUI = function (id) {
+      if (String(id).startsWith("aus_")) return;
+      toggleEvento(id);
+      refrescarAgenda();
+    };
 
-window.deleteEventoUI = function (id) {
-  if (String(id).startsWith("aus_")) return;
-  deleteEvento(id);
-  refrescarAgenda();
-};
+    window.deleteEventoUI = function (id) {
+      if (String(id).startsWith("aus_")) return;
+      deleteEvento(id);
+      refrescarAgenda();
+    };
   }, 0);
 
   return `
@@ -325,6 +337,7 @@ function inputStyle() {
     background:#fff;
     color:#0f172a;
     font-size:15px;
+    box-sizing:border-box;
   `;
 }
 
