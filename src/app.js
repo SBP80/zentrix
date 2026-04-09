@@ -198,8 +198,8 @@ function abrirResultadoBusqueda(tipo, id) {
     currentView = "personal";
     renderApp();
     setTimeout(() => {
-      const selector = `[data-id="${cssEscape(id)}"]`;
-      const boton = document.querySelector(`.btn-editar${selector}, .btn-borrar${selector}`);
+      const botones = document.querySelectorAll(".btn-editar");
+      const boton = Array.from(botones).find((b) => String(b.dataset.id) === String(id));
       boton?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 50);
     return;
@@ -242,10 +242,6 @@ function escapeHtml(texto) {
 
 function escapeHtmlAttr(texto) {
   return escapeHtml(texto);
-}
-
-function cssEscape(value) {
-  return String(value || "").replaceAll('"', '\\"');
 }
 
 window.setView = function (view) {
