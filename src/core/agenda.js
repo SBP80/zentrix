@@ -2,6 +2,23 @@ import { db } from "./db.js";
 
 const AGENDA_KEY = "zentrix_agenda_eventos_v1";
 
+/*
+  Calendario laboral base.
+  Aquí meteremos luego nacionales + autonómicos + locales + festivos de empresa.
+*/
+const CALENDARIO_LABORAL = {
+  2026: [
+    "2026-01-01",
+    "2026-01-06",
+    "2026-04-03",
+    "2026-05-01",
+    "2026-08-15",
+    "2026-10-12",
+    "2026-12-08",
+    "2026-12-25"
+  ]
+};
+
 export function getEventos() {
   const manuales = leerEventosManuales();
   const ausencias = generarEventosDesdeAusencias();
@@ -28,7 +45,8 @@ export function addEvento(data) {
     usuario: String(data.usuario || "").trim(),
     extra: String(data.extra || "").trim(),
     done: false,
-    origen: "manual"
+    origen: "manual",
+    createdAt: new Date().toISOString()
   };
 
   lista.push(nuevo);
@@ -71,6 +89,80 @@ export function getAgendaContexto() {
   };
 }
 
+/*
+  Devuelve:
+  {
+    ok: true/false,
+    tipo: "none" | "fin_semana" | "festivo" | "ausencia",
+    mensaje: ""
+  }
+*/
+export function validarAsignacionAgenda({ usuario, fecha, tipo }) {
+  const tipoEvento = String(tipo || "").trim().toLowerCase();
+
+  /*
+    No tiene sentido bloquear o advertir cuando el propio evento ya es de ausencia.
+  */
+  if (
+    tipoEvento === "vacaciones" ||
+    tipoEvento === "baja" ||
+    tipoEvento === "moscoso" ||
+    tipoEvento === "permiso"
+  ) {
+    return { ok: true, tipo: "none", mensaje: "" };
+  }
+
+  if (!usuario || !fecha) {
+    return { ok: true, tipo: "none", mensaje: "" };
+  }
+
+  const trabajador = buscarTrabajadorPorNombreOUsuario(usuario);
+
+  if (!trabajador) {
+    return { ok: true, tipo: "none", mensaje: "" };
+  }
+
+  if (esDomingo(fecha)) {
+    return {
+      ok: false,
+      tipo: "fin_semana",
+      mensaje: `${trabajador.nombre || trabajador.usuario || "Este trabajador"} tiene una cita en domingo (${formatFecha(fecha)}). ¿Seguro que quieres adjudicársela?`
+    };
+  }
+
+  if (esSabado(fecha)) {
+    return {
+      ok: false,
+      tipo: "fin_semana",
+      mensaje: `${trabajador.nombre || trabajador.usuario || "Este trabajador"} tiene una cita en sábado (${formatFecha(fecha)}). ¿Seguro que quieres adjudicársela?`
+    };
+  }
+
+  if (esFestivoEmpresa(fecha)) {
+    return {
+      ok: false,
+      tipo: "festivo",
+      mensaje: `${formatFecha(fecha)} es festivo según el calendario laboral. ¿Seguro que quieres adjudicar esta cita a ${trabajador.nombre || trabajador.usuario || "este trabajador"}?`
+    };
+  }
+
+  const ausencia = obtenerAusenciaActiva(trabajador.id, fecha);
+
+  if (ausencia) {
+    return {
+      ok: false,
+      tipo: "ausencia",
+      mensaje: `${trabajador.nombre || trabajador.usuario || "Este trabajador"} está de ${capitaliza(ausencia.tipo)} el ${formatFecha(fecha)}. ¿Seguro que quieres adjudicarle esta cita?`
+    };
+  }
+
+  return { ok: true, tipo: "none", mensaje: "" };
+}
+
+export function getCalendarioLaboral() {
+  return CALENDARIO_LABORAL;
+}
+
 function leerEventosManuales() {
   try {
     const data = JSON.parse(localStorage.getItem(AGENDA_KEY) || "[]");
@@ -104,11 +196,50 @@ function generarEventosDesdeAusencias() {
         tipo: tipoAgendaDesdeAusencia(a.tipo),
         prioridad: "Alta",
         usuario: nombre,
-        extra: fecha !== fin ? `Hasta ${fin}` : (a.comentario || ""),
+        extra: fecha !== fin ? `Hasta ${formatFecha(fin)}` : (a.comentario || ""),
         done: false,
         origen: "ausencia"
       };
     });
+}
+
+function buscarTrabajadorPorNombreOUsuario(texto) {
+  const txt = normalizeText(texto);
+  const personal = db.personal.getAll();
+
+  return (
+    personal.find((p) => normalizeText(p.nombre) === txt) ||
+    personal.find((p) => normalizeText(p.usuario) === txt) ||
+    null
+  );
+}
+
+function obtenerAusenciaActiva(trabajadorId, fecha) {
+  const ausencias = db.ausencias.getByTrabajador(trabajadorId);
+
+  return (
+    ausencias.find((a) => {
+      if (String(a.estado || "") === "rechazada") return false;
+      return fecha >= String(a.fechaInicio || "") && fecha <= String(a.fechaFin || "");
+    }) || null
+  );
+}
+
+function esSabado(fecha) {
+  const d = new Date(fecha + "T12:00:00");
+  return d.getDay() === 6;
+}
+
+function esDomingo(fecha) {
+  const d = new Date(fecha + "T12:00:00");
+  return d.getDay() === 0;
+}
+
+function esFestivoEmpresa(fecha) {
+  const d = new Date(fecha + "T12:00:00");
+  const year = d.getFullYear();
+  const festivos = CALENDARIO_LABORAL[year] || [];
+  return festivos.includes(fecha);
 }
 
 function tituloAusencia(tipo, nombre) {
@@ -131,4 +262,28 @@ function ordenarEventos(a, b) {
   const fechaA = `${a.fecha || ""} ${a.hora || ""}`.trim();
   const fechaB = `${b.fecha || ""} ${b.hora || ""}`.trim();
   return fechaA.localeCompare(fechaB);
+}
+
+function formatFecha(fecha) {
+  if (!fecha) return "";
+  const d = new Date(fecha + "T12:00:00");
+  if (Number.isNaN(d.getTime())) return fecha;
+
+  const dia = String(d.getDate()).padStart(2, "0");
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const anio = String(d.getFullYear());
+  return `${dia}/${mes}/${anio}`;
+}
+
+function capitaliza(texto) {
+  const t = String(texto || "");
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
+}
+
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
