@@ -1,6 +1,7 @@
 import { renderInicio } from "./core/views/inicio.js";
 import { renderAgenda } from "./core/views/agenda.js";
 import { renderPersonal } from "./core/views/personal.js";
+import { renderConfiguracion } from "./core/views/configuracion.js";
 
 const app = document.getElementById("app");
 
@@ -72,7 +73,7 @@ function renderView() {
   if (currentView === "inicio") return renderInicio();
   if (currentView === "agenda") return renderAgenda();
   if (currentView === "personal") return renderPersonal();
-  if (currentView === "configuracion") return renderConfiguracionSimple();
+  if (currentView === "configuracion") return renderConfiguracion();
   return renderInicio();
 }
 
@@ -89,78 +90,6 @@ function wrapView(content) {
       ">
         ${content}
       </div>
-    </div>
-  `;
-}
-
-function renderConfiguracionSimple() {
-  return `
-    <div style="display:grid;gap:14px;width:100%;min-width:0;">
-      <div style="
-        border:1px solid #dbe4ee;
-        border-radius:16px;
-        background:#f8fafc;
-        padding:16px;
-        box-sizing:border-box;
-      ">
-        <div style="
-          font-size:clamp(28px, 7vw, 40px);
-          font-weight:800;
-          color:#0f172a;
-          line-height:1.05;
-          word-break:break-word;
-        ">Configuración</div>
-
-        <div style="
-          margin-top:8px;
-          font-size:16px;
-          color:#64748b;
-          line-height:1.45;
-        ">
-          Base simple estable para seguir reconstruyendo.
-        </div>
-      </div>
-
-      <div style="
-        display:grid;
-        grid-template-columns:1fr;
-        gap:12px;
-      ">
-        ${card("Usuarios", "Pendiente")}
-        ${card("Roles", "Pendiente")}
-        ${card("Permisos", "Pendiente")}
-        ${card("Ajustes", "Pendiente")}
-      </div>
-    </div>
-  `;
-}
-
-function card(titulo, texto) {
-  return `
-    <div style="
-      border:1px solid #dbe4ee;
-      border-radius:14px;
-      background:#fff;
-      padding:16px;
-      box-sizing:border-box;
-      width:100%;
-      min-width:0;
-    ">
-      <div style="
-        font-size:15px;
-        color:#64748b;
-        margin-bottom:8px;
-        line-height:1.3;
-        word-break:break-word;
-      ">${titulo}</div>
-
-      <div style="
-        font-size:30px;
-        font-weight:800;
-        color:#0f172a;
-        line-height:1.05;
-        word-break:break-word;
-      ">${texto}</div>
     </div>
   `;
 }
