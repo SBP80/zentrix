@@ -6,6 +6,7 @@ import {
   getAgendaContexto,
   validarAsignacionAgenda
 } from "../agenda.js";
+import { estaDisponible } from "../utils/disponibilidad.js";
 
 export function renderAgenda() {
   const eventos = getEventos();
@@ -22,6 +23,21 @@ export function renderAgenda() {
       const extra = document.getElementById("agendaExtra")?.value.trim() || "";
 
       if (!titulo || !fecha) return;
+
+      const trabajador = buscarTrabajadorPorTexto(usuario);
+      if (trabajador) {
+        const check = estaDisponible(trabajador.id, fecha);
+
+        if (check.ok === false) {
+          alert(`❌ ${check.motivo}`);
+          return;
+        }
+
+        if (check.ok === "warning") {
+          const seguir = window.confirm(`⚠️ ${check.motivo}. ¿Continuar?`);
+          if (!seguir) return;
+        }
+      }
 
       const validacion = validarAsignacionAgenda({
         usuario,
@@ -291,6 +307,29 @@ function renderEvento(evento) {
       </div>
     </div>
   `;
+}
+
+function buscarTrabajadorPorTexto(texto) {
+  try {
+    const lista = JSON.parse(localStorage.getItem("zentrix_personal_v2") || "[]");
+    const txt = normalizar(texto);
+
+    return (
+      lista.find((u) => normalizar(u.nombre) === txt) ||
+      lista.find((u) => normalizar(u.usuario) === txt) ||
+      null
+    );
+  } catch (error) {
+    return null;
+  }
+}
+
+function normalizar(txt) {
+  return String(txt || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 function refrescarAgenda() {
