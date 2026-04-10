@@ -1,12 +1,13 @@
 import { db } from "./db.js";
 
 const AGENDA_KEY = "zentrix_agenda_eventos_v1";
+const FESTIVOS_EMPRESA_KEY = "zentrix_festivos_empresa_v1";
 
 /*
   Calendario laboral base.
-  Aquí meteremos luego nacionales + autonómicos + locales + festivos de empresa.
+  Más adelante añadiremos nacionales, autonómicos, locales y festivos propios.
 */
-const CALENDARIO_LABORAL = {
+const CALENDARIO_LABORAL_BASE = {
   2026: [
     "2026-01-01",
     "2026-01-06",
@@ -90,19 +91,21 @@ export function getAgendaContexto() {
 }
 
 /*
-  Devuelve:
+  Resultado:
   {
     ok: true/false,
     tipo: "none" | "fin_semana" | "festivo" | "ausencia",
     mensaje: ""
   }
+
+  ok=false aquí significa:
+  - mostrar aviso
+  - permitir al usuario decidir si quiere continuar
 */
 export function validarAsignacionAgenda({ usuario, fecha, tipo }) {
   const tipoEvento = String(tipo || "").trim().toLowerCase();
 
-  /*
-    No tiene sentido bloquear o advertir cuando el propio evento ya es de ausencia.
-  */
+  // Si el propio evento ya es de ausencia, no avisamos
   if (
     tipoEvento === "vacaciones" ||
     tipoEvento === "baja" ||
@@ -160,7 +163,16 @@ export function validarAsignacionAgenda({ usuario, fecha, tipo }) {
 }
 
 export function getCalendarioLaboral() {
-  return CALENDARIO_LABORAL;
+  return mezclarCalendarioLaboral();
+}
+
+export function getFestivosEmpresa() {
+  try {
+    const data = JSON.parse(localStorage.getItem(FESTIVOS_EMPRESA_KEY) || "{}");
+    return esObjetoPlano(data) ? data : {};
+  } catch {
+    return {};
+  }
 }
 
 function leerEventosManuales() {
@@ -237,9 +249,32 @@ function esDomingo(fecha) {
 
 function esFestivoEmpresa(fecha) {
   const d = new Date(fecha + "T12:00:00");
-  const year = d.getFullYear();
-  const festivos = CALENDARIO_LABORAL[year] || [];
+  const year = String(d.getFullYear());
+  const calendario = mezclarCalendarioLaboral();
+  const festivos = calendario[year] || [];
   return festivos.includes(fecha);
+}
+
+function mezclarCalendarioLaboral() {
+  const extra = getFestivosEmpresa();
+  const years = new Set([
+    ...Object.keys(CALENDARIO_LABORAL_BASE),
+    ...Object.keys(extra)
+  ]);
+
+  const salida = {};
+
+  years.forEach((year) => {
+    const base = Array.isArray(CALENDARIO_LABORAL_BASE[year]) ? CALENDARIO_LABORAL_BASE[year] : [];
+    const add = Array.isArray(extra[year]) ? extra[year] : [];
+    salida[year] = Array.from(new Set([...base, ...add])).sort();
+  });
+
+  return salida;
+}
+
+function esObjetoPlano(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function tituloAusencia(tipo, nombre) {
