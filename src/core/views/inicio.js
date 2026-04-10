@@ -234,8 +234,8 @@ function getEventosHoy() {
           });
       }
     } catch (error) {
-      // nada
-    }
+        // nada
+      }
   }
 
   return [];
@@ -291,7 +291,7 @@ function escapeHtml(texto) {
 }
 
 window.irAInicioModulo = function (view) {
-  const botones = document.querySelectorAll(".nav-btn");
-  const boton = Array.from(botones).find((b) => b.dataset.view === view);
-  if (boton) boton.click();
+  if (typeof window.setView === "function") {
+    window.setView(view);
+  }
 };
