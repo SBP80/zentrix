@@ -1,9 +1,12 @@
-import { getCalendarioLaboral } from "../agenda.js";
+import { getCalendarioLaboral, getFestivosEmpresa } from "../agenda.js";
 
 export function renderConfiguracion() {
-  const calendario = getCalendarioLaboral();
-  const year = new Date().getFullYear();
-  const festivos = calendario[year] || [];
+  const year = String(new Date().getFullYear());
+  const calendarioCompleto = getCalendarioLaboral();
+  const festivosEmpresa = getFestivosEmpresa();
+
+  const todos = calendarioCompleto[year] || [];
+  const empresa = festivosEmpresa[year] || [];
 
   setTimeout(() => {
     window.addFestivoUI = function () {
@@ -12,10 +15,11 @@ export function renderConfiguracion() {
 
       const data = JSON.parse(localStorage.getItem("zentrix_festivos_empresa_v1") || "{}");
 
-      if (!data[year]) data[year] = [];
+      if (!Array.isArray(data[year])) data[year] = [];
 
       if (!data[year].includes(fecha)) {
         data[year].push(fecha);
+        data[year].sort();
       }
 
       localStorage.setItem("zentrix_festivos_empresa_v1", JSON.stringify(data));
@@ -25,9 +29,9 @@ export function renderConfiguracion() {
     window.deleteFestivoUI = function (fecha) {
       const data = JSON.parse(localStorage.getItem("zentrix_festivos_empresa_v1") || "{}");
 
-      if (!data[year]) return;
+      if (!Array.isArray(data[year])) return;
 
-      data[year] = data[year].filter(f => f !== fecha);
+      data[year] = data[year].filter((f) => f !== fecha);
 
       localStorage.setItem("zentrix_festivos_empresa_v1", JSON.stringify(data));
       refrescar();
@@ -41,27 +45,41 @@ export function renderConfiguracion() {
 
         <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
           <input id="festivoFecha" type="date" style="${inputStyle()}" />
-          <button onclick="addFestivoUI()" style="${btn()}">Añadir</button>
+          <button onclick="addFestivoUI()" style="${btn()}">Añadir festivo empresa</button>
         </div>
 
         <div style="display:grid;gap:10px;">
           ${
-            festivos.length
-              ? festivos.map(f => `
-                <div style="
-                  display:flex;
-                  justify-content:space-between;
-                  align-items:center;
-                  gap:10px;
-                  padding:12px;
-                  border:1px solid #dbe4ee;
-                  border-radius:10px;
-                  background:#f8fafc;
-                ">
-                  <div>${formatear(f)}</div>
-                  <button onclick="deleteFestivoUI('${f}')" style="${btnRojo()}">✕</button>
-                </div>
-              `).join("")
+            todos.length
+              ? todos.map((f) => {
+                  const esEmpresa = empresa.includes(f);
+
+                  return `
+                    <div style="
+                      display:flex;
+                      justify-content:space-between;
+                      align-items:center;
+                      gap:10px;
+                      padding:12px;
+                      border:1px solid #dbe4ee;
+                      border-radius:10px;
+                      background:#f8fafc;
+                    ">
+                      <div style="display:grid;gap:4px;">
+                        <div>${formatear(f)}</div>
+                        <div style="font-size:12px;color:#64748b;">
+                          ${esEmpresa ? "Festivo empresa" : "Festivo base"}
+                        </div>
+                      </div>
+
+                      ${
+                        esEmpresa
+                          ? `<button onclick="deleteFestivoUI('${f}')" style="${btnRojo()}">✕</button>`
+                          : `<div style="${badgeBase()}">Base</div>`
+                      }
+                    </div>
+                  `;
+                }).join("")
               : `<div style="color:#64748b;">No hay festivos definidos</div>`
           }
         </div>
@@ -114,5 +132,22 @@ function btnRojo() {
     background:#dc2626;
     color:#fff;
     cursor:pointer;
+  `;
+}
+
+function badgeBase() {
+  return `
+    min-width:52px;
+    height:32px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:10px;
+    background:#64748b;
+    color:#fff;
+    font-size:12px;
+    font-weight:700;
+    padding:0 10px;
+    box-sizing:border-box;
   `;
 }
