@@ -1,5 +1,6 @@
 import { renderInicio } from "./core/views/inicio.js";
 import { renderAgenda } from "./core/views/agenda.js";
+import { renderPersonal } from "./core/views/personal.js";
 
 const app = document.getElementById("app");
 
@@ -33,14 +34,22 @@ function renderApp() {
         ">
           <button onclick="setView('inicio')" style="${btn(vista === "inicio")}">Inicio</button>
           <button onclick="setView('agenda')" style="${btn(vista === "agenda")}">Agenda</button>
+          <button onclick="setView('personal')" style="${btn(vista === "personal")}">Personal</button>
         </div>
 
         <div id="viewContainer">
-          ${vista === "inicio" ? renderInicio() : renderAgenda()}
+          ${renderVista()}
         </div>
       </div>
     </div>
   `;
+}
+
+function renderVista() {
+  if (vista === "inicio") return renderInicio();
+  if (vista === "agenda") return renderAgenda();
+  if (vista === "personal") return renderPersonal();
+  return renderInicio();
 }
 
 function btn(active) {
