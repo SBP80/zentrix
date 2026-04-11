@@ -24,9 +24,10 @@ export function renderAgenda() {
       if (!titulo || !fecha) return;
 
       const validacion = validarAsignacionAgenda({
-        usuario,
-        fecha,
-        tipo
+         usuario,
+         fecha,
+         tipo,
+         hora
       });
 
       if (!validacion.ok) {
