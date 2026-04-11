@@ -22,7 +22,7 @@ export function renderPersonal() {
       ">
         <h2 style="margin:0 0 6px 0;">Personal</h2>
         <p style="margin:0 0 16px 0;color:#64748b;">
-          Gestión de trabajadores y ausencias.
+          Gestión de trabajadores, ausencias y condiciones laborales.
         </p>
 
         ${renderFormulario(editando)}
@@ -54,12 +54,13 @@ function renderFormulario(editando) {
   const d = t.direccion || {};
   const tipoVia = d.tipoVia || "";
   const usaTipoViaManual = !!tipoVia && !TIPOS_VIA.includes(tipoVia);
+  const c = getCondicionesLaborales(t);
 
   return `
     <div style="
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:12px;
       margin-bottom:18px;
       padding:12px;
       border:1px solid #e2e8f0;
@@ -75,55 +76,100 @@ function renderFormulario(editando) {
         ${editando ? "Editar trabajador" : "Nuevo trabajador"}
       </div>
 
-      ${campo("Nombre completo", "p_nombre", t.nombre || "")}
-      ${campo("Usuario", "p_usuario", t.usuario || "")}
-      ${campo("Contraseña", "p_password", t.password || "")}
-      ${campo("Puesto", "p_puesto", t.puesto || "")}
-      ${campo("Teléfono", "p_telefono", t.telefono || "", 'inputmode="tel"')}
-      ${campo("Email", "p_email", t.email || "", 'inputmode="email"')}
-      ${campo("DNI", "p_dni", t.dni || "")}
-      ${campo("Seguridad Social", "p_nss", t.nss || "")}
-      ${campo("Fecha de alta", "p_fechaAlta", t.fechaAlta || "", 'type="date"')}
+      <div style="${bloqueSeccion()}">
+        <div style="${tituloSeccion()}">Datos básicos</div>
 
-      ${campoNumero("Vacaciones disponibles", "p_vac_disp", String(t.vacaciones?.disponibles ?? 30))}
-      ${campoNumero("Vacaciones usadas", "p_vac_usadas", String(t.vacaciones?.usadas ?? 0))}
-      ${campoNumero("Moscosos disponibles", "p_mos_disp", String(t.moscosos?.disponibles ?? 2))}
-      ${campoNumero("Moscosos usados", "p_mos_usadas", String(t.moscosos?.usados ?? 0))}
+        ${campo("Nombre completo", "p_nombre", t.nombre || "")}
+        ${campo("Usuario", "p_usuario", t.usuario || "")}
+        ${campo("Contraseña", "p_password", t.password || "")}
+        ${campo("Puesto", "p_puesto", t.puesto || "")}
+        ${campo("Teléfono", "p_telefono", t.telefono || "", 'inputmode="tel"')}
+        ${campo("Email", "p_email", t.email || "", 'inputmode="email"')}
+        ${campo("DNI", "p_dni", t.dni || "")}
+        ${campo("Seguridad Social", "p_nss", t.nss || "")}
+        ${campo("Fecha de alta", "p_fechaAlta", t.fechaAlta || "", 'type="date"')}
 
-      ${campoSelect(
-        "Estado",
-        "p_activo",
-        [
-          { value: "true", text: "Activo" },
-          { value: "false", text: "Inactivo" }
-        ],
-        t.activo !== false ? "true" : "false"
-      )}
+        ${campoNumero("Vacaciones disponibles", "p_vac_disp", String(t.vacaciones?.disponibles ?? 30))}
+        ${campoNumero("Vacaciones usadas", "p_vac_usadas", String(t.vacaciones?.usadas ?? 0))}
+        ${campoNumero("Moscosos disponibles", "p_mos_disp", String(t.moscosos?.disponibles ?? 2))}
+        ${campoNumero("Moscosos usados", "p_mos_usadas", String(t.moscosos?.usados ?? 0))}
 
-      ${campoSelect(
-        "Tipo de vía",
-        "p_tipoVia",
-        [
-          { value: "", text: "Selecciona tipo de vía" },
-          ...TIPOS_VIA.map((item) => ({ value: item, text: item })),
-          { value: "__otro__", text: "Otro" }
-        ],
-        usaTipoViaManual ? "__otro__" : tipoVia
-      )}
-
-      <div id="bloque_tipo_via_manual" style="display:${usaTipoViaManual ? "grid" : "none"};gap:4px;">
-        <label for="p_tipoViaManual" style="${labelStyle()}">Escribe el tipo de vía</label>
-        <input id="p_tipoViaManual" value="${escapeHtmlAttr(usaTipoViaManual ? tipoVia : "")}" style="${input()}">
+        ${campoSelect(
+          "Estado",
+          "p_activo",
+          [
+            { value: "true", text: "Activo" },
+            { value: "false", text: "Inactivo" }
+          ],
+          t.activo !== false ? "true" : "false"
+        )}
       </div>
 
-      ${campo("Nombre de la vía", "p_via", d.via || "")}
-      ${campo("Número", "p_numero", d.numero || "")}
-      ${campo("Portal", "p_portal", d.portal || "")}
-      ${campo("Piso", "p_piso", d.piso || "")}
-      ${campo("Puerta", "p_puerta", d.puerta || "")}
-      ${campo("Código postal", "p_cp", d.cp || "")}
-      ${campo("Población", "p_poblacion", d.poblacion || "")}
-      ${campo("Provincia", "p_provincia", d.provincia || "")}
+      <div style="${bloqueSeccion()}">
+        <div style="${tituloSeccion()}">Dirección</div>
+
+        ${campoSelect(
+          "Tipo de vía",
+          "p_tipoVia",
+          [
+            { value: "", text: "Selecciona tipo de vía" },
+            ...TIPOS_VIA.map((item) => ({ value: item, text: item })),
+            { value: "__otro__", text: "Otro" }
+          ],
+          usaTipoViaManual ? "__otro__" : tipoVia
+        )}
+
+        <div id="bloque_tipo_via_manual" style="display:${usaTipoViaManual ? "grid" : "none"};gap:4px;">
+          <label for="p_tipoViaManual" style="${labelStyle()}">Escribe el tipo de vía</label>
+          <input id="p_tipoViaManual" value="${escapeHtmlAttr(usaTipoViaManual ? tipoVia : "")}" style="${input()}">
+        </div>
+
+        ${campo("Nombre de la vía", "p_via", d.via || "")}
+        ${campo("Número", "p_numero", d.numero || "")}
+        ${campo("Portal", "p_portal", d.portal || "")}
+        ${campo("Piso", "p_piso", d.piso || "")}
+        ${campo("Puerta", "p_puerta", d.puerta || "")}
+        ${campo("Código postal", "p_cp", d.cp || "")}
+        ${campo("Población", "p_poblacion", d.poblacion || "")}
+        ${campo("Provincia", "p_provincia", d.provincia || "")}
+      </div>
+
+      <div style="${bloqueSeccion()}">
+        <div style="${tituloSeccion()}">Condiciones laborales</div>
+
+        <div style="display:grid;gap:8px;">
+          <div style="${subtituloSeccion()}">Días habituales de trabajo</div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+            ${checkBoxField("p_dia_lun", "Lunes", c.diasTrabajo.lunes)}
+            ${checkBoxField("p_dia_mar", "Martes", c.diasTrabajo.martes)}
+            ${checkBoxField("p_dia_mie", "Miércoles", c.diasTrabajo.miercoles)}
+            ${checkBoxField("p_dia_jue", "Jueves", c.diasTrabajo.jueves)}
+            ${checkBoxField("p_dia_vie", "Viernes", c.diasTrabajo.viernes)}
+            ${checkBoxField("p_dia_sab", "Sábado", c.diasTrabajo.sabado)}
+            ${checkBoxField("p_dia_dom", "Domingo", c.diasTrabajo.domingo)}
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;">
+          ${campo("Hora inicio jornada", "p_hora_inicio", c.horaInicio, 'type="time"')}
+          ${campo("Hora fin jornada", "p_hora_fin", c.horaFin, 'type="time"')}
+        </div>
+
+        <div style="display:grid;gap:8px;">
+          ${checkBoxField("p_trabaja_festivos", "Puede trabajar festivos", c.trabajaFestivos)}
+          ${checkBoxField("p_turno_nocturno", "Turno nocturno", c.turnoNocturno)}
+        </div>
+
+        <div style="display:grid;gap:8px;">
+          <div style="${subtituloSeccion()}">Precios y pluses</div>
+          ${campoDecimal("p_hextra_normal", "Hora extra normal (€)", c.horaExtraNormal)}
+          ${campoDecimal("p_hextra_festiva", "Hora extra festiva (€)", c.horaExtraFestiva)}
+          ${campoDecimal("p_hextra_nocturna", "Hora extra nocturna (€)", c.horaExtraNocturna)}
+          ${campoDecimal("p_plus_productividad", "Plus productividad (€)", c.plusProductividad)}
+          ${campoDecimal("p_dieta", "Dieta (€)", c.dieta)}
+          ${campoDecimal("p_km", "Kilometraje €/km", c.kilometraje)}
+        </div>
+      </div>
 
       <button id="btnGuardarTrabajador" style="${btnPrincipal()}">
         ${editando ? "Guardar cambios" : "+ Crear trabajador"}
@@ -143,6 +189,7 @@ function renderTrabajador(t) {
   const direccionTexto = getDireccionTexto(direccion);
   const ausencias = ordenarAusencias(db.ausencias.getByTrabajador(t.id));
   const resumen = calcularResumenTrabajador(t, ausencias);
+  const c = getCondicionesLaborales(t);
 
   const telefonoNormalizado = normalizarTelefono(t.telefono || "");
   const telefonoHref = telefonoNormalizado ? `tel:${telefonoNormalizado}` : "";
@@ -188,6 +235,8 @@ function renderTrabajador(t) {
           <span style="${pill(t.activo !== false ? "#16a34a" : "#dc2626")}">
             ${t.activo !== false ? "Activo" : "Inactivo"}
           </span>
+          ${c.turnoNocturno ? `<span style="${pill("#7c3aed")}">Nocturno</span>` : ""}
+          ${c.trabajaFestivos ? `<span style="${pill("#dc2626")}">Festivos</span>` : ""}
         </div>
 
         <div style="display:grid;gap:6px;font-size:13px;color:#334155;">
@@ -240,6 +289,21 @@ function renderTrabajador(t) {
           </div>
           <div style="${miniBox()}">
             Moscosos: ${resumen.moscososDisponibles} disp. · ${resumen.moscososUsados} usados · ${resumen.moscososRestantes} restantes
+          </div>
+        </div>
+
+        <div style="display:grid;gap:6px;">
+          <div style="${miniBox()}">
+            Días: ${resumenDiasTrabajo(c.diasTrabajo)}
+          </div>
+          <div style="${miniBox()}">
+            Jornada: ${escapeHtml(c.horaInicio)} - ${escapeHtml(c.horaFin)}
+          </div>
+          <div style="${miniBox()}">
+            H. extra normal: ${formatEuro(c.horaExtraNormal)} · festiva: ${formatEuro(c.horaExtraFestiva)} · nocturna: ${formatEuro(c.horaExtraNocturna)}
+          </div>
+          <div style="${miniBox()}">
+            Plus productividad: ${formatEuro(c.plusProductividad)} · Dieta: ${formatEuro(c.dieta)} · Km: ${formatEuro(c.kilometraje)}/km
           </div>
         </div>
 
@@ -472,6 +536,27 @@ function guardarTrabajador() {
       disponibles: numberValue("p_mos_disp", actual.moscosos?.disponibles ?? 2),
       usados: numberValue("p_mos_usadas", actual.moscosos?.usados ?? 0)
     },
+    condicionesLaborales: {
+      diasTrabajo: {
+        lunes: checked("p_dia_lun"),
+        martes: checked("p_dia_mar"),
+        miercoles: checked("p_dia_mie"),
+        jueves: checked("p_dia_jue"),
+        viernes: checked("p_dia_vie"),
+        sabado: checked("p_dia_sab"),
+        domingo: checked("p_dia_dom")
+      },
+      horaInicio: value("p_hora_inicio") || "08:00",
+      horaFin: value("p_hora_fin") || "16:00",
+      trabajaFestivos: checked("p_trabaja_festivos"),
+      turnoNocturno: checked("p_turno_nocturno"),
+      horaExtraNormal: decimalValue("p_hextra_normal", actual.condicionesLaborales?.horaExtraNormal ?? 0),
+      horaExtraFestiva: decimalValue("p_hextra_festiva", actual.condicionesLaborales?.horaExtraFestiva ?? 0),
+      horaExtraNocturna: decimalValue("p_hextra_nocturna", actual.condicionesLaborales?.horaExtraNocturna ?? 0),
+      plusProductividad: decimalValue("p_plus_productividad", actual.condicionesLaborales?.plusProductividad ?? 0),
+      dieta: decimalValue("p_dieta", actual.condicionesLaborales?.dieta ?? 0),
+      kilometraje: decimalValue("p_km", actual.condicionesLaborales?.kilometraje ?? 0)
+    },
     permisosModulos: actual.permisosModulos || {
       inicio: true,
       agenda: true,
@@ -511,6 +596,32 @@ function guardarTrabajador() {
   refrescar();
 }
 
+function getCondicionesLaborales(trabajador) {
+  const c = trabajador?.condicionesLaborales || {};
+
+  return {
+    diasTrabajo: {
+      lunes: c.diasTrabajo?.lunes ?? true,
+      martes: c.diasTrabajo?.martes ?? true,
+      miercoles: c.diasTrabajo?.miercoles ?? true,
+      jueves: c.diasTrabajo?.jueves ?? true,
+      viernes: c.diasTrabajo?.viernes ?? true,
+      sabado: c.diasTrabajo?.sabado ?? false,
+      domingo: c.diasTrabajo?.domingo ?? false
+    },
+    horaInicio: c.horaInicio || "08:00",
+    horaFin: c.horaFin || "16:00",
+    trabajaFestivos: c.trabajaFestivos === true,
+    turnoNocturno: c.turnoNocturno === true,
+    horaExtraNormal: Number(c.horaExtraNormal ?? 0),
+    horaExtraFestiva: Number(c.horaExtraFestiva ?? 0),
+    horaExtraNocturna: Number(c.horaExtraNocturna ?? 0),
+    plusProductividad: Number(c.plusProductividad ?? 0),
+    dieta: Number(c.dieta ?? 0),
+    kilometraje: Number(c.kilometraje ?? 0)
+  };
+}
+
 function calcularResumenTrabajador(trabajador, ausencias) {
   let vacacionesUsadasAusencias = 0;
   let moscososUsadosAusencias = 0;
@@ -540,6 +651,26 @@ function calcularResumenTrabajador(trabajador, ausencias) {
   };
 }
 
+function resumenDiasTrabajo(diasTrabajo) {
+  const mapa = [
+    ["lunes", "L"],
+    ["martes", "M"],
+    ["miercoles", "X"],
+    ["jueves", "J"],
+    ["viernes", "V"],
+    ["sabado", "S"],
+    ["domingo", "D"]
+  ];
+
+  const activos = mapa.filter(([k]) => diasTrabajo?.[k]).map(([, txt]) => txt);
+  return activos.length ? activos.join(" · ") : "Sin días definidos";
+}
+
+function formatEuro(valor) {
+  const n = Number(valor || 0);
+  return `${n.toFixed(2)} €`;
+}
+
 function ordenarAusencias(lista) {
   return [...lista].sort((a, b) => {
     const aa = new Date(a.fechaInicio || 0).getTime();
@@ -558,8 +689,19 @@ function value(id) {
   return document.getElementById(id)?.value?.trim() || "";
 }
 
+function checked(id) {
+  return !!document.getElementById(id)?.checked;
+}
+
 function numberValue(id, fallback) {
   const txt = value(id);
+  if (txt === "") return Number(fallback || 0);
+  const n = Number(txt);
+  return Number.isFinite(n) ? n : Number(fallback || 0);
+}
+
+function decimalValue(id, fallback) {
+  const txt = value(id).replace(",", ".");
   if (txt === "") return Number(fallback || 0);
   const n = Number(txt);
   return Number.isFinite(n) ? n : Number(fallback || 0);
@@ -611,6 +753,15 @@ function campoNumero(label, id, valueText) {
   `;
 }
 
+function campoDecimal(id, label, valueText) {
+  return `
+    <div style="display:grid;gap:4px;">
+      <label for="${id}" style="${labelStyle()}">${escapeHtml(label)}</label>
+      <input id="${id}" type="number" step="0.01" value="${escapeHtmlAttr(String(valueText ?? 0))}" style="${input()}">
+    </div>
+  `;
+}
+
 function campoSelect(label, id, options, selectedValue) {
   return `
     <div style="display:grid;gap:4px;">
@@ -641,6 +792,55 @@ function campoSelectInline(id, options, selectedValue) {
         </option>
       `).join("")}
     </select>
+  `;
+}
+
+function checkBoxField(id, texto, marcado) {
+  return `
+    <label style="
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:10px;
+      border:1px solid #dbe4ee;
+      border-radius:10px;
+      background:#fff;
+      box-sizing:border-box;
+      font-size:14px;
+      color:#0f172a;
+      font-weight:700;
+    ">
+      <input id="${id}" type="checkbox" ${marcado ? "checked" : ""}>
+      <span>${escapeHtml(texto)}</span>
+    </label>
+  `;
+}
+
+function bloqueSeccion() {
+  return `
+    display:grid;
+    gap:10px;
+    padding:12px;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    background:#ffffff;
+  `;
+}
+
+function tituloSeccion() {
+  return `
+    font-size:14px;
+    font-weight:800;
+    color:#0f172a;
+    margin-bottom:2px;
+  `;
+}
+
+function subtituloSeccion() {
+  return `
+    font-size:13px;
+    font-weight:700;
+    color:#334155;
   `;
 }
 
