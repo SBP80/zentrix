@@ -2,11 +2,8 @@ import { db } from "./db.js";
 
 const AGENDA_KEY = "zentrix_agenda_eventos_v1";
 const FESTIVOS_EMPRESA_KEY = "zentrix_festivos_empresa_v1";
+const EMPRESA_CONFIG_KEY = "zentrix_empresa_config_v1";
 
-/*
-  Calendario laboral base.
-  Más adelante añadiremos nacionales, autonómicos, locales y festivos propios.
-*/
 const CALENDARIO_LABORAL_BASE = {
   2026: [
     "2026-01-01",
@@ -90,22 +87,10 @@ export function getAgendaContexto() {
   };
 }
 
-/*
-  Resultado:
-  {
-    ok: true/false,
-    tipo: "none" | "fin_semana" | "festivo" | "ausencia",
-    mensaje: ""
-  }
-
-  ok=false aquí significa:
-  - mostrar aviso
-  - permitir al usuario decidir si quiere continuar
-*/
-export function validarAsignacionAgenda({ usuario, fecha, tipo }) {
+export function validarAsignacionAgenda({ usuario, fecha, tipo, hora }) {
   const tipoEvento = String(tipo || "").trim().toLowerCase();
+  const cfg = getEmpresaConfig();
 
-  // Si el propio evento ya es de ausencia, no avisamos
   if (
     tipoEvento === "vacaciones" ||
     tipoEvento === "baja" ||
@@ -125,38 +110,51 @@ export function validarAsignacionAgenda({ usuario, fecha, tipo }) {
     return { ok: true, tipo: "none", mensaje: "" };
   }
 
-  if (esDomingo(fecha)) {
-    return {
-      ok: false,
-      tipo: "fin_semana",
-      mensaje: `${trabajador.nombre || trabajador.usuario || "Este trabajador"} tiene una cita en domingo (${formatFecha(fecha)}). ¿Seguro que quieres adjudicársela?`
-    };
-  }
-
-  if (esSabado(fecha)) {
-    return {
-      ok: false,
-      tipo: "fin_semana",
-      mensaje: `${trabajador.nombre || trabajador.usuario || "Este trabajador"} tiene una cita en sábado (${formatFecha(fecha)}). ¿Seguro que quieres adjudicársela?`
-    };
-  }
-
-  if (esFestivoEmpresa(fecha)) {
-    return {
-      ok: false,
-      tipo: "festivo",
-      mensaje: `${formatFecha(fecha)} es festivo según el calendario laboral. ¿Seguro que quieres adjudicar esta cita a ${trabajador.nombre || trabajador.usuario || "este trabajador"}?`
-    };
-  }
+  const condiciones = getCondicionesLaboralesTrabajador(trabajador);
 
   const ausencia = obtenerAusenciaActiva(trabajador.id, fecha);
-
   if (ausencia) {
-    return {
-      ok: false,
-      tipo: "ausencia",
-      mensaje: `${trabajador.nombre || trabajador.usuario || "Este trabajador"} está de ${capitaliza(ausencia.tipo)} el ${formatFecha(fecha)}. ¿Seguro que quieres adjudicarle esta cita?`
-    };
+    return resultadoSegunModo(
+      cfg.modoValidacionAgenda,
+      "ausencia",
+      `${trabajador.nombre || trabajador.usuario || "Este trabajador"} está de ${capitaliza(ausencia.tipo)} el ${formatFecha(fecha)}.`
+    );
+  }
+
+  const diaSemana = getClaveDiaSemana(fecha);
+
+  if (!condiciones.diasTrabajo[diaSemana]) {
+    return resultadoSegunModo(
+      cfg.modoValidacionAgenda,
+      "dia_no_habitual",
+      `${trabajador.nombre || trabajador.usuario || "Este trabajador"} no tiene ${nombreDia(diaSemana)} como día habitual de trabajo (${formatFecha(fecha)}).`
+    );
+  }
+
+  if (esFestivoEmpresa(fecha) && !condiciones.trabajaFestivos) {
+    return resultadoSegunModo(
+      cfg.modoValidacionAgenda,
+      "festivo",
+      `${formatFecha(fecha)} es festivo y ${trabajador.nombre || trabajador.usuario || "este trabajador"} no tiene habilitado trabajar festivos.`
+    );
+  }
+
+  if (hora) {
+    if (!horaDentroJornada(hora, condiciones.horaInicio, condiciones.horaFin)) {
+      return resultadoSegunModo(
+        cfg.modoValidacionAgenda,
+        "horario",
+        `La hora ${hora} queda fuera de la jornada de ${trabajador.nombre || trabajador.usuario || "este trabajador"} (${condiciones.horaInicio} - ${condiciones.horaFin}).`
+      );
+    }
+
+    if (esHoraNocturna(hora) && !condiciones.turnoNocturno) {
+      return resultadoSegunModo(
+        cfg.modoValidacionAgenda,
+        "nocturno",
+        `${trabajador.nombre || trabajador.usuario || "Este trabajador"} no tiene habilitado turno nocturno y la hora ${hora} entra en franja nocturna.`
+      );
+    }
   }
 
   return { ok: true, tipo: "none", mensaje: "" };
@@ -172,6 +170,25 @@ export function getFestivosEmpresa() {
     return esObjetoPlano(data) ? data : {};
   } catch {
     return {};
+  }
+}
+
+export function getEmpresaConfig() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(EMPRESA_CONFIG_KEY) || "{}");
+    return {
+      trabajaSabados: raw.trabajaSabados === true,
+      modoValidacionAgenda: raw.modoValidacionAgenda === "estricto" ? "estricto" : "aviso",
+      horaInicio: raw.horaInicio || "08:00",
+      horaFin: raw.horaFin || "18:00"
+    };
+  } catch {
+    return {
+      trabajaSabados: false,
+      modoValidacionAgenda: "aviso",
+      horaInicio: "08:00",
+      horaFin: "18:00"
+    };
   }
 }
 
@@ -226,6 +243,25 @@ function buscarTrabajadorPorNombreOUsuario(texto) {
   );
 }
 
+function getCondicionesLaboralesTrabajador(trabajador) {
+  const c = trabajador?.condicionesLaborales || {};
+  return {
+    diasTrabajo: {
+      lunes: c.diasTrabajo?.lunes ?? true,
+      martes: c.diasTrabajo?.martes ?? true,
+      miercoles: c.diasTrabajo?.miercoles ?? true,
+      jueves: c.diasTrabajo?.jueves ?? true,
+      viernes: c.diasTrabajo?.viernes ?? true,
+      sabado: c.diasTrabajo?.sabado ?? false,
+      domingo: c.diasTrabajo?.domingo ?? false
+    },
+    horaInicio: c.horaInicio || "08:00",
+    horaFin: c.horaFin || "16:00",
+    trabajaFestivos: c.trabajaFestivos === true,
+    turnoNocturno: c.turnoNocturno === true
+  };
+}
+
 function obtenerAusenciaActiva(trabajadorId, fecha) {
   const ausencias = db.ausencias.getByTrabajador(trabajadorId);
 
@@ -237,14 +273,40 @@ function obtenerAusenciaActiva(trabajadorId, fecha) {
   );
 }
 
-function esSabado(fecha) {
-  const d = new Date(fecha + "T12:00:00");
-  return d.getDay() === 6;
+function getClaveDiaSemana(fecha) {
+  const dia = new Date(fecha + "T12:00:00").getDay();
+  if (dia === 1) return "lunes";
+  if (dia === 2) return "martes";
+  if (dia === 3) return "miercoles";
+  if (dia === 4) return "jueves";
+  if (dia === 5) return "viernes";
+  if (dia === 6) return "sabado";
+  return "domingo";
 }
 
-function esDomingo(fecha) {
-  const d = new Date(fecha + "T12:00:00");
-  return d.getDay() === 0;
+function nombreDia(clave) {
+  if (clave === "lunes") return "lunes";
+  if (clave === "martes") return "martes";
+  if (clave === "miercoles") return "miércoles";
+  if (clave === "jueves") return "jueves";
+  if (clave === "viernes") return "viernes";
+  if (clave === "sabado") return "sábado";
+  return "domingo";
+}
+
+function horaDentroJornada(hora, inicio, fin) {
+  if (!hora || !inicio || !fin) return true;
+
+  if (inicio <= fin) {
+    return hora >= inicio && hora <= fin;
+  }
+
+  return hora >= inicio || hora <= fin;
+}
+
+function esHoraNocturna(hora) {
+  if (!hora) return false;
+  return hora >= "22:00" || hora <= "06:00";
 }
 
 function esFestivoEmpresa(fecha) {
@@ -271,6 +333,22 @@ function mezclarCalendarioLaboral() {
   });
 
   return salida;
+}
+
+function resultadoSegunModo(modo, tipo, mensajeBase) {
+  if (modo === "estricto") {
+    return {
+      ok: false,
+      tipo,
+      mensaje: `${mensajeBase} No se puede adjudicar.`
+    };
+  }
+
+  return {
+    ok: false,
+    tipo,
+    mensaje: `${mensajeBase} ¿Seguro que quieres continuar?`
+  };
 }
 
 function esObjetoPlano(value) {
