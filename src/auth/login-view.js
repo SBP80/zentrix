@@ -112,3 +112,8 @@ export function renderLoginView() {
     </div>
   `;
 }
+import { initLogin } from "./login.js";
+
+setTimeout(() => {
+  initLogin();
+}, 0);
