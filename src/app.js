@@ -1,4 +1,4 @@
-import { validarUsuario } from "./core/data/personal.js";
+import { loginUsuario } from "./core/data/personal.js";
 
 function guardarSesion(usuario) {
   localStorage.setItem("zentryx_user", JSON.stringify(usuario));
@@ -28,7 +28,6 @@ function renderLogin() {
       align-items:center;
       justify-content:center;
       padding:24px;
-      box-sizing:border-box;
       background:#f3f4f6;
       font-family:Arial,sans-serif;
     ">
@@ -39,95 +38,16 @@ function renderLogin() {
         border:1px solid #dbe4ee;
         border-radius:20px;
         padding:24px;
-        box-sizing:border-box;
       ">
-        <h1 style="
-          margin:0 0 10px 0;
-          font-size:34px;
-          line-height:1.1;
-          color:#111827;
-        ">Zentryx</h1>
-
-        <p style="
-          margin:0 0 24px 0;
-          color:#6b7280;
-          font-size:16px;
-        ">
-          Acceso al sistema
-        </p>
+        <h1 style="margin:0 0 10px 0;font-size:34px;">Zentryx</h1>
 
         <div style="display:grid;gap:14px;">
-          <div>
-            <label for="login_usuario" style="
-              display:block;
-              margin-bottom:6px;
-              font-weight:700;
-              color:#111827;
-            ">Usuario</label>
+          <input id="login_usuario" placeholder="Usuario" style="height:48px;padding:10px;">
+          <input id="login_password" type="password" placeholder="Contraseña" style="height:48px;padding:10px;">
 
-            <input
-              id="login_usuario"
-              type="text"
-              autocomplete="username"
-              placeholder="Introduce tu usuario"
-              style="
-                width:100%;
-                height:48px;
-                border:1px solid #cbd5e1;
-                border-radius:12px;
-                padding:0 14px;
-                box-sizing:border-box;
-                font-size:16px;
-              "
-            />
-          </div>
+          <div id="login_error" style="color:red;"></div>
 
-          <div>
-            <label for="login_password" style="
-              display:block;
-              margin-bottom:6px;
-              font-weight:700;
-              color:#111827;
-            ">Contraseña</label>
-
-            <input
-              id="login_password"
-              type="password"
-              autocomplete="current-password"
-              placeholder="Introduce tu contraseña"
-              style="
-                width:100%;
-                height:48px;
-                border:1px solid #cbd5e1;
-                border-radius:12px;
-                padding:0 14px;
-                box-sizing:border-box;
-                font-size:16px;
-              "
-            />
-          </div>
-
-          <div id="login_error" style="
-            min-height:20px;
-            color:#b91c1c;
-            font-size:14px;
-            font-weight:700;
-          "></div>
-
-          <button
-            id="btn_login"
-            type="button"
-            style="
-              height:50px;
-              border:none;
-              border-radius:14px;
-              background:#4361ee;
-              color:#ffffff;
-              font-size:18px;
-              font-weight:800;
-              cursor:pointer;
-            "
-          >
+          <button id="btn_login" style="height:50px;background:#4361ee;color:#fff;">
             Entrar
           </button>
         </div>
@@ -138,41 +58,29 @@ function renderLogin() {
   const usuarioEl = document.getElementById("login_usuario");
   const passwordEl = document.getElementById("login_password");
   const errorEl = document.getElementById("login_error");
-  const btnLogin = document.getElementById("btn_login");
 
-  function entrar() {
-    const usuario = String(usuarioEl?.value || "").trim().toLowerCase();
-    const password = String(passwordEl?.value || "");
+  document.getElementById("btn_login").addEventListener("click", entrar);
 
-    if (errorEl) errorEl.textContent = "";
+  async function entrar() {
+    const usuario = usuarioEl.value.trim();
+    const password = passwordEl.value;
 
-    const user = validarUsuario(usuario, password);
+    errorEl.textContent = "";
 
-    if (!user) {
-      if (errorEl) errorEl.textContent = "Usuario o contraseña incorrectos";
-      return;
+    try {
+      const user = await loginUsuario(usuario, password);
+
+      guardarSesion(user);
+
+      renderApp();
+    } catch (e) {
+      errorEl.textContent = e.message;
     }
-
-    guardarSesion({
-      usuario: user.usuario,
-      nombre: user.nombre,
-      rol: user.rol
-    });
-
-    renderApp();
   }
-
-  btnLogin?.addEventListener("click", entrar);
-
-  passwordEl?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") entrar();
-  });
 }
 
 async function renderApp() {
   const app = document.getElementById("app");
-  if (!app) return;
-
   const sesion = leerSesion();
 
   if (!sesion) {
@@ -180,76 +88,10 @@ async function renderApp() {
     return;
   }
 
-  app.innerHTML = `
-    <div style="padding:20px;font-family:Arial,sans-serif">
-      <h2>Entrando en la app...</h2>
-      <div id="debug_app" style="
-        margin-top:16px;
-        padding:14px;
-        border:1px solid #cbd5e1;
-        border-radius:12px;
-        background:#f8fafc;
-        white-space:pre-wrap;
-        word-break:break-word;
-      ">Cargando módulo inicio...</div>
-    </div>
-  `;
+  app.innerHTML = `<div style="padding:20px;">Cargando...</div>`;
 
-  const debugEl = document.getElementById("debug_app");
-
-  try {
-    const mod = await import(`./core/views/inicio.js?v=${Date.now()}`);
-
-    if (debugEl) {
-      debugEl.textContent =
-        "Módulo cargado. Exportaciones: " + Object.keys(mod).join(", ");
-    }
-
-    if (mod && typeof mod.renderInicio === "function") {
-      mod.renderInicio();
-      return;
-    }
-
-    app.innerHTML = `
-      <div style="padding:20px;font-family:Arial,sans-serif">
-        <h2>Error cargando inicio</h2>
-        <div style="
-          margin-top:16px;
-          padding:14px;
-          border:1px solid #fecaca;
-          border-radius:12px;
-          background:#fef2f2;
-          color:#991b1b;
-          white-space:pre-wrap;
-        ">El módulo no exporta renderInicio()</div>
-      </div>
-    `;
-  } catch (error) {
-    app.innerHTML = `
-      <div style="padding:20px;font-family:Arial,sans-serif">
-        <h2>Error importando inicio.js</h2>
-        <div style="
-          margin-top:16px;
-          padding:14px;
-          border:1px solid #fecaca;
-          border-radius:12px;
-          background:#fef2f2;
-          color:#991b1b;
-          white-space:pre-wrap;
-          word-break:break-word;
-        ">${escapeHtml(error?.message || String(error))}</div>
-      </div>
-    `;
-  }
-}
-
-function escapeHtml(texto) {
-  return String(texto || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  const mod = await import("./core/views/inicio.js");
+  mod.renderInicio();
 }
 
 if (leerSesion()) {
