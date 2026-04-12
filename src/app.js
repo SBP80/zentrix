@@ -3,91 +3,164 @@ import { renderAgenda } from "./core/views/agenda.js";
 import { renderPersonal } from "./core/views/personal.js";
 import { renderConfiguracion } from "./core/views/configuracion.js";
 import { renderFichajes } from "./core/views/fichajes.js";
+import {
+  loginWithCredentials,
+  clearSession,
+  getCurrentUser,
+  getAllowedViews,
+  canAccessView,
+  getDisplayName
+} from "./core/session.js";
 
 const app = document.getElementById("app");
 
 let vista = "inicio";
+let mobileMenuOpen = false;
 
 function renderApp() {
   if (!app) return;
 
+  const user = getCurrentUser();
+
+  if (!user) {
+    renderLogin();
+    return;
+  }
+
+  const allowedViews = getAllowedViews(user);
+
+  if (!allowedViews.includes(vista)) {
+    vista = allowedViews[0] || "inicio";
+  }
+
   app.innerHTML = `
-    <div style="
-      min-height:100vh;
-      background:#f1f5f9;
-      padding:20px;
-      box-sizing:border-box;
-      font-family:Arial,sans-serif;
-    ">
-      <div style="
-        max-width:1100px;
-        margin:0 auto;
-        background:#fff;
-        border:1px solid #dbe4ee;
-        border-radius:16px;
-        padding:20px;
-        box-sizing:border-box;
-      ">
-        <h1 style="margin:0 0 20px 0;color:#0f172a;">Zentryx</h1>
+    <div class="app-shell">
+      <div class="app-layout">
+        <aside class="sidebar ${mobileMenuOpen ? "open" : ""}">
+          <div class="brand-block">
+            <div class="brand-title">Zentryx</div>
+            <div class="brand-user">${escapeHtml(getDisplayName(user))}</div>
+            <div class="brand-role">${escapeHtml(user.puesto || "Sin rol")}</div>
+          </div>
 
-        <div style="
-          display:grid;
-          grid-template-columns:1fr;
-          gap:10px;
-          margin-bottom:20px;
-        ">
-          <button class="nav-btn" data-view="inicio" onclick="setView('inicio')" style="${btn(vista === "inicio")}">Inicio</button>
-          <button class="nav-btn" data-view="agenda" onclick="setView('agenda')" style="${btn(vista === "agenda")}">Agenda</button>
-          <button class="nav-btn" data-view="personal" onclick="setView('personal')" style="${btn(vista === "personal")}">Personal</button>
-          <button class="nav-btn" data-view="fichajes" onclick="setView('fichajes')" style="${btn(vista === "fichajes")}">Fichajes</button>
-          <button class="nav-btn" data-view="configuracion" onclick="setView('configuracion')" style="${btn(vista === "configuracion")}">Configuración</button>
-        </div>
+          <nav class="nav-stack">
+            ${renderNavButton("inicio", "Inicio", allowedViews)}
+            ${renderNavButton("agenda", "Agenda", allowedViews)}
+            ${renderNavButton("personal", "Personal", allowedViews)}
+            ${renderNavButton("fichajes", "Fichajes", allowedViews)}
+            ${renderNavButton("configuracion", "Configuración", allowedViews)}
+          </nav>
 
-        <div id="viewContainer">
-          ${renderVista()}
-        </div>
+          <button class="logout-btn" onclick="logoutUI()">Cerrar sesión</button>
+        </aside>
+
+        <main class="main-panel">
+          <div class="topbar">
+            <button class="menu-toggle" onclick="toggleMobileMenuUI()">☰</button>
+
+            <div class="topbar-right">
+              <div class="topbar-user">
+                <div class="topbar-user-name">${escapeHtml(getDisplayName(user))}</div>
+                <div class="topbar-user-role">${escapeHtml(user.puesto || "Sin rol")}</div>
+              </div>
+
+              <button class="logout-btn desktop-only" onclick="logoutUI()">Cerrar sesión</button>
+            </div>
+          </div>
+
+          <div id="viewContainer" class="view-wrap">
+            ${renderVista(user)}
+          </div>
+        </main>
       </div>
     </div>
   `;
 }
 
-function renderVista() {
+function renderLogin() {
+  app.innerHTML = `
+    <div class="login-shell">
+      <div class="login-card">
+        <div class="login-title">Zentryx</div>
+        <div class="login-subtitle">Acceso al sistema</div>
+
+        <div class="login-form">
+          <div class="field-block">
+            <label class="field-label" for="login_usuario">Usuario</label>
+            <input id="login_usuario" class="field-input" autocomplete="username">
+          </div>
+
+          <div class="field-block">
+            <label class="field-label" for="login_password">Contraseña</label>
+            <input id="login_password" class="field-input" type="password" autocomplete="current-password">
+          </div>
+
+          <button class="primary-btn" onclick="loginUI()">Entrar</button>
+
+          <div id="login_error" class="login-error" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    document.getElementById("login_usuario")?.focus();
+
+    document.getElementById("login_password")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        window.loginUI();
+      }
+    });
+
+    document.getElementById("login_usuario")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        document.getElementById("login_password")?.focus();
+      }
+    });
+  }, 0);
+}
+
+function renderVista(user) {
   try {
+    if (!canAccessView(user, vista)) {
+      return renderNoAccess();
+    }
+
     if (vista === "inicio") return renderInicio();
     if (vista === "agenda") return renderAgenda();
     if (vista === "personal") return renderPersonal();
     if (vista === "fichajes") return renderFichajes();
     if (vista === "configuracion") return renderConfiguracion();
+
     return renderInicio();
   } catch (error) {
     return `
-      <div style="
-        padding:16px;
-        border:1px solid #fecaca;
-        border-radius:12px;
-        background:#fef2f2;
-        color:#991b1b;
-        font-weight:700;
-      ">
+      <div class="error-card">
         Error cargando la vista: ${escapeHtml(error?.message || "desconocido")}
       </div>
     `;
   }
 }
 
-function btn(active) {
+function renderNoAccess() {
   return `
-    width:100%;
-    min-height:58px;
-    border:none;
-    border-radius:18px;
-    background:${active ? "#3f63dd" : "#1e2c46"};
-    color:#fff;
-    font-weight:800;
-    font-size:17px;
-    cursor:pointer;
-    padding:0 16px;
-    box-sizing:border-box;
+    <div class="error-card">
+      No tienes permisos para entrar en esta sección.
+    </div>
+  `;
+}
+
+function renderNavButton(view, label, allowedViews) {
+  if (!allowedViews.includes(view)) return "";
+
+  return `
+    <button
+      class="nav-btn ${vista === view ? "active" : ""}"
+      data-view="${view}"
+      onclick="setView('${view}')"
+    >
+      ${label}
+    </button>
   `;
 }
 
@@ -102,6 +175,39 @@ function escapeHtml(texto) {
 
 window.setView = function (view) {
   vista = view;
+  mobileMenuOpen = false;
+  renderApp();
+};
+
+window.toggleMobileMenuUI = function () {
+  mobileMenuOpen = !mobileMenuOpen;
+  renderApp();
+};
+
+window.logoutUI = function () {
+  clearSession();
+  vista = "inicio";
+  mobileMenuOpen = false;
+  renderApp();
+};
+
+window.loginUI = function () {
+  const usuario = document.getElementById("login_usuario")?.value || "";
+  const password = document.getElementById("login_password")?.value || "";
+
+  const result = loginWithCredentials(usuario, password);
+  const errorBox = document.getElementById("login_error");
+
+  if (!result.ok) {
+    if (errorBox) {
+      errorBox.textContent = result.mensaje || "Error de acceso";
+      errorBox.style.display = "block";
+    }
+    return;
+  }
+
+  vista = "inicio";
+  mobileMenuOpen = false;
   renderApp();
 };
 
