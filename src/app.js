@@ -169,7 +169,7 @@ function renderLogin() {
   });
 }
 
-function renderApp() {
+async function renderApp() {
   const app = document.getElementById("app");
   if (!app) return;
 
@@ -181,19 +181,66 @@ function renderApp() {
   }
 
   app.innerHTML = `
-  <div style="padding:20px;font-family:Arial">
-    <h2>Entrando en la app...</h2>
-  </div>
-`;
+    <div style="padding:20px;font-family:Arial,sans-serif">
+      <h2>Entrando en la app...</h2>
+      <div id="debug_app" style="
+        margin-top:16px;
+        padding:14px;
+        border:1px solid #cbd5e1;
+        border-radius:12px;
+        background:#f8fafc;
+        white-space:pre-wrap;
+        word-break:break-word;
+      ">Cargando módulo inicio...</div>
+    </div>
+  `;
 
-// 🔴 IMPORTANTE: cargar tu app real
-import("./core/views/inicio.js").then(mod => {
-  if (mod && typeof mod.renderInicio === "function") {
-    mod.renderInicio();
-  } else {
-    app.innerHTML = "<p>Error cargando módulo inicio</p>";
+  const debugEl = document.getElementById("debug_app");
+
+  try {
+    const mod = await import(`./core/views/inicio.js?v=${Date.now()}`);
+
+    if (debugEl) {
+      debugEl.textContent =
+        "Módulo cargado. Exportaciones: " + Object.keys(mod).join(", ");
+    }
+
+    if (mod && typeof mod.renderInicio === "function") {
+      mod.renderInicio();
+      return;
+    }
+
+    app.innerHTML = `
+      <div style="padding:20px;font-family:Arial,sans-serif">
+        <h2>Error cargando inicio</h2>
+        <div style="
+          margin-top:16px;
+          padding:14px;
+          border:1px solid #fecaca;
+          border-radius:12px;
+          background:#fef2f2;
+          color:#991b1b;
+          white-space:pre-wrap;
+        ">El módulo no exporta renderInicio()</div>
+      </div>
+    `;
+  } catch (error) {
+    app.innerHTML = `
+      <div style="padding:20px;font-family:Arial,sans-serif">
+        <h2>Error importando inicio.js</h2>
+        <div style="
+          margin-top:16px;
+          padding:14px;
+          border:1px solid #fecaca;
+          border-radius:12px;
+          background:#fef2f2;
+          color:#991b1b;
+          white-space:pre-wrap;
+          word-break:break-word;
+        ">${escapeHtml(error?.message || String(error))}</div>
+      </div>
+    `;
   }
-});
 }
 
 function escapeHtml(texto) {
