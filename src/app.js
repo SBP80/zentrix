@@ -2,12 +2,15 @@ import { renderInicio } from "./core/views/inicio.js";
 import { renderAgenda } from "./core/views/agenda.js";
 import { renderPersonal } from "./core/views/personal.js";
 import { renderConfiguracion } from "./core/views/configuracion.js";
+import { renderFichajes } from "./core/views/fichajes.js";
 
 const app = document.getElementById("app");
 
 let vista = "inicio";
 
 function renderApp() {
+  if (!app) return;
+
   app.innerHTML = `
     <div style="
       min-height:100vh;
@@ -33,10 +36,11 @@ function renderApp() {
           gap:10px;
           margin-bottom:20px;
         ">
-          <button onclick="setView('inicio')" style="${btn(vista === "inicio")}">Inicio</button>
-          <button onclick="setView('agenda')" style="${btn(vista === "agenda")}">Agenda</button>
-          <button onclick="setView('personal')" style="${btn(vista === "personal")}">Personal</button>
-          <button onclick="setView('configuracion')" style="${btn(vista === "configuracion")}">Configuración</button>
+          <button class="nav-btn" data-view="inicio" onclick="setView('inicio')" style="${btn(vista === "inicio")}">Inicio</button>
+          <button class="nav-btn" data-view="agenda" onclick="setView('agenda')" style="${btn(vista === "agenda")}">Agenda</button>
+          <button class="nav-btn" data-view="personal" onclick="setView('personal')" style="${btn(vista === "personal")}">Personal</button>
+          <button class="nav-btn" data-view="fichajes" onclick="setView('fichajes')" style="${btn(vista === "fichajes")}">Fichajes</button>
+          <button class="nav-btn" data-view="configuracion" onclick="setView('configuracion')" style="${btn(vista === "configuracion")}">Configuración</button>
         </div>
 
         <div id="viewContainer">
@@ -48,11 +52,27 @@ function renderApp() {
 }
 
 function renderVista() {
-  if (vista === "inicio") return renderInicio();
-  if (vista === "agenda") return renderAgenda();
-  if (vista === "personal") return renderPersonal();
-  if (vista === "configuracion") return renderConfiguracion();
-  return renderInicio();
+  try {
+    if (vista === "inicio") return renderInicio();
+    if (vista === "agenda") return renderAgenda();
+    if (vista === "personal") return renderPersonal();
+    if (vista === "fichajes") return renderFichajes();
+    if (vista === "configuracion") return renderConfiguracion();
+    return renderInicio();
+  } catch (error) {
+    return `
+      <div style="
+        padding:16px;
+        border:1px solid #fecaca;
+        border-radius:12px;
+        background:#fef2f2;
+        color:#991b1b;
+        font-weight:700;
+      ">
+        Error cargando la vista: ${escapeHtml(error?.message || "desconocido")}
+      </div>
+    `;
+  }
 }
 
 function btn(active) {
@@ -69,6 +89,15 @@ function btn(active) {
     padding:0 16px;
     box-sizing:border-box;
   `;
+}
+
+function escapeHtml(texto) {
+  return String(texto || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 window.setView = function (view) {
