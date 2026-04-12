@@ -98,7 +98,13 @@ export function renderInicio() {
   });
 
   document.getElementById("btn_ir_agenda")?.addEventListener("click", () => {
-    alert("Agenda será el siguiente módulo en conectar.");
+    import("./agenda.js").then(mod => {
+  if (mod && typeof mod.renderAgenda === "function") {
+    mod.renderAgenda();
+  } else {
+    alert("Error cargando agenda");
+  }
+});
   });
 
   document.getElementById("btn_cerrar_sesion_inicio")?.addEventListener("click", () => {
