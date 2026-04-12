@@ -1,139 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zentryx - Fichaje</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f3f4f6;
-      color: #111827;
-    }
-
-    .wrap {
-      max-width: 700px;
-      margin: 0 auto;
-      background: #ffffff;
-      border: 1px solid #dbe4ee;
-      border-radius: 16px;
-      padding: 20px;
-    }
-
-    h1 {
-      margin-top: 0;
-      font-size: 28px;
-    }
-
-    button {
-      width: 100%;
-      min-height: 56px;
-      border: none;
-      border-radius: 14px;
-      background: #2563eb;
-      color: white;
-      font-size: 22px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 16px;
-    }
-
-    .box {
-      margin-top: 16px;
-      padding: 14px;
-      border-radius: 12px;
-      background: #f8fafc;
-      border: 1px solid #dbe4ee;
-      font-size: 16px;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-  </style>
+  <title>Zentryx</title>
 </head>
+
 <body>
-  <div class="wrap">
-    <h1>Zentryx - Fichaje</h1>
+  <div id="app"></div>
 
-    <button id="btnFichar" type="button">Fichar</button>
-
-    <div class="box" id="estado">Estado: esperando prueba...</div>
-  </div>
-
-  <script>
-    const ESTADO = document.getElementById("estado");
-    const BOTON = document.getElementById("btnFichar");
-
-    function ponerEstado(txt) {
-      ESTADO.textContent = "Estado: " + txt;
-    }
-
-    ponerEstado("cargando página...");
-
-    if (!window.supabase) {
-      ponerEstado("ERROR: no se ha cargado la librería Supabase.");
-    } else {
-      ponerEstado("librería Supabase cargada.");
-    }
-
-    const SUPABASE_URL = "https://fxxfgbxnqhtlrwiyyafu.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_1RbCV4I_yhpFwZl4wK7e2Q_a6FSyoxC";
-
-    let supabaseClient = null;
-
-    try {
-      if (window.supabase) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        ponerEstado("cliente Supabase creado correctamente.");
-      }
-    } catch (error) {
-      ponerEstado("ERROR creando cliente Supabase: " + (error?.message || error));
-    }
-
-    async function guardarFichaje() {
-      ponerEstado("botón pulsado. preparando guardado...");
-
-      if (!supabaseClient) {
-        ponerEstado("ERROR: no existe cliente Supabase.");
-        alert("No se ha creado el cliente Supabase.");
-        return;
-      }
-
-      try {
-        const payload = {
-          trabajador: "Sergio",
-          tipo: "entrada",
-          nota: "prueba",
-          lat: 40.4168,
-          lng: -3.7038,
-          direccion: "Madrid"
-        };
-
-        ponerEstado("enviando a Supabase...");
-
-        const { data, error } = await supabaseClient
-          .from("fichajes")
-          .insert([payload])
-          .select();
-
-        if (error) {
-          ponerEstado("ERROR Supabase: " + error.message);
-          alert("ERROR: " + error.message);
-          return;
-        }
-
-        ponerEstado("fichaje guardado correctamente.");
-        alert("Fichaje guardado correctamente");
-      } catch (error) {
-        ponerEstado("ERROR general: " + (error?.message || error));
-        alert("ERROR GENERAL: " + (error?.message || error));
-      }
-    }
-
-    BOTON.addEventListener("click", guardarFichaje);
-
-    ponerEstado("listo para probar.");
-  </script>
+  <script type="module" src="./src/app.js"></script>
 </body>
 </html>
