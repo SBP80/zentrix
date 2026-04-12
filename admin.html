@@ -3,216 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zentryx - Admin Fichajes</title>
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <title>Prueba admin</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f3f4f6;
       padding: 20px;
-      color: #111827;
     }
-    .wrap {
-      max-width: 1000px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 16px;
+    .box {
+      max-width: 700px;
+      margin: 40px auto;
+      background: #fff;
       border: 1px solid #dbe4ee;
-    }
-    h1 {
-      margin-top: 0;
-      font-size: 28px;
-      margin-bottom: 20px;
-    }
-    .topbar {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-    button {
-      padding: 10px 14px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 700;
-    }
-    .recargar {
-      background: #2563eb;
-      color: white;
-    }
-    .borrar {
-      background: #dc2626;
-      color: white;
+      border-radius: 16px;
+      padding: 20px;
     }
     .estado {
-      margin: 0 0 16px 0;
-      padding: 12px;
+      margin-top: 16px;
+      padding: 14px;
       border: 1px solid #dbe4ee;
-      border-radius: 10px;
+      border-radius: 12px;
       background: #f8fafc;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .tabla-wrap {
-      overflow-x: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 700px;
-    }
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-      vertical-align: top;
-      font-size: 14px;
+      font-size: 20px;
     }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Panel de Fichajes</h1>
-
-  <div class="topbar">
-    <button class="recargar" id="btnRecargar" type="button">Recargar</button>
+  <div class="box">
+    <h1>Prueba admin</h1>
+    <div id="estado" class="estado">Estado: HTML cargado</div>
   </div>
 
-  <div class="estado" id="estado">Estado: arrancando panel...</div>
-
-  <div class="tabla-wrap">
-    <table id="tabla">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Trabajador</th>
-          <th>Tipo</th>
-          <th>Nota</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</div>
-
-<script defer>
-  const supabaseUrl = "https://fxxfgbxnqhtlrwiyyafu.supabase.co";
-  const supabaseKey = "sb_publishable_1RbCV4I_yhpFwZl4wK7e2Q_a6FSyoxC";
-
-  const estadoEl = document.getElementById("estado");
-  const tbody = document.querySelector("#tabla tbody");
-  const btnRecargar = document.getElementById("btnRecargar");
-
-  function setEstado(txt) {
-    estadoEl.textContent = "Estado: " + txt;
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  setEstado("comprobando librería Supabase...");
-
-  if (!window.supabase) {
-    setEstado("ERROR: no se ha cargado la librería Supabase.");
-    alert("ERROR: no se ha cargado la librería Supabase.");
-  }
-
-  let supabase = null;
-
-  try {
-    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-    setEstado("cliente Supabase creado.");
-  } catch (e) {
-    setEstado("ERROR creando cliente: " + (e?.message || e));
-    alert("ERROR creando cliente: " + (e?.message || e));
-  }
-
-  async function cargar() {
-    tbody.innerHTML = "";
-    setEstado("consultando fichajes...");
-
-    try {
-      const { data, error } = await supabase
-        .from("fichajes")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        setEstado("ERROR Supabase: " + error.message);
-        alert("ERROR Supabase: " + error.message);
-        return;
-      }
-
-      if (!Array.isArray(data) || data.length === 0) {
-        setEstado("consulta correcta, pero no hay registros.");
-        return;
-      }
-
-      setEstado("consulta correcta. Registros: " + data.length);
-
-      data.forEach((f) => {
-        const tr = document.createElement("tr");
-
-        const fecha = f.created_at
-          ? new Date(f.created_at).toLocaleString("es-ES")
-          : "";
-
-        tr.innerHTML = `
-          <td>${escapeHtml(fecha)}</td>
-          <td>${escapeHtml(f.trabajador)}</td>
-          <td>${escapeHtml(f.tipo)}</td>
-          <td>${escapeHtml(f.nota)}</td>
-          <td><button class="borrar" type="button" data-id="${escapeHtml(f.id)}">Eliminar</button></td>
-        `;
-
-        tbody.appendChild(tr);
-      });
-
-      tbody.querySelectorAll(".borrar").forEach((btn) => {
-        btn.addEventListener("click", async () => {
-          const id = btn.dataset.id;
-          if (!confirm("¿Eliminar fichaje?")) return;
-
-          setEstado("borrando registro " + id + "...");
-
-          try {
-            const { error } = await supabase
-              .from("fichajes")
-              .delete()
-              .eq("id", id);
-
-            if (error) {
-              setEstado("ERROR al borrar: " + error.message);
-              alert("ERROR al borrar: " + error.message);
-              return;
-            }
-
-            setEstado("registro borrado.");
-            await cargar();
-          } catch (e) {
-            setEstado("ERROR general al borrar: " + (e?.message || e));
-            alert("ERROR general al borrar: " + (e?.message || e));
-          }
-        });
-      });
-    } catch (e) {
-      setEstado("ERROR general: " + (e?.message || e));
-      alert("ERROR general: " + (e?.message || e));
-    }
-  }
-
-  btnRecargar.addEventListener("click", cargar);
-
-  cargar();
-</script>
+  <script>
+    document.getElementById("estado").textContent = "Estado: JavaScript funcionando";
+    alert("JavaScript funcionando");
+  </script>
 </body>
 </html>
