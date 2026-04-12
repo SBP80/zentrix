@@ -3,40 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prueba admin</title>
+  <title>Test Supabase</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       background: #f3f4f6;
       padding: 20px;
     }
     .box {
       max-width: 700px;
       margin: 40px auto;
-      background: #fff;
-      border: 1px solid #dbe4ee;
-      border-radius: 16px;
+      background: white;
       padding: 20px;
+      border-radius: 12px;
     }
     .estado {
-      margin-top: 16px;
-      padding: 14px;
-      border: 1px solid #dbe4ee;
-      border-radius: 12px;
-      background: #f8fafc;
-      font-size: 20px;
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Prueba admin</h1>
-    <div id="estado" class="estado">Estado: HTML cargado</div>
-  </div>
 
-  <script>
-    document.getElementById("estado").textContent = "Estado: JavaScript funcionando";
-    alert("JavaScript funcionando");
-  </script>
+<div class="box">
+  <h1>Test Supabase</h1>
+  <div id="estado" class="estado">Estado: iniciando...</div>
+</div>
+
+<script>
+const estado = document.getElementById("estado");
+
+const supabaseUrl = "https://fxxfgbxnqhtlrwiyyafu.supabase.co";
+const supabaseKey = "sb_publishable_1RbCV4I_yhpFwZl4wK7e2Q_a6FSyoxC";
+
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+async function probar() {
+  estado.textContent = "Estado: conectando...";
+
+  const { data, error } = await supabase
+    .from("fichajes")
+    .select("*")
+    .limit(1);
+
+  if (error) {
+    estado.textContent = "ERROR: " + error.message;
+    console.error(error);
+  } else {
+    estado.textContent = "OK: conexión correcta";
+    console.log(data);
+  }
+}
+
+probar();
+</script>
+
 </body>
 </html>
