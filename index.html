@@ -4,10 +4,58 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zentryx</title>
-  <link rel="stylesheet" href="src/styles.css">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+    button {
+      padding: 15px;
+      font-size: 18px;
+      margin-top: 20px;
+      width: 100%;
+    }
+  </style>
 </head>
+
 <body>
-  <div id="app"></div>
-  <script type="module" src="src/app.js"></script>
+
+  <h1>Zentryx - Fichaje</h1>
+
+  <button onclick="guardarFichaje()">Fichar</button>
+
+  <script>
+    const SUPABASE_URL = "https://fxxfgbxnqhtlrwiyyafu.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_1RbCV4I_yhpFwZl4wK7e2Q_a6FSyoxC";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function guardarFichaje() {
+
+      const { data, error } = await supabase
+        .from('fichajes')
+        .insert([
+          {
+            trabajador: "Sergio",
+            tipo: "entrada",
+            nota: "prueba",
+            lat: 40.4168,
+            lng: -3.7038,
+            direccion: "Madrid"
+          }
+        ]);
+
+      if (error) {
+        alert("ERROR: " + error.message);
+      } else {
+        alert("Fichaje guardado correctamente");
+      }
+    }
+  </script>
+
 </body>
 </html>
