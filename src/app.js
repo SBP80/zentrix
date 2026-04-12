@@ -1,167 +1,150 @@
-import { renderInicio } from "./core/views/inicio.js";
-import { renderAgenda } from "./core/views/agenda.js";
-import { renderPersonal } from "./core/views/personal.js";
-import { renderConfiguracion } from "./core/views/configuracion.js";
-import { renderFichajes } from "./core/views/fichajes.js";
-import {
-  loginWithCredentials,
-  clearSession,
-  getCurrentUser,
-  getAllowedViews,
-  canAccessView,
-  getDisplayName
-} from "./core/session.js";
+import { renderLoginView } from "./auth/login-view.js";
+import { getCurrentUser, isLoggedIn, clearSession } from "./auth/session.js";
+import { login } from "./auth/auth.js";
 
-const app = document.getElementById("app");
-
-let vista = "inicio";
-let mobileMenuOpen = false;
-
-function renderApp() {
-  if (!app) return;
-
-  const user = getCurrentUser();
-
-  if (!user) {
+function boot() {
+  if (!isLoggedIn()) {
     renderLogin();
     return;
   }
 
-  const allowedViews = getAllowedViews(user);
-
-  if (!allowedViews.includes(vista)) {
-    vista = allowedViews[0] || "inicio";
-  }
-
-  app.innerHTML = `
-    <div class="app-shell">
-      <div class="app-layout">
-        <aside class="sidebar ${mobileMenuOpen ? "open" : ""}">
-          <div class="brand-block">
-            <div class="brand-title">Zentryx</div>
-            <div class="brand-user">${escapeHtml(getDisplayName(user))}</div>
-            <div class="brand-role">${escapeHtml(user.puesto || "Sin rol")}</div>
-          </div>
-
-          <nav class="nav-stack">
-            ${renderNavButton("inicio", "Inicio", allowedViews)}
-            ${renderNavButton("agenda", "Agenda", allowedViews)}
-            ${renderNavButton("personal", "Personal", allowedViews)}
-            ${renderNavButton("fichajes", "Fichajes", allowedViews)}
-            ${renderNavButton("configuracion", "Configuración", allowedViews)}
-          </nav>
-
-          <button class="logout-btn" onclick="logoutUI()">Cerrar sesión</button>
-        </aside>
-
-        <main class="main-panel">
-          <div class="topbar">
-            <button class="menu-toggle" onclick="toggleMobileMenuUI()">☰</button>
-
-            <div class="topbar-right">
-              <div class="topbar-user">
-                <div class="topbar-user-name">${escapeHtml(getDisplayName(user))}</div>
-                <div class="topbar-user-role">${escapeHtml(user.puesto || "Sin rol")}</div>
-              </div>
-
-              <button class="logout-btn desktop-only" onclick="logoutUI()">Cerrar sesión</button>
-            </div>
-          </div>
-
-          <div id="viewContainer" class="view-wrap">
-            ${renderVista(user)}
-          </div>
-        </main>
-      </div>
-    </div>
-  `;
+  renderPrivateApp();
 }
 
 function renderLogin() {
-  app.innerHTML = `
-    <div class="login-shell">
-      <div class="login-card">
-        <div class="login-title">Zentryx</div>
-        <div class="login-subtitle">Acceso al sistema</div>
+  const root = document.getElementById("app");
+  if (!root) return;
 
-        <div class="login-form">
-          <div class="field-block">
-            <label class="field-label" for="login_usuario">Usuario</label>
-            <input id="login_usuario" class="field-input" autocomplete="username">
+  root.innerHTML = renderLoginView();
+
+  const usuarioEl = document.getElementById("login_usuario");
+  const passwordEl = document.getElementById("login_password");
+  const estadoEl = document.getElementById("login_estado");
+  const btnLogin = document.getElementById("btn_login");
+
+  function setError(msg) {
+    if (estadoEl) estadoEl.textContent = msg || "";
+  }
+
+  function tryLogin() {
+    const usuario = usuarioEl?.value || "";
+    const password = passwordEl?.value || "";
+
+    setError("");
+
+    try {
+      login(usuario, password);
+      renderPrivateApp();
+    } catch (error) {
+      setError(error?.message || "Error de acceso");
+    }
+  }
+
+  btnLogin?.addEventListener("click", tryLogin);
+
+  passwordEl?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") tryLogin();
+  });
+
+  usuarioEl?.focus();
+}
+
+function renderPrivateApp() {
+  const root = document.getElementById("app");
+  if (!root) return;
+
+  const user = getCurrentUser();
+
+  root.innerHTML = `
+    <div style="
+      min-height:100vh;
+      background:#f3f4f6;
+      padding:24px;
+      box-sizing:border-box;
+      font-family:Arial,sans-serif;
+    ">
+      <div style="
+        max-width:900px;
+        margin:0 auto;
+        background:#ffffff;
+        border:1px solid #dbe4ee;
+        border-radius:20px;
+        padding:24px;
+        box-sizing:border-box;
+      ">
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:12px;
+          flex-wrap:wrap;
+          margin-bottom:20px;
+        ">
+          <div>
+            <h1 style="
+              margin:0 0 8px 0;
+              font-size:34px;
+              color:#111827;
+            ">Zentryx</h1>
+
+            <div style="
+              color:#475569;
+              font-size:16px;
+              font-weight:700;
+            ">
+              Usuario: ${escapeHtml(user?.nombre || user?.usuario || "Usuario")}
+            </div>
+
+            <div style="
+              color:#64748b;
+              font-size:14px;
+              margin-top:4px;
+            ">
+              Rol: ${escapeHtml(user?.rol || "sin rol")}
+            </div>
           </div>
 
-          <div class="field-block">
-            <label class="field-label" for="login_password">Contraseña</label>
-            <input id="login_password" class="field-input" type="password" autocomplete="current-password">
-          </div>
+          <button
+            id="btn_logout"
+            type="button"
+            style="
+              height:46px;
+              border:none;
+              border-radius:12px;
+              background:#dc2626;
+              color:#ffffff;
+              font-size:15px;
+              font-weight:800;
+              padding:0 16px;
+              cursor:pointer;
+            "
+          >
+            Cerrar sesión
+          </button>
+        </div>
 
-          <button class="primary-btn" onclick="loginUI()">Entrar</button>
-
-          <div id="login_error" class="login-error" style="display:none;"></div>
+        <div style="
+          padding:18px;
+          border:1px solid #dbe4ee;
+          border-radius:16px;
+          background:#f8fafc;
+          color:#111827;
+          font-size:16px;
+          line-height:1.5;
+        ">
+          Login base funcionando correctamente.
+          <br><br>
+          Siguiente paso: conectar esta sesión con la app principal
+          y proteger Inicio, Agenda, Personal, Fichajes y Configuración.
         </div>
       </div>
     </div>
   `;
 
-  setTimeout(() => {
-    document.getElementById("login_usuario")?.focus();
-
-    document.getElementById("login_password")?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        window.loginUI();
-      }
-    });
-
-    document.getElementById("login_usuario")?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        document.getElementById("login_password")?.focus();
-      }
-    });
-  }, 0);
-}
-
-function renderVista(user) {
-  try {
-    if (!canAccessView(user, vista)) {
-      return renderNoAccess();
-    }
-
-    if (vista === "inicio") return renderInicio();
-    if (vista === "agenda") return renderAgenda();
-    if (vista === "personal") return renderPersonal();
-    if (vista === "fichajes") return renderFichajes();
-    if (vista === "configuracion") return renderConfiguracion();
-
-    return renderInicio();
-  } catch (error) {
-    return `
-      <div class="error-card">
-        Error cargando la vista: ${escapeHtml(error?.message || "desconocido")}
-      </div>
-    `;
-  }
-}
-
-function renderNoAccess() {
-  return `
-    <div class="error-card">
-      No tienes permisos para entrar en esta sección.
-    </div>
-  `;
-}
-
-function renderNavButton(view, label, allowedViews) {
-  if (!allowedViews.includes(view)) return "";
-
-  return `
-    <button
-      class="nav-btn ${vista === view ? "active" : ""}"
-      data-view="${view}"
-      onclick="setView('${view}')"
-    >
-      ${label}
-    </button>
-  `;
+  document.getElementById("btn_logout")?.addEventListener("click", () => {
+    clearSession();
+    renderLogin();
+  });
 }
 
 function escapeHtml(texto) {
@@ -173,42 +156,4 @@ function escapeHtml(texto) {
     .replaceAll("'", "&#039;");
 }
 
-window.setView = function (view) {
-  vista = view;
-  mobileMenuOpen = false;
-  renderApp();
-};
-
-window.toggleMobileMenuUI = function () {
-  mobileMenuOpen = !mobileMenuOpen;
-  renderApp();
-};
-
-window.logoutUI = function () {
-  clearSession();
-  vista = "inicio";
-  mobileMenuOpen = false;
-  renderApp();
-};
-
-window.loginUI = function () {
-  const usuario = document.getElementById("login_usuario")?.value || "";
-  const password = document.getElementById("login_password")?.value || "";
-
-  const result = loginWithCredentials(usuario, password);
-  const errorBox = document.getElementById("login_error");
-
-  if (!result.ok) {
-    if (errorBox) {
-      errorBox.textContent = result.mensaje || "Error de acceso";
-      errorBox.style.display = "block";
-    }
-    return;
-  }
-
-  vista = "inicio";
-  mobileMenuOpen = false;
-  renderApp();
-};
-
-renderApp();
+boot();
