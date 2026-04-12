@@ -70,9 +70,6 @@
       vertical-align: top;
       font-size: 14px;
     }
-    .muted {
-      color: #64748b;
-    }
   </style>
 </head>
 <body>
@@ -80,10 +77,10 @@
   <h1>Panel de Fichajes</h1>
 
   <div class="topbar">
-    <button class="recargar" onclick="cargar()">Recargar</button>
+    <button class="recargar" id="btnRecargar" type="button">Recargar</button>
   </div>
 
-  <div class="estado" id="estado">Estado: cargando...</div>
+  <div class="estado" id="estado">Estado: arrancando panel...</div>
 
   <div class="tabla-wrap">
     <table id="tabla">
@@ -107,13 +104,26 @@
 
   const estadoEl = document.getElementById("estado");
   const tbody = document.querySelector("#tabla tbody");
+  const btnRecargar = document.getElementById("btnRecargar");
 
   function setEstado(txt) {
     estadoEl.textContent = "Estado: " + txt;
   }
 
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  setEstado("comprobando librería Supabase...");
+
   if (!window.supabase) {
     setEstado("ERROR: no se ha cargado la librería Supabase.");
+    alert("ERROR: no se ha cargado la librería Supabase.");
   }
 
   let supabase = null;
@@ -123,6 +133,7 @@
     setEstado("cliente Supabase creado.");
   } catch (e) {
     setEstado("ERROR creando cliente: " + (e?.message || e));
+    alert("ERROR creando cliente: " + (e?.message || e));
   }
 
   async function cargar() {
@@ -137,11 +148,11 @@
 
       if (error) {
         setEstado("ERROR Supabase: " + error.message);
-        alert("ERROR: " + error.message);
+        alert("ERROR Supabase: " + error.message);
         return;
       }
 
-      if (!data || data.length === 0) {
+      if (!Array.isArray(data) || data.length === 0) {
         setEstado("consulta correcta, pero no hay registros.");
         return;
       }
@@ -151,46 +162,55 @@
       data.forEach((f) => {
         const tr = document.createElement("tr");
 
+        const fecha = f.created_at
+          ? new Date(f.created_at).toLocaleString("es-ES")
+          : "";
+
         tr.innerHTML = `
-          <td>${f.created_at ? new Date(f.created_at).toLocaleString("es-ES") : ""}</td>
-          <td>${f.trabajador || ""}</td>
-          <td>${f.tipo || ""}</td>
-          <td>${f.nota || ""}</td>
-          <td><button class="borrar" onclick="borrarRegistro(${Number(f.id)})">Eliminar</button></td>
+          <td>${escapeHtml(fecha)}</td>
+          <td>${escapeHtml(f.trabajador)}</td>
+          <td>${escapeHtml(f.tipo)}</td>
+          <td>${escapeHtml(f.nota)}</td>
+          <td><button class="borrar" type="button" data-id="${escapeHtml(f.id)}">Eliminar</button></td>
         `;
 
         tbody.appendChild(tr);
       });
+
+      tbody.querySelectorAll(".borrar").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.id;
+          if (!confirm("¿Eliminar fichaje?")) return;
+
+          setEstado("borrando registro " + id + "...");
+
+          try {
+            const { error } = await supabase
+              .from("fichajes")
+              .delete()
+              .eq("id", id);
+
+            if (error) {
+              setEstado("ERROR al borrar: " + error.message);
+              alert("ERROR al borrar: " + error.message);
+              return;
+            }
+
+            setEstado("registro borrado.");
+            await cargar();
+          } catch (e) {
+            setEstado("ERROR general al borrar: " + (e?.message || e));
+            alert("ERROR general al borrar: " + (e?.message || e));
+          }
+        });
+      });
     } catch (e) {
       setEstado("ERROR general: " + (e?.message || e));
-      alert("ERROR GENERAL: " + (e?.message || e));
+      alert("ERROR general: " + (e?.message || e));
     }
   }
 
-  async function borrarRegistro(id) {
-    if (!confirm("¿Eliminar fichaje?")) return;
-
-    setEstado("borrando registro " + id + "...");
-
-    try {
-      const { error } = await supabase
-        .from("fichajes")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        setEstado("ERROR al borrar: " + error.message);
-        alert("ERROR AL BORRAR: " + error.message);
-        return;
-      }
-
-      setEstado("registro borrado.");
-      await cargar();
-    } catch (e) {
-      setEstado("ERROR general al borrar: " + (e?.message || e));
-      alert("ERROR GENERAL AL BORRAR: " + (e?.message || e));
-    }
-  }
+  btnRecargar.addEventListener("click", cargar);
 
   cargar();
 </script>
