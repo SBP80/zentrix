@@ -181,91 +181,19 @@ function renderApp() {
   }
 
   app.innerHTML = `
-    <div style="
-      min-height:100vh;
-      background:#f3f4f6;
-      padding:24px;
-      box-sizing:border-box;
-      font-family:Arial,sans-serif;
-    ">
-      <div style="
-        max-width:900px;
-        margin:0 auto;
-        background:#ffffff;
-        border:1px solid #dbe4ee;
-        border-radius:20px;
-        padding:24px;
-        box-sizing:border-box;
-      ">
-        <div style="
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-          gap:12px;
-          flex-wrap:wrap;
-          margin-bottom:20px;
-        ">
-          <div>
-            <h1 style="
-              margin:0 0 8px 0;
-              font-size:34px;
-              color:#111827;
-            ">Zentryx</h1>
+  <div style="padding:20px;font-family:Arial">
+    <h2>Entrando en la app...</h2>
+  </div>
+`;
 
-            <div style="
-              color:#475569;
-              font-size:16px;
-              font-weight:700;
-            ">
-              Usuario: ${escapeHtml(sesion.nombre)}
-            </div>
-
-            <div style="
-              color:#64748b;
-              font-size:14px;
-              margin-top:4px;
-            ">
-              Rol: ${escapeHtml(sesion.rol)}
-            </div>
-          </div>
-
-          <button
-            id="btn_logout"
-            type="button"
-            style="
-              height:46px;
-              border:none;
-              border-radius:12px;
-              background:#dc2626;
-              color:#ffffff;
-              font-size:15px;
-              font-weight:800;
-              padding:0 16px;
-              cursor:pointer;
-            "
-          >
-            Cerrar sesión
-          </button>
-        </div>
-
-        <div style="
-          padding:18px;
-          border:1px solid #dbe4ee;
-          border-radius:16px;
-          background:#f8fafc;
-          color:#111827;
-          font-size:16px;
-          line-height:1.5;
-        ">
-          Login funcionando correctamente.
-          <br><br>
-          Usuario activo: <strong>${escapeHtml(sesion.nombre)}</strong>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.getElementById("btn_logout")?.addEventListener("click", cerrarSesion);
+// 🔴 IMPORTANTE: cargar tu app real
+import("./core/views/inicio.js").then(mod => {
+  if (mod && typeof mod.renderInicio === "function") {
+    mod.renderInicio();
+  } else {
+    app.innerHTML = "<p>Error cargando módulo inicio</p>";
+  }
+});
 }
 
 function escapeHtml(texto) {
