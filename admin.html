@@ -4,109 +4,195 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zentryx - Admin Fichajes</title>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
     body {
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       background: #f3f4f6;
       padding: 20px;
+      color: #111827;
     }
     .wrap {
-      max-width: 900px;
+      max-width: 1000px;
       margin: auto;
       background: white;
       padding: 20px;
-      border-radius: 10px;
+      border-radius: 16px;
+      border: 1px solid #dbe4ee;
     }
     h1 {
+      margin-top: 0;
+      font-size: 28px;
       margin-bottom: 20px;
+    }
+    .topbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .recargar {
+      background: #2563eb;
+      color: white;
+    }
+    .borrar {
+      background: #dc2626;
+      color: white;
+    }
+    .estado {
+      margin: 0 0 16px 0;
+      padding: 12px;
+      border: 1px solid #dbe4ee;
+      border-radius: 10px;
+      background: #f8fafc;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .tabla-wrap {
+      overflow-x: auto;
     }
     table {
       width: 100%;
       border-collapse: collapse;
+      min-width: 700px;
     }
     th, td {
       padding: 10px;
       border-bottom: 1px solid #ddd;
       text-align: left;
+      vertical-align: top;
+      font-size: 14px;
     }
-    button {
-      padding: 6px 10px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .borrar {
-      background: red;
-      color: white;
-    }
-    .recargar {
-      background: #2563eb;
-      color: white;
-      margin-bottom: 10px;
+    .muted {
+      color: #64748b;
     }
   </style>
 </head>
 <body>
-
 <div class="wrap">
   <h1>Panel de Fichajes</h1>
 
-  <button class="recargar" onclick="cargar()">Recargar</button>
+  <div class="topbar">
+    <button class="recargar" onclick="cargar()">Recargar</button>
+  </div>
 
-  <table id="tabla">
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Trabajador</th>
-        <th>Tipo</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="estado" id="estado">Estado: cargando...</div>
+
+  <div class="tabla-wrap">
+    <table id="tabla">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Trabajador</th>
+          <th>Tipo</th>
+          <th>Nota</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
-const supabaseUrl = "https://fxxfgbxnqhtlrwiyyafu.supabase.co";
-const supabaseKey = "sb_publishable_1RbCV4I_yhpFwZ14wK7e2Q_a6FSyoxC";
+  const supabaseUrl = "https://fxxfgbxnqhtlrwiyyafu.supabase.co";
+  const supabaseKey = "sb_publishable_1RbCV4I_yhpFwZl4wK7e2Q_a6FSyoxC";
 
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-async function cargar() {
-  const { data, error } = await supabase
-    .from("fichajes")
-    .select("*")
-    .order("created_at", { ascending: false });
-
+  const estadoEl = document.getElementById("estado");
   const tbody = document.querySelector("#tabla tbody");
-  tbody.innerHTML = "";
 
-  data.forEach(f => {
-    const tr = document.createElement("tr");
+  function setEstado(txt) {
+    estadoEl.textContent = "Estado: " + txt;
+  }
 
-    tr.innerHTML = `
-      <td>${new Date(f.created_at).toLocaleString()}</td>
-      <td>${f.trabajador || ""}</td>
-      <td>${f.tipo || ""}</td>
-      <td><button class="borrar" onclick="borrar(${f.id})">Eliminar</button></td>
-    `;
+  if (!window.supabase) {
+    setEstado("ERROR: no se ha cargado la librería Supabase.");
+  }
 
-    tbody.appendChild(tr);
-  });
-}
+  let supabase = null;
 
-async function borrar(id) {
-  if (!confirm("¿Eliminar fichaje?")) return;
+  try {
+    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    setEstado("cliente Supabase creado.");
+  } catch (e) {
+    setEstado("ERROR creando cliente: " + (e?.message || e));
+  }
 
-  await supabase.from("fichajes").delete().eq("id", id);
+  async function cargar() {
+    tbody.innerHTML = "";
+    setEstado("consultando fichajes...");
+
+    try {
+      const { data, error } = await supabase
+        .from("fichajes")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        setEstado("ERROR Supabase: " + error.message);
+        alert("ERROR: " + error.message);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setEstado("consulta correcta, pero no hay registros.");
+        return;
+      }
+
+      setEstado("consulta correcta. Registros: " + data.length);
+
+      data.forEach((f) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${f.created_at ? new Date(f.created_at).toLocaleString("es-ES") : ""}</td>
+          <td>${f.trabajador || ""}</td>
+          <td>${f.tipo || ""}</td>
+          <td>${f.nota || ""}</td>
+          <td><button class="borrar" onclick="borrarRegistro(${Number(f.id)})">Eliminar</button></td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    } catch (e) {
+      setEstado("ERROR general: " + (e?.message || e));
+      alert("ERROR GENERAL: " + (e?.message || e));
+    }
+  }
+
+  async function borrarRegistro(id) {
+    if (!confirm("¿Eliminar fichaje?")) return;
+
+    setEstado("borrando registro " + id + "...");
+
+    try {
+      const { error } = await supabase
+        .from("fichajes")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        setEstado("ERROR al borrar: " + error.message);
+        alert("ERROR AL BORRAR: " + error.message);
+        return;
+      }
+
+      setEstado("registro borrado.");
+      await cargar();
+    } catch (e) {
+      setEstado("ERROR general al borrar: " + (e?.message || e));
+      alert("ERROR GENERAL AL BORRAR: " + (e?.message || e));
+    }
+  }
+
   cargar();
-}
-
-cargar();
 </script>
-
 </body>
 </html>
