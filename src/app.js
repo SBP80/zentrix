@@ -2,6 +2,7 @@ import { renderInicio } from "./core/views/inicio.js";
 import { renderAgenda } from "./core/views/agenda.js";
 import { renderPersonal } from "./core/views/personal.js";
 import { renderConfiguracion } from "./core/views/configuracion.js";
+import { renderFichajes } from "./core/views/fichajes.js";
 
 const app = document.getElementById("app");
 
@@ -36,6 +37,7 @@ function renderApp() {
           <button onclick="setView('inicio')" style="${btn(vista === "inicio")}">Inicio</button>
           <button onclick="setView('agenda')" style="${btn(vista === "agenda")}">Agenda</button>
           <button onclick="setView('personal')" style="${btn(vista === "personal")}">Personal</button>
+          <button onclick="setView('fichajes')" style="${btn(vista === "fichajes")}">Fichajes</button>
           <button onclick="setView('configuracion')" style="${btn(vista === "configuracion")}">Configuración</button>
         </div>
 
@@ -51,6 +53,7 @@ function renderVista() {
   if (vista === "inicio") return renderInicio();
   if (vista === "agenda") return renderAgenda();
   if (vista === "personal") return renderPersonal();
+  if (vista === "fichajes") return renderFichajes();
   if (vista === "configuracion") return renderConfiguracion();
   return renderInicio();
 }
