@@ -88,7 +88,13 @@ export function renderInicio() {
   `;
 
   document.getElementById("btn_ir_fichajes")?.addEventListener("click", () => {
-    window.location.href = "./admin.html";
+    import("./fichajes.js").then(mod => {
+  if (mod && typeof mod.renderFichajes === "function") {
+    mod.renderFichajes();
+  } else {
+    alert("Error cargando fichajes");
+  }
+});
   });
 
   document.getElementById("btn_ir_agenda")?.addEventListener("click", () => {
