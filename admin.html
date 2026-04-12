@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zentryx - Admin Fichajes</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+    .wrap {
+      max-width: 900px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+    button {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .borrar {
+      background: red;
+      color: white;
+    }
+    .recargar {
+      background: #2563eb;
+      color: white;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Panel de Fichajes</h1>
+
+  <button class="recargar" onclick="cargar()">Recargar</button>
+
+  <table id="tabla">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Trabajador</th>
+        <th>Tipo</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const supabaseUrl = "https://TU_URL.supabase.co";
+const supabaseKey = "TU_API_KEY";
+
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+async function cargar() {
+  const { data, error } = await supabase
+    .from("fichajes")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  const tbody = document.querySelector("#tabla tbody");
+  tbody.innerHTML = "";
+
+  data.forEach(f => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${new Date(f.created_at).toLocaleString()}</td>
+      <td>${f.trabajador || ""}</td>
+      <td>${f.tipo || ""}</td>
+      <td><button class="borrar" onclick="borrar(${f.id})">Eliminar</button></td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+async function borrar(id) {
+  if (!confirm("¿Eliminar fichaje?")) return;
+
+  await supabase.from("fichajes").delete().eq("id", id);
+  cargar();
+}
+
+cargar();
+</script>
+
+</body>
+</html>
