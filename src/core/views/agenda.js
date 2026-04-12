@@ -1,3 +1,5 @@
+import { renderMenu, activarMenu } from "../../components/menu.js";
+
 export function renderAgenda() {
   const app = document.getElementById("app");
   if (!app) return;
@@ -6,7 +8,7 @@ export function renderAgenda() {
     <div style="
       min-height:100vh;
       background:#f3f4f6;
-      padding:24px;
+      padding:24px 24px 110px 24px;
       box-sizing:border-box;
       font-family:Arial,sans-serif;
     ">
@@ -71,26 +73,28 @@ export function renderAgenda() {
           Siguiente fase: conectar eventos reales y sincronización completa.
         </div>
       </div>
+
+      ${renderMenu("agenda")}
     </div>
   `;
 
-  document.getElementById("btn_volver_inicio")?.addEventListener("click", () => {
-    import("./inicio.js").then(mod => {
-      if (mod && typeof mod.renderInicio === "function") {
-        mod.renderInicio();
-      } else {
-        alert("Error cargando inicio");
-      }
-    });
+  activarMenu();
+
+  document.getElementById("btn_volver_inicio")?.addEventListener("click", async () => {
+    const mod = await import("./inicio.js");
+    if (mod && typeof mod.renderInicio === "function") {
+      mod.renderInicio();
+    } else {
+      alert("Error cargando inicio");
+    }
   });
 
-  document.getElementById("btn_ir_fichajes_agenda")?.addEventListener("click", () => {
-    import("./fichajes.js").then(mod => {
-      if (mod && typeof mod.renderFichajes === "function") {
-        mod.renderFichajes();
-      } else {
-        alert("Error cargando fichajes");
-      }
-    });
+  document.getElementById("btn_ir_fichajes_agenda")?.addEventListener("click", async () => {
+    const mod = await import("./fichajes.js");
+    if (mod && typeof mod.renderFichajes === "function") {
+      mod.renderFichajes();
+    } else {
+      alert("Error cargando fichajes");
+    }
   });
 }
