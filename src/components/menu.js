@@ -2,56 +2,63 @@ export function renderMenu(activo = "inicio") {
   return `
     <div style="
       position:fixed;
-      bottom:0;
       left:0;
-      width:100%;
+      right:0;
+      bottom:0;
       height:70px;
       background:#ffffff;
       border-top:1px solid #dbe4ee;
       display:flex;
-      justify-content:space-around;
-      align-items:center;
       z-index:999;
       font-family:Arial,sans-serif;
+      box-shadow:0 -4px 18px rgba(0,0,0,0.06);
     ">
-      <button data-nav="inicio" style="${estilo(activo === "inicio")}">Inicio</button>
-      <button data-nav="agenda" style="${estilo(activo === "agenda")}">Agenda</button>
-      <button data-nav="fichajes" style="${estilo(activo === "fichajes")}">Fichajes</button>
+      <button data-nav="inicio" style="${getButtonStyle(activo === "inicio")}">Inicio</button>
+      <button data-nav="agenda" style="${getButtonStyle(activo === "agenda")}">Agenda</button>
+      <button data-nav="fichajes" style="${getButtonStyle(activo === "fichajes")}">Fichajes</button>
     </div>
   `;
 }
 
-function estilo(activo) {
+function getButtonStyle(isActive) {
   return `
     flex:1;
     height:100%;
     border:none;
-    background:${activo ? "#4361ee" : "transparent"};
-    color:${activo ? "#fff" : "#111"};
+    background:${isActive ? "#4361ee" : "#ffffff"};
+    color:${isActive ? "#ffffff" : "#111827"};
+    font-size:15px;
     font-weight:800;
-    font-size:14px;
     cursor:pointer;
   `;
 }
 
 export function activarMenu() {
-  document.querySelectorAll("[data-nav]").forEach(btn => {
+  document.querySelectorAll("[data-nav]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const destino = btn.getAttribute("data-nav");
 
       if (destino === "inicio") {
         const mod = await import("../core/views/inicio.js");
-        mod.renderInicio();
+        if (mod && typeof mod.renderInicio === "function") {
+          mod.renderInicio();
+        }
+        return;
       }
 
       if (destino === "agenda") {
         const mod = await import("../core/views/agenda.js");
-        mod.renderAgenda();
+        if (mod && typeof mod.renderAgenda === "function") {
+          mod.renderAgenda();
+        }
+        return;
       }
 
       if (destino === "fichajes") {
         const mod = await import("../core/views/fichajes.js");
-        mod.renderFichajes();
+        if (mod && typeof mod.renderFichajes === "function") {
+          mod.renderFichajes();
+        }
       }
     });
   });
