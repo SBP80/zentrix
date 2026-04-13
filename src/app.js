@@ -1,5 +1,5 @@
 const SUPABASE_URL = "https://fxxfgbxnqhtlrwiyyafu.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_1RbCV4I_yhpFwZ14wK7e2Q_a6FSyoxC";
+const SUPABASE_ANON_KEY = "sb_publishable_1RbCV4I_yhpFwZl4wK7e2Q_a6FSyoxC";
 
 const app = document.getElementById("app");
 
