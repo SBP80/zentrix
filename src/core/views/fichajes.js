@@ -1,12 +1,13 @@
 import { renderMenu, activarMenu } from "../../components/menu.js";
-import { getCurrentUser } from "../../auth/session.js";
-import { getSupabaseHeaders, getSupabaseRestUrl } from "../../config/supabase.js";
+import { requireAuth } from "../guards.js";
+import { supabase } from "../../config/supabase.js";
 
 export function renderFichajes() {
+  const sesion = requireAuth();
+  if (!sesion) return;
+
   const app = document.getElementById("app");
   if (!app) return;
-
-  const user = getCurrentUser();
 
   app.innerHTML = `
     <div style="
@@ -37,7 +38,7 @@ export function renderFichajes() {
           font-size:16px;
           font-weight:700;
         ">
-          Usuario activo: ${escapeHtml(user?.nombre || user?.usuario || "Sin usuario")}
+          Usuario activo: ${escapeHtml(sesion.nombre || sesion.usuario || "Sin usuario")}
         </div>
 
         <div style="
@@ -127,10 +128,10 @@ export function renderFichajes() {
 
   activarMenu();
 
-  document.getElementById("btn_entrada")?.addEventListener("click", () => fichar("entrada"));
-  document.getElementById("btn_salida")?.addEventListener("click", () => fichar("salida"));
+  document.getElementById("btn_entrada")?.addEventListener("click", () => fichar("entrada", sesion));
+  document.getElementById("btn_salida")?.addEventListener("click", () => fichar("salida", sesion));
 
-  cargarUltimosFichajes();
+  cargarUltimosFichajes(sesion);
 }
 
 const thStyle = `
@@ -142,21 +143,21 @@ const thStyle = `
   font-weight:800;
 `;
 
+const tdStyle = `
+  padding:14px;
+  text-align:left;
+  border-bottom:1px solid #e5e7eb;
+  color:#111827;
+  font-size:15px;
+  vertical-align:top;
+`;
+
 function setEstado(texto) {
   const el = document.getElementById("estado_fichaje");
-  if (el) {
-    el.textContent = "Estado: " + texto;
-  }
+  if (el) el.textContent = "Estado: " + texto;
 }
 
-async function fichar(tipo) {
-  const user = getCurrentUser();
-
-  if (!user) {
-    setEstado("no hay usuario activo.");
-    return;
-  }
-
+async function fichar(tipo, sesion) {
   try {
     setEstado("obteniendo ubicación...");
 
@@ -173,50 +174,29 @@ async function fichar(tipo) {
 
     setEstado("guardando fichaje...");
 
-    const payload = {
-      trabajador: user.nombre || user.usuario || "Sin nombre",
+    const { error } = await supabase.from("fichajes").insert({
+      trabajador: sesion.nombre || sesion.usuario || "Sin nombre",
       tipo,
       nota: "",
       lat,
       lng,
       direccion
-    };
-
-    const res = await fetch(getSupabaseRestUrl("fichajes"), {
-      method: "POST",
-      headers: getSupabaseHeaders({
-        "Content-Type": "application/json",
-        Prefer: "return=representation"
-      }),
-      body: JSON.stringify(payload)
     });
 
-    const text = await res.text();
-    let data = null;
-
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = text;
-    }
-
-    if (!res.ok) {
-      const msg = data?.message || text || `HTTP ${res.status}`;
-      setEstado("error guardando fichaje: " + msg);
+    if (error) {
+      setEstado("error guardando fichaje: " + error.message);
       return;
     }
 
-    setEstado(
-      `${tipo === "entrada" ? "entrada" : "salida"} guardada correctamente.\n${direccion}`
-    );
+    setEstado(`${tipo === "entrada" ? "entrada" : "salida"} guardada correctamente.\n${direccion}`);
 
-    await cargarUltimosFichajes();
+    await cargarUltimosFichajes(sesion);
   } catch (error) {
     setEstado("error general: " + (error?.message || String(error)));
   }
 }
 
-async function cargarUltimosFichajes() {
+async function cargarUltimosFichajes(sesion) {
   const tbody = document.getElementById("tabla_fichajes_body");
   if (!tbody) return;
 
@@ -232,84 +212,16 @@ async function cargarUltimosFichajes() {
     </tr>
   `;
 
-  try {
-    const user = getCurrentUser();
-    const nombre = user?.nombre || user?.usuario || "";
+  const nombre = sesion.nombre || sesion.usuario || "";
 
-    let url = getSupabaseRestUrl(
-      `fichajes?select=*&order=created_at.desc&limit=20`
-    );
+  const { data, error } = await supabase
+    .from("fichajes")
+    .select("*")
+    .eq("trabajador", nombre)
+    .order("created_at", { ascending: false })
+    .limit(20);
 
-    if (nombre) {
-      url = getSupabaseRestUrl(
-        `fichajes?select=*&trabajador=eq.${encodeURIComponent(nombre)}&order=created_at.desc&limit=20`
-      );
-    }
-
-    const res = await fetch(url, {
-      method: "GET",
-      headers: getSupabaseHeaders({
-        Accept: "application/json"
-      })
-    });
-
-    const text = await res.text();
-    let data = [];
-
-    try {
-      data = text ? JSON.parse(text) : [];
-    } catch {
-      data = [];
-    }
-
-    if (!res.ok) {
-      const msg = data?.message || text || `HTTP ${res.status}`;
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="4" style="
-            padding:16px;
-            border-bottom:1px solid #e5e7eb;
-            color:#b91c1c;
-          ">
-            Error cargando fichajes: ${escapeHtml(msg)}
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    if (!Array.isArray(data) || data.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="4" style="
-            padding:16px;
-            border-bottom:1px solid #e5e7eb;
-            color:#64748b;
-          ">
-            No hay fichajes todavía.
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    tbody.innerHTML = data.map((item) => {
-      const fecha = item.created_at
-        ? new Date(item.created_at).toLocaleString("es-ES")
-        : "";
-
-      const tipoTexto = item.tipo === "entrada" ? "Entrada" : "Salida";
-
-      return `
-        <tr>
-          <td style="${tdStyle}">${escapeHtml(fecha)}</td>
-          <td style="${tdStyle}">${escapeHtml(item.trabajador)}</td>
-          <td style="${tdStyle}">${escapeHtml(tipoTexto)}</td>
-          <td style="${tdStyle}">${escapeHtml(item.direccion || "")}</td>
-        </tr>
-      `;
-    }).join("");
-  } catch (error) {
+  if (error) {
     tbody.innerHTML = `
       <tr>
         <td colspan="4" style="
@@ -317,21 +229,42 @@ async function cargarUltimosFichajes() {
           border-bottom:1px solid #e5e7eb;
           color:#b91c1c;
         ">
-          Error general cargando fichajes: ${escapeHtml(error?.message || String(error))}
+          Error cargando fichajes: ${escapeHtml(error.message)}
         </td>
       </tr>
     `;
+    return;
   }
-}
 
-const tdStyle = `
-  padding:14px;
-  text-align:left;
-  border-bottom:1px solid #e5e7eb;
-  color:#111827;
-  font-size:15px;
-  vertical-align:top;
-`;
+  if (!data || data.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" style="
+          padding:16px;
+          border-bottom:1px solid #e5e7eb;
+          color:#64748b;
+        ">
+          No hay fichajes todavía.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = data.map((item) => {
+    const fecha = item.created_at ? new Date(item.created_at).toLocaleString("es-ES") : "";
+    const tipoTexto = item.tipo === "entrada" ? "Entrada" : "Salida";
+
+    return `
+      <tr>
+        <td style="${tdStyle}">${escapeHtml(fecha)}</td>
+        <td style="${tdStyle}">${escapeHtml(item.trabajador)}</td>
+        <td style="${tdStyle}">${escapeHtml(tipoTexto)}</td>
+        <td style="${tdStyle}">${escapeHtml(item.direccion || "")}</td>
+      </tr>
+    `;
+  }).join("");
+}
 
 function getCurrentPositionSafe() {
   return new Promise((resolve, reject) => {
@@ -354,21 +287,12 @@ function getCurrentPositionSafe() {
 
 async function getDireccionDesdeCoords(lat, lng) {
   try {
-    const url =
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
 
-    const res = await fetch(url, {
-      headers: {
-        Accept: "application/json"
-      }
-    });
-
-    if (!res.ok) {
-      return `Lat ${lat}, Lng ${lng}`;
-    }
+    if (!res.ok) return `Lat ${lat}, Lng ${lng}`;
 
     const data = await res.json();
-
     return data?.display_name || `Lat ${lat}, Lng ${lng}`;
   } catch {
     return `Lat ${lat}, Lng ${lng}`;
