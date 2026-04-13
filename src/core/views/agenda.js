@@ -1,6 +1,10 @@
 import { renderMenu, activarMenu } from "../../components/menu.js";
+import { requireAuth } from "../guards.js";
 
 export function renderAgenda() {
+  const sesion = requireAuth();
+  if (!sesion) return;
+
   const app = document.getElementById("app");
   if (!app) return;
 
@@ -26,6 +30,15 @@ export function renderAgenda() {
           font-size:34px;
           color:#111827;
         ">Agenda</h1>
+
+        <div style="
+          margin-bottom:18px;
+          color:#475569;
+          font-size:16px;
+          font-weight:700;
+        ">
+          Usuario activo: ${escapeHtml(sesion.nombre || sesion.usuario || "Sin usuario")}
+        </div>
 
         <div style="
           display:grid;
@@ -68,9 +81,7 @@ export function renderAgenda() {
           font-size:16px;
           line-height:1.6;
         ">
-          Pantalla de agenda cargada correctamente.
-          <br><br>
-          Siguiente fase: conectar eventos reales y sincronización completa.
+          Agenda protegida correctamente.
         </div>
       </div>
 
@@ -84,8 +95,6 @@ export function renderAgenda() {
     const mod = await import("./inicio.js");
     if (mod && typeof mod.renderInicio === "function") {
       mod.renderInicio();
-    } else {
-      alert("Error cargando inicio");
     }
   });
 
@@ -93,8 +102,15 @@ export function renderAgenda() {
     const mod = await import("./fichajes.js");
     if (mod && typeof mod.renderFichajes === "function") {
       mod.renderFichajes();
-    } else {
-      alert("Error cargando fichajes");
     }
   });
+}
+
+function escapeHtml(texto) {
+  return String(texto || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
