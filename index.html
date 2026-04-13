@@ -3,12 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zentryx</title>
+  <title>Zentryx test</title>
 </head>
+<body style="margin:0;background:#f3f4f6;font-family:Arial,sans-serif;">
+  <div id="test" style="
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    box-sizing:border-box;
+  ">
+    <div style="
+      width:100%;
+      max-width:700px;
+      background:#ffffff;
+      border:1px solid #dbe4ee;
+      border-radius:20px;
+      padding:24px;
+      box-sizing:border-box;
+      text-align:center;
+    ">
+      <h1 style="margin:0 0 12px 0;font-size:34px;color:#111827;">Zentryx</h1>
+      <div id="estado" style="font-size:20px;color:#111827;font-weight:800;">
+        HTML OK
+      </div>
+    </div>
+  </div>
 
-<body>
-  <div id="app"></div>
-
-  <script type="module" src="./src/app.js"></script>
+  <script>
+    document.getElementById("estado").textContent = "HTML + JS OK";
+    alert("HTML + JS OK");
+  </script>
 </body>
 </html>
