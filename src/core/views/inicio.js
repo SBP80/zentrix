@@ -1,6 +1,10 @@
 import { renderMenu, activarMenu } from "../../components/menu.js";
+import { requireAuth, logout } from "../guards.js";
 
 export function renderInicio() {
+  const sesion = requireAuth();
+  if (!sesion) return;
+
   const app = document.getElementById("app");
   if (!app) return;
 
@@ -22,10 +26,21 @@ export function renderInicio() {
         box-sizing:border-box;
       ">
         <h1 style="
-          margin:0 0 18px 0;
+          margin:0 0 10px 0;
           font-size:34px;
           color:#111827;
         ">Inicio</h1>
+
+        <div style="
+          margin-bottom:18px;
+          color:#475569;
+          font-size:16px;
+          font-weight:700;
+        ">
+          Usuario activo: ${escapeHtml(sesion.nombre || sesion.usuario || "Sin usuario")}
+          <br>
+          Rol: ${escapeHtml(sesion.rol || "Sin rol")}
+        </div>
 
         <div style="
           display:grid;
@@ -81,9 +96,9 @@ export function renderInicio() {
           font-size:16px;
           line-height:1.6;
         ">
-          Pantalla de inicio cargada correctamente.
+          Pantalla de inicio protegida correctamente.
           <br><br>
-          Ya está conectada con el login.
+          Solo entra quien tenga sesión activa.
         </div>
       </div>
 
@@ -97,8 +112,6 @@ export function renderInicio() {
     const mod = await import("./fichajes.js");
     if (mod && typeof mod.renderFichajes === "function") {
       mod.renderFichajes();
-    } else {
-      alert("Error cargando fichajes");
     }
   });
 
@@ -106,13 +119,19 @@ export function renderInicio() {
     const mod = await import("./agenda.js");
     if (mod && typeof mod.renderAgenda === "function") {
       mod.renderAgenda();
-    } else {
-      alert("Error cargando agenda");
     }
   });
 
   document.getElementById("btn_cerrar_sesion_inicio")?.addEventListener("click", () => {
-    localStorage.removeItem("zentryx_user");
-    window.location.reload();
+    logout();
   });
+}
+
+function escapeHtml(texto) {
+  return String(texto || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
