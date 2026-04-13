@@ -1,4 +1,10 @@
+import { getSupabaseRestUrl, getSupabaseHeaders } from "../config/supabase.js";
+
 export function renderLoginView() {
+  setTimeout(() => {
+    initLogin();
+  }, 0);
+
   return `
     <div style="
       min-height:100vh;
@@ -36,7 +42,7 @@ export function renderLoginView() {
 
         <div style="display:grid;gap:14px;">
           <div>
-            <label style="
+            <label for="user" style="
               display:block;
               margin-bottom:6px;
               font-weight:700;
@@ -44,8 +50,9 @@ export function renderLoginView() {
             ">Usuario</label>
 
             <input
+              id="user"
               type="text"
-              placeholder="Introduce tu usuario"
+              placeholder="Usuario"
               style="
                 width:100%;
                 height:48px;
@@ -59,7 +66,7 @@ export function renderLoginView() {
           </div>
 
           <div>
-            <label style="
+            <label for="pass" style="
               display:block;
               margin-bottom:6px;
               font-weight:700;
@@ -67,8 +74,9 @@ export function renderLoginView() {
             ">Contraseña</label>
 
             <input
+              id="pass"
               type="password"
-              placeholder="Introduce tu contraseña"
+              placeholder="Contraseña"
               style="
                 width:100%;
                 height:48px;
@@ -81,7 +89,7 @@ export function renderLoginView() {
             />
           </div>
 
-          <div style="
+          <div id="msg" style="
             min-height:20px;
             color:#16a34a;
             font-size:14px;
@@ -89,6 +97,7 @@ export function renderLoginView() {
           ">LOGIN OK</div>
 
           <button
+            id="btn_login"
             type="button"
             style="
               height:50px;
@@ -107,4 +116,66 @@ export function renderLoginView() {
       </div>
     </div>
   `;
+}
+
+function initLogin() {
+  const btn = document.getElementById("btn_login");
+  const userEl = document.getElementById("user");
+  const passEl = document.getElementById("pass");
+  const msg = document.getElementById("msg");
+
+  if (!btn || !userEl || !passEl || !msg) return;
+
+  async function entrar() {
+    const usuario = String(userEl.value || "").trim();
+    const password = String(passEl.value || "").trim();
+
+    if (!usuario || !password) {
+      msg.style.color = "#b91c1c";
+      msg.textContent = "Escribe usuario y contraseña";
+      return;
+    }
+
+    msg.style.color = "#111827";
+    msg.textContent = "Comprobando...";
+
+    try {
+      const url = getSupabaseRestUrl(
+        `personal?select=*&usuario=eq.${encodeURIComponent(usuario)}&password=eq.${encodeURIComponent(password)}&activo=eq.true`
+      );
+
+      const res = await fetch(url, {
+        method: "GET",
+        headers: getSupabaseHeaders({
+          Accept: "application/json"
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        msg.style.color = "#b91c1c";
+        msg.textContent = data?.message || "Error consultando usuarios";
+        return;
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+        msg.style.color = "#b91c1c";
+        msg.textContent = "Usuario o contraseña incorrectos";
+        return;
+      }
+
+      localStorage.setItem("usuario", JSON.stringify(data[0]));
+      location.reload();
+    } catch (error) {
+      msg.style.color = "#b91c1c";
+      msg.textContent = "Error de conexión";
+    }
+  }
+
+  btn.addEventListener("click", entrar);
+
+  passEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") entrar();
+  });
 }
