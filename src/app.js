@@ -1,96 +1,41 @@
-import { renderLoginView } from "./auth/login-view.js";
-import { renderInicio } from "./core/views/inicio.js";
+const app = document.getElementById("app");
 
-function getSesion() {
-  try {
-    return JSON.parse(localStorage.getItem("usuario") || "null");
-  } catch {
-    return null;
-  }
-}
-
-function renderLogin() {
-  const app = document.getElementById("app");
-  if (!app) return;
-
-  app.innerHTML = renderLoginView();
-}
-
-function renderApp() {
-  const sesion = getSesion();
-
-  if (!sesion) {
-    renderLogin();
-    return;
-  }
-
-  renderInicio();
-}
-
-function boot() {
-  try {
-    renderApp();
-  } catch (error) {
-    const app = document.getElementById("app");
-    if (!app) return;
-
-    app.innerHTML = `
+if (app) {
+  app.innerHTML = `
+    <div style="
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#f3f4f6;
+      font-family:Arial,sans-serif;
+      padding:24px;
+      box-sizing:border-box;
+    ">
       <div style="
-        min-height:100vh;
-        background:#f3f4f6;
+        width:100%;
+        max-width:700px;
+        background:#ffffff;
+        border:1px solid #dbe4ee;
+        border-radius:20px;
         padding:24px;
         box-sizing:border-box;
-        font-family:Arial,sans-serif;
+        text-align:center;
       ">
+        <h1 style="
+          margin:0 0 12px 0;
+          font-size:34px;
+          color:#111827;
+        ">Zentryx</h1>
+
         <div style="
-          max-width:900px;
-          margin:0 auto;
-          background:#ffffff;
-          border:1px solid #fecaca;
-          border-radius:20px;
-          padding:24px;
-          box-sizing:border-box;
+          font-size:20px;
+          color:#16a34a;
+          font-weight:800;
         ">
-          <h1 style="
-            margin:0 0 14px 0;
-            font-size:32px;
-            color:#991b1b;
-          ">Error cargando la app</h1>
-
-          <div style="
-            padding:16px;
-            border:1px solid #fecaca;
-            border-radius:14px;
-            background:#fef2f2;
-            color:#991b1b;
-            white-space:pre-wrap;
-            word-break:break-word;
-            font-size:15px;
-          ">${String(error?.message || error)}</div>
-
-          <button id="btn_reset_app" type="button" style="
-            margin-top:16px;
-            height:48px;
-            border:none;
-            border-radius:12px;
-            background:#4361ee;
-            color:#ffffff;
-            font-size:16px;
-            font-weight:800;
-            padding:0 18px;
-            cursor:pointer;
-          ">
-            Volver al login
-          </button>
+          APP MINIMA OK
         </div>
       </div>
-    `;
-
-    document.getElementById("btn_reset_app")?.addEventListener("click", () => {
-      localStorage.removeItem("usuario");
-      location.reload();
-    });
-  }
+    </div>
+  `;
 }
-
-boot();
