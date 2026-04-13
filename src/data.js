@@ -1,19 +1,19 @@
 const SUPABASE_URL = "https://fxxfgbxnqhtlrwiyyafu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_1RbCV4I_yhpFwZl4wK7e2Q_a6FSyoxC";
 
-function headers(extra = {}) {
+function getHeaders(extra = {}) {
   return {
     apikey: SUPABASE_ANON_KEY,
-    Authorization: "Bearer " + SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     ...extra
   };
 }
 
-function restUrl(path = "") {
+function getRestUrl(path = "") {
   return `${SUPABASE_URL}/rest/v1/${path}`;
 }
 
-async function parseJsonSafe(res) {
+async function safeJson(res) {
   try {
     return await res.json();
   } catch {
@@ -21,20 +21,31 @@ async function parseJsonSafe(res) {
   }
 }
 
+function buildEq(value) {
+  return encodeURIComponent(String(value ?? "").trim());
+}
+
+/* =========================
+   LOGIN USUARIOS
+========================= */
+
 export async function loginUsuario(usuario, password) {
-  const url = restUrl(
-    `personal?select=*&usuario=eq.${encodeURIComponent(usuario)}&password=eq.${encodeURIComponent(password)}&activo=eq.true`
-  );
+  const url =
+    getRestUrl(
+      `personal?select=*&usuario=eq.${buildEq(usuario)}&password=eq.${buildEq(password)}&activo=eq.true&limit=1`
+    );
 
   const res = await fetch(url, {
     method: "GET",
-    headers: headers({ Accept: "application/json" })
+    headers: getHeaders({
+      Accept: "application/json"
+    })
   });
 
-  const data = await parseJsonSafe(res);
+  const data = await safeJson(res);
 
   if (!res.ok) {
-    throw new Error(data?.message || "Error consultando usuarios");
+    throw new Error(data?.message || data?.error || "Error consultando usuarios");
   }
 
   if (!Array.isArray(data) || data.length === 0) {
@@ -44,22 +55,33 @@ export async function loginUsuario(usuario, password) {
   return data[0];
 }
 
-export async function guardarFichaje({ usuario_id, trabajador, tipo, nota = "" }) {
-  const res = await fetch(restUrl("fichajes"), {
+/* =========================
+   FICHAJES
+========================= */
+
+export async function guardarFichaje({
+  usuario_id,
+  trabajador,
+  tipo,
+  nota = ""
+}) {
+  const body = {
+    usuario_id,
+    trabajador,
+    tipo,
+    nota
+  };
+
+  const res = await fetch(getRestUrl("fichajes"), {
     method: "POST",
-    headers: headers({
+    headers: getHeaders({
       "Content-Type": "application/json",
       Prefer: "return=representation"
     }),
-    body: JSON.stringify({
-      usuario_id,
-      trabajador,
-      tipo,
-      nota
-    })
+    body: JSON.stringify(body)
   });
 
-  const data = await parseJsonSafe(res);
+  const data = await safeJson(res);
 
   if (!res.ok) {
     throw new Error(data?.message || data?.error || "Error guardando fichaje");
@@ -69,23 +91,30 @@ export async function guardarFichaje({ usuario_id, trabajador, tipo, nota = "" }
 }
 
 export async function leerUltimosFichajes(usuarioId, limit = 10) {
-  const url = restUrl(
-    `fichajes?select=*&usuario_id=eq.${encodeURIComponent(usuarioId)}&order=created_at.desc&limit=${encodeURIComponent(limit)}`
-  );
+  const url =
+    getRestUrl(
+      `fichajes?select=*&usuario_id=eq.${buildEq(usuarioId)}&order=created_at.desc&limit=${encodeURIComponent(limit)}`
+    );
 
   const res = await fetch(url, {
     method: "GET",
-    headers: headers({ Accept: "application/json" })
+    headers: getHeaders({
+      Accept: "application/json"
+    })
   });
 
-  const data = await parseJsonSafe(res);
+  const data = await safeJson(res);
 
   if (!res.ok) {
-    throw new Error(data?.message || "Error cargando fichajes");
+    throw new Error(data?.message || data?.error || "Error cargando fichajes");
   }
 
   return Array.isArray(data) ? data : [];
 }
+
+/* =========================
+   AGENDA
+========================= */
 
 export async function guardarEventoAgenda({
   usuario_id,
@@ -93,25 +122,27 @@ export async function guardarEventoAgenda({
   titulo,
   fecha,
   hora,
-  nota
+  nota = ""
 }) {
-  const res = await fetch(restUrl("Agenda"), {
+  const body = {
+    usuario_id,
+    usuario_nombre,
+    titulo,
+    fecha,
+    hora,
+    nota
+  };
+
+  const res = await fetch(getRestUrl("Agenda"), {
     method: "POST",
-    headers: headers({
+    headers: getHeaders({
       "Content-Type": "application/json",
       Prefer: "return=representation"
     }),
-    body: JSON.stringify({
-      usuario_id,
-      usuario_nombre,
-      titulo,
-      fecha,
-      hora,
-      nota
-    })
+    body: JSON.stringify(body)
   });
 
-  const data = await parseJsonSafe(res);
+  const data = await safeJson(res);
 
   if (!res.ok) {
     throw new Error(data?.message || data?.error || "Error guardando evento");
@@ -121,19 +152,22 @@ export async function guardarEventoAgenda({
 }
 
 export async function leerEventosAgenda(usuarioId, limit = 20) {
-  const url = restUrl(
-    `Agenda?select=*&usuario_id=eq.${encodeURIComponent(usuarioId)}&order=fecha.asc&order=hora.asc&limit=${encodeURIComponent(limit)}`
-  );
+  const url =
+    getRestUrl(
+      `Agenda?select=*&usuario_id=eq.${buildEq(usuarioId)}&order=fecha.asc&order=hora.asc&limit=${encodeURIComponent(limit)}`
+    );
 
   const res = await fetch(url, {
     method: "GET",
-    headers: headers({ Accept: "application/json" })
+    headers: getHeaders({
+      Accept: "application/json"
+    })
   });
 
-  const data = await parseJsonSafe(res);
+  const data = await safeJson(res);
 
   if (!res.ok) {
-    throw new Error(data?.message || "Error cargando eventos");
+    throw new Error(data?.message || data?.error || "Error cargando eventos");
   }
 
   return Array.isArray(data) ? data : [];
