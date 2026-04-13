@@ -1,101 +1,96 @@
-import { loginUsuario } from "./core/data/personal.js";
+import { renderLoginView } from "./auth/login-view.js";
+import { renderInicio } from "./core/views/inicio.js";
 
-function guardarSesion(usuario) {
-  localStorage.setItem("zentryx_user", JSON.stringify(usuario));
-}
-
-function leerSesion() {
+function getSesion() {
   try {
-    return JSON.parse(localStorage.getItem("zentryx_user") || "null");
+    return JSON.parse(localStorage.getItem("usuario") || "null");
   } catch {
     return null;
   }
-}
-
-function cerrarSesion() {
-  localStorage.removeItem("zentryx_user");
-  location.reload();
 }
 
 function renderLogin() {
   const app = document.getElementById("app");
   if (!app) return;
 
-  app.innerHTML = `
-    <div style="
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-      background:#f3f4f6;
-      font-family:Arial,sans-serif;
-    ">
-      <div style="
-        width:100%;
-        max-width:420px;
-        background:#ffffff;
-        border:1px solid #dbe4ee;
-        border-radius:20px;
-        padding:24px;
-      ">
-        <h1 style="margin:0 0 10px 0;font-size:34px;">Zentryx</h1>
-
-        <div style="display:grid;gap:14px;">
-          <input id="login_usuario" placeholder="Usuario" style="height:48px;padding:10px;">
-          <input id="login_password" type="password" placeholder="Contraseña" style="height:48px;padding:10px;">
-
-          <div id="login_error" style="color:red;"></div>
-
-          <button id="btn_login" style="height:50px;background:#4361ee;color:#fff;">
-            Entrar
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const usuarioEl = document.getElementById("login_usuario");
-  const passwordEl = document.getElementById("login_password");
-  const errorEl = document.getElementById("login_error");
-
-  document.getElementById("btn_login").addEventListener("click", entrar);
-
-  async function entrar() {
-    const usuario = usuarioEl.value.trim();
-    const password = passwordEl.value;
-
-    errorEl.textContent = "";
-
-    try {
-      const user = await loginUsuario(usuario, password);
-
-      guardarSesion(user);
-
-      renderApp();
-    } catch (e) {
-      errorEl.textContent = e.message;
-    }
-  }
+  app.innerHTML = renderLoginView();
 }
 
-async function renderApp() {
-  const app = document.getElementById("app");
-  const sesion = leerSesion();
+function renderApp() {
+  const sesion = getSesion();
 
   if (!sesion) {
     renderLogin();
     return;
   }
 
-  app.innerHTML = `<div style="padding:20px;">Cargando...</div>`;
-
-  const mod = await import("./core/views/inicio.js");
-  mod.renderInicio();
+  renderInicio();
 }
 
-if (leerSesion()) {
-  renderApp();
-} else {
-  renderLogin();
+function boot() {
+  try {
+    renderApp();
+  } catch (error) {
+    const app = document.getElementById("app");
+    if (!app) return;
+
+    app.innerHTML = `
+      <div style="
+        min-height:100vh;
+        background:#f3f4f6;
+        padding:24px;
+        box-sizing:border-box;
+        font-family:Arial,sans-serif;
+      ">
+        <div style="
+          max-width:900px;
+          margin:0 auto;
+          background:#ffffff;
+          border:1px solid #fecaca;
+          border-radius:20px;
+          padding:24px;
+          box-sizing:border-box;
+        ">
+          <h1 style="
+            margin:0 0 14px 0;
+            font-size:32px;
+            color:#991b1b;
+          ">Error cargando la app</h1>
+
+          <div style="
+            padding:16px;
+            border:1px solid #fecaca;
+            border-radius:14px;
+            background:#fef2f2;
+            color:#991b1b;
+            white-space:pre-wrap;
+            word-break:break-word;
+            font-size:15px;
+          ">${String(error?.message || error)}</div>
+
+          <button id="btn_reset_app" type="button" style="
+            margin-top:16px;
+            height:48px;
+            border:none;
+            border-radius:12px;
+            background:#4361ee;
+            color:#ffffff;
+            font-size:16px;
+            font-weight:800;
+            padding:0 18px;
+            cursor:pointer;
+          ">
+            Volver al login
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("btn_reset_app")?.addEventListener("click", () => {
+      localStorage.removeItem("usuario");
+      location.reload();
+    });
+  }
 }
+
+boot();
