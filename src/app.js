@@ -264,6 +264,8 @@ function renderHome() {
       Usuario: ${escapeHtml(user.nombre || user.usuario || "")}
       <br>
       Rol: ${escapeHtml(user.rol || "")}
+      <br>
+      ID usuario: ${escapeHtml(user.id)}
     </div>
 
     <div style="display:grid;gap:12px;">
@@ -330,8 +332,11 @@ function renderFichajes() {
       color:#475569;
       font-size:16px;
       font-weight:700;
+      line-height:1.6;
     ">
       Usuario activo: ${escapeHtml(user.nombre || user.usuario || "")}
+      <br>
+      ID usuario: ${escapeHtml(user.id)}
     </div>
 
     <div style="display:grid;gap:12px;">
@@ -341,6 +346,10 @@ function renderFichajes() {
 
       <button id="btn_fichar_salida" type="button" style="${buttonStyle("#dc2626")}">
         Salida
+      </button>
+
+      <button id="btn_ver_fichajes" type="button" style="${buttonStyle("#0f766e")}">
+        Ver mis últimos fichajes
       </button>
 
       <button id="btn_volver_inicio_1" type="button" style="${buttonStyle("#475569")}">
@@ -361,6 +370,19 @@ function renderFichajes() {
     ">
       Estado: listo para fichar.
     </div>
+
+    <div id="lista_fichajes" style="
+      margin-top:20px;
+      padding:16px;
+      border:1px solid #dbe4ee;
+      border-radius:14px;
+      background:#ffffff;
+      color:#111827;
+      line-height:1.6;
+      white-space:pre-wrap;
+      word-break:break-word;
+      display:none;
+    "></div>
   `);
 
   document.getElementById("btn_fichar_entrada")?.addEventListener("click", () => {
@@ -369,6 +391,10 @@ function renderFichajes() {
 
   document.getElementById("btn_fichar_salida")?.addEventListener("click", () => {
     fichar("salida");
+  });
+
+  document.getElementById("btn_ver_fichajes")?.addEventListener("click", () => {
+    verUltimosFichajes();
   });
 
   document.getElementById("btn_volver_inicio_1")?.addEventListener("click", () => {
@@ -389,6 +415,7 @@ async function fichar(tipo) {
 
   try {
     const payload = {
+      usuario_id: user.id,
       trabajador: user.nombre || user.usuario || "Sin nombre",
       tipo,
       nota: ""
@@ -413,6 +440,58 @@ async function fichar(tipo) {
     estado.textContent = `Estado: ${tipo} guardada correctamente.`;
   } catch (error) {
     estado.textContent = "Estado: error de conexión";
+  }
+}
+
+async function verUltimosFichajes() {
+  const user = getSesion();
+  const box = document.getElementById("lista_fichajes");
+  const estado = document.getElementById("estado_fichaje");
+
+  if (!user || !box || !estado) {
+    renderLogin();
+    return;
+  }
+
+  box.style.display = "block";
+  box.textContent = "Cargando fichajes...";
+
+  try {
+    const url = restUrl(
+      `fichajes?select=*&usuario_id=eq.${encodeURIComponent(user.id)}&order=created_at.desc&limit=10`
+    );
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: headers({ Accept: "application/json" })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      box.textContent = "Error cargando fichajes";
+      return;
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      box.textContent = "No hay fichajes para este usuario.";
+      return;
+    }
+
+    box.innerHTML = data.map((item) => {
+      const fecha = item.created_at
+        ? new Date(item.created_at).toLocaleString("es-ES")
+        : "";
+      return `
+        <div style="padding:10px 0;border-bottom:1px solid #e5e7eb;">
+          <strong>${escapeHtml(item.tipo || "")}</strong><br>
+          ${escapeHtml(fecha)}<br>
+          usuario_id: ${escapeHtml(item.usuario_id)}
+        </div>
+      `;
+    }).join("");
+  } catch (error) {
+    box.textContent = "Error de conexión";
   }
 }
 
@@ -491,6 +570,8 @@ function renderPersonal() {
       Usuario: ${escapeHtml(user.usuario || "")}
       <br>
       Rol: ${escapeHtml(user.rol || "")}
+      <br>
+      ID: ${escapeHtml(user.id)}
     </div>
 
     <button id="btn_volver_inicio_3" type="button" style="${buttonStyle("#475569")}">
