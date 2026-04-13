@@ -1,19 +1,12 @@
-const SUPABASE_URL = "https://fxxfgbxnqhtlrwiyyafu.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_1RbCV4I_yhpFwZl4wK7e2Q_a6FSyoxC";
+import {
+  loginUsuario,
+  guardarFichaje,
+  leerUltimosFichajes,
+  guardarEventoAgenda,
+  leerEventosAgenda
+} from "./data.js";
 
 const app = document.getElementById("app");
-
-function headers(extra = {}) {
-  return {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: "Bearer " + SUPABASE_ANON_KEY,
-    ...extra
-  };
-}
-
-function restUrl(path = "") {
-  return `${SUPABASE_URL}/rest/v1/${path}`;
-}
 
 function getSesion() {
   try {
@@ -201,34 +194,12 @@ function renderLogin() {
     msg.textContent = "Comprobando...";
 
     try {
-      const url = restUrl(
-        `personal?select=*&usuario=eq.${encodeURIComponent(usuario)}&password=eq.${encodeURIComponent(password)}&activo=eq.true`
-      );
-
-      const res = await fetch(url, {
-        method: "GET",
-        headers: headers({ Accept: "application/json" })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        msg.style.color = "#b91c1c";
-        msg.textContent = data?.message || "Error consultando usuarios";
-        return;
-      }
-
-      if (!Array.isArray(data) || data.length === 0) {
-        msg.style.color = "#b91c1c";
-        msg.textContent = "Usuario o contraseña incorrectos";
-        return;
-      }
-
-      setSesion(data[0]);
+      const user = await loginUsuario(usuario, password);
+      setSesion(user);
       renderHome();
     } catch (error) {
       msg.style.color = "#b91c1c";
-      msg.textContent = "Error de conexión";
+      msg.textContent = error?.message || "Error de conexión";
     }
   }
 
@@ -414,41 +385,24 @@ async function fichar(tipo) {
   estado.textContent = "Estado: guardando...";
 
   try {
-    const payload = {
+    await guardarFichaje({
       usuario_id: user.id,
       trabajador: user.nombre || user.usuario || "Sin nombre",
       tipo,
       nota: ""
-    };
-
-    const res = await fetch(restUrl("fichajes"), {
-      method: "POST",
-      headers: headers({
-        "Content-Type": "application/json",
-        Prefer: "return=representation"
-      }),
-      body: JSON.stringify(payload)
     });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      estado.textContent = "Estado: error guardando fichaje";
-      return;
-    }
 
     estado.textContent = `Estado: ${tipo} guardada correctamente.`;
   } catch (error) {
-    estado.textContent = "Estado: error de conexión";
+    estado.textContent = `Estado: ${error?.message || "error guardando fichaje"}`;
   }
 }
 
 async function verUltimosFichajes() {
   const user = getSesion();
   const box = document.getElementById("lista_fichajes");
-  const estado = document.getElementById("estado_fichaje");
 
-  if (!user || !box || !estado) {
+  if (!user || !box) {
     renderLogin();
     return;
   }
@@ -457,21 +411,7 @@ async function verUltimosFichajes() {
   box.textContent = "Cargando fichajes...";
 
   try {
-    const url = restUrl(
-      `fichajes?select=*&usuario_id=eq.${encodeURIComponent(user.id)}&order=created_at.desc&limit=10`
-    );
-
-    const res = await fetch(url, {
-      method: "GET",
-      headers: headers({ Accept: "application/json" })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      box.textContent = "Error cargando fichajes";
-      return;
-    }
+    const data = await leerUltimosFichajes(user.id, 10);
 
     if (!Array.isArray(data) || data.length === 0) {
       box.textContent = "No hay fichajes para este usuario.";
@@ -491,7 +431,7 @@ async function verUltimosFichajes() {
       `;
     }).join("");
   } catch (error) {
-    box.textContent = "Error de conexión";
+    box.textContent = error?.message || "Error cargando fichajes";
   }
 }
 
@@ -515,30 +455,208 @@ function renderAgenda() {
       color:#475569;
       font-size:16px;
       font-weight:700;
+      line-height:1.6;
     ">
       Usuario activo: ${escapeHtml(user.nombre || user.usuario || "")}
+      <br>
+      ID usuario: ${escapeHtml(user.id)}
     </div>
 
     <div style="
+      display:grid;
+      gap:12px;
+      margin-bottom:20px;
+    ">
+      <input
+        id="agenda_titulo"
+        type="text"
+        placeholder="Título del evento"
+        style="
+          width:100%;
+          height:48px;
+          border:1px solid #cbd5e1;
+          border-radius:12px;
+          padding:0 14px;
+          box-sizing:border-box;
+          font-size:16px;
+        "
+      />
+
+      <input
+        id="agenda_fecha"
+        type="date"
+        style="
+          width:100%;
+          height:48px;
+          border:1px solid #cbd5e1;
+          border-radius:12px;
+          padding:0 14px;
+          box-sizing:border-box;
+          font-size:16px;
+        "
+      />
+
+      <input
+        id="agenda_hora"
+        type="time"
+        style="
+          width:100%;
+          height:48px;
+          border:1px solid #cbd5e1;
+          border-radius:12px;
+          padding:0 14px;
+          box-sizing:border-box;
+          font-size:16px;
+        "
+      />
+
+      <textarea
+        id="agenda_nota"
+        placeholder="Nota"
+        style="
+          width:100%;
+          min-height:100px;
+          border:1px solid #cbd5e1;
+          border-radius:12px;
+          padding:14px;
+          box-sizing:border-box;
+          font-size:16px;
+          resize:vertical;
+        "
+      ></textarea>
+
+      <button id="btn_guardar_evento" type="button" style="${buttonStyle("#4361ee")}">
+        Guardar evento
+      </button>
+
+      <button id="btn_ver_eventos" type="button" style="${buttonStyle("#0f766e")}">
+        Ver mis eventos
+      </button>
+
+      <button id="btn_volver_inicio_2" type="button" style="${buttonStyle("#475569")}">
+        Volver
+      </button>
+    </div>
+
+    <div id="estado_agenda" style="
       padding:16px;
       border:1px solid #dbe4ee;
       border-radius:14px;
       background:#f8fafc;
       color:#111827;
       line-height:1.6;
-      margin-bottom:16px;
+      white-space:pre-wrap;
+      word-break:break-word;
     ">
-      Agenda base operativa.
+      Estado: listo.
     </div>
 
-    <button id="btn_volver_inicio_2" type="button" style="${buttonStyle("#475569")}">
-      Volver
-    </button>
+    <div id="lista_agenda" style="
+      margin-top:20px;
+      padding:16px;
+      border:1px solid #dbe4ee;
+      border-radius:14px;
+      background:#ffffff;
+      color:#111827;
+      line-height:1.6;
+      white-space:pre-wrap;
+      word-break:break-word;
+      display:none;
+    "></div>
   `);
+
+  document.getElementById("btn_guardar_evento")?.addEventListener("click", () => {
+    guardarEvento();
+  });
+
+  document.getElementById("btn_ver_eventos")?.addEventListener("click", () => {
+    verEventos();
+  });
 
   document.getElementById("btn_volver_inicio_2")?.addEventListener("click", () => {
     renderHome();
   });
+}
+
+async function guardarEvento() {
+  const user = getSesion();
+  const estado = document.getElementById("estado_agenda");
+  const titulo = document.getElementById("agenda_titulo");
+  const fecha = document.getElementById("agenda_fecha");
+  const hora = document.getElementById("agenda_hora");
+  const nota = document.getElementById("agenda_nota");
+
+  if (!user || !estado || !titulo || !fecha || !hora || !nota) {
+    renderLogin();
+    return;
+  }
+
+  const tituloVal = String(titulo.value || "").trim();
+  const fechaVal = String(fecha.value || "").trim();
+  const horaVal = String(hora.value || "").trim();
+  const notaVal = String(nota.value || "").trim();
+
+  if (!tituloVal || !fechaVal) {
+    estado.textContent = "Estado: escribe al menos título y fecha.";
+    return;
+  }
+
+  estado.textContent = "Estado: guardando evento...";
+
+  try {
+    await guardarEventoAgenda({
+      usuario_id: user.id,
+      usuario_nombre: user.nombre || user.usuario || "Sin nombre",
+      titulo: tituloVal,
+      fecha: fechaVal,
+      hora: horaVal,
+      nota: notaVal
+    });
+
+    estado.textContent = "Estado: evento guardado correctamente.";
+
+    titulo.value = "";
+    fecha.value = "";
+    hora.value = "";
+    nota.value = "";
+  } catch (error) {
+    estado.textContent = error?.message || "Error guardando evento";
+  }
+}
+
+async function verEventos() {
+  const user = getSesion();
+  const box = document.getElementById("lista_agenda");
+
+  if (!user || !box) {
+    renderLogin();
+    return;
+  }
+
+  box.style.display = "block";
+  box.textContent = "Cargando eventos...";
+
+  try {
+    const data = await leerEventosAgenda(user.id, 20);
+
+    if (!Array.isArray(data) || data.length === 0) {
+      box.textContent = "No hay eventos para este usuario.";
+      return;
+    }
+
+    box.innerHTML = data.map((item) => {
+      return `
+        <div style="padding:12px 0;border-bottom:1px solid #e5e7eb;">
+          <strong>${escapeHtml(item.titulo || "")}</strong><br>
+          Fecha: ${escapeHtml(item.fecha || "")}<br>
+          Hora: ${escapeHtml(item.hora || "")}<br>
+          Nota: ${escapeHtml(item.nota || "")}
+        </div>
+      `;
+    }).join("");
+  } catch (error) {
+    box.textContent = error?.message || "Error cargando eventos";
+  }
 }
 
 function renderPersonal() {
