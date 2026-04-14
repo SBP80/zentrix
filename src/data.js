@@ -25,15 +25,10 @@ function buildEq(value) {
   return encodeURIComponent(String(value ?? "").trim());
 }
 
-/* =========================
-   LOGIN USUARIOS
-========================= */
-
 export async function loginUsuario(usuario, password) {
-  const url =
-    getRestUrl(
-      `personal?select=*&usuario=eq.${buildEq(usuario)}&password=eq.${buildEq(password)}&activo=eq.true&limit=1`
-    );
+  const url = getRestUrl(
+    `personal?select=*&usuario=eq.${buildEq(usuario)}&password=eq.${buildEq(password)}&activo=eq.true&limit=1`
+  );
 
   const res = await fetch(url, {
     method: "GET",
@@ -54,10 +49,6 @@ export async function loginUsuario(usuario, password) {
 
   return data[0];
 }
-
-/* =========================
-   FICHAJES
-========================= */
 
 export async function guardarFichaje({
   usuario_id,
@@ -97,10 +88,9 @@ export async function guardarFichaje({
 }
 
 export async function leerUltimosFichajes(usuarioId, limit = 10) {
-  const url =
-    getRestUrl(
-      `fichajes?select=*&usuario_id=eq.${buildEq(usuarioId)}&order=created_at.desc&limit=${encodeURIComponent(limit)}`
-    );
+  const url = getRestUrl(
+    `fichajes?select=*&usuario_id=eq.${buildEq(usuarioId)}&order=created_at.desc&limit=${encodeURIComponent(limit)}`
+  );
 
   const res = await fetch(url, {
     method: "GET",
@@ -118,50 +108,10 @@ export async function leerUltimosFichajes(usuarioId, limit = 10) {
   return Array.isArray(data) ? data : [];
 }
 
-/* =========================
-   AGENDA
-========================= */
-
-export async function guardarEventoAgenda({
-  usuario_id,
-  usuario_nombre,
-  titulo,
-  fecha,
-  hora,
-  nota = ""
-}) {
-  const body = {
-    usuario_id,
-    usuario_nombre,
-    titulo,
-    fecha,
-    hora,
-    nota
-  };
-
-  const res = await fetch(getRestUrl("Agenda"), {
-    method: "POST",
-    headers: getHeaders({
-      "Content-Type": "application/json",
-      Prefer: "return=representation"
-    }),
-    body: JSON.stringify(body)
-  });
-
-  const data = await safeJson(res);
-
-  if (!res.ok) {
-    throw new Error(data?.message || data?.error || "Error guardando evento");
-  }
-
-  return Array.isArray(data) ? data[0] : data;
-}
-
-export async function leerEventosAgenda(usuarioId, limit = 20) {
-  const url =
-    getRestUrl(
-      `Agenda?select=*&usuario_id=eq.${buildEq(usuarioId)}&order=fecha.asc&order=hora.asc&limit=${encodeURIComponent(limit)}`
-    );
+export async function leerHorarioUsuario(usuario_id) {
+  const url = getRestUrl(
+    `horarios_usuario?select=*&usuario_id=eq.${buildEq(usuario_id)}&activo=eq.true&limit=1`
+  );
 
   const res = await fetch(url, {
     method: "GET",
@@ -173,24 +123,12 @@ export async function leerEventosAgenda(usuarioId, limit = 20) {
   const data = await safeJson(res);
 
   if (!res.ok) {
-    throw new Error(data?.message || data?.error || "Error cargando eventos");
+    throw new Error(data?.message || data?.error || "Error leyendo horario");
   }
 
-  return Array.isArray(data) ? data : [];
-}
-export async function leerHorarioUsuario(usuario_id) {
-  const { data, error } = await supabase
-    .from("horarios_usuario")
-    .select("*")
-    .eq("usuario_id", usuario_id)
-    .eq("activo", true)
-    .limit(1)
-    .single();
-
-  if (error) {
-    console.error("Error leyendo horario:", error);
+  if (!Array.isArray(data) || data.length === 0) {
     return null;
   }
 
-  return data;
+  return data[0];
 }
