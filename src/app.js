@@ -169,6 +169,59 @@ function hoyPorDefecto() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function redondearCoord(valor) {
+  if (typeof valor !== "number" || Number.isNaN(valor)) return null;
+  return Math.round(valor * 1000000) / 1000000;
+}
+
+async function obtenerDireccionAproximada(lat, lng) {
+  const latTxt = typeof lat === "number" ? lat.toFixed(6) : "";
+  const lngTxt = typeof lng === "number" ? lng.toFixed(6) : "";
+  return `Lat ${latTxt}, Lng ${lngTxt}`;
+}
+
+function obtenerPosicion() {
+  return new Promise((resolve, reject) => {
+    if (!("geolocation" in navigator)) {
+      reject(new Error("Este dispositivo no permite obtener ubicación"));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve(position),
+      (error) => {
+        if (error.code === 1) {
+          reject(new Error("Permiso de ubicación denegado"));
+          return;
+        }
+        if (error.code === 2) {
+          reject(new Error("Ubicación no disponible"));
+          return;
+        }
+        if (error.code === 3) {
+          reject(new Error("Tiempo de espera agotado al obtener ubicación"));
+          return;
+        }
+        reject(new Error("No se pudo obtener la ubicación"));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0
+      }
+    );
+  });
+}
+
+async function obtenerDatosUbicacion() {
+  const position = await obtenerPosicion();
+  const lat = redondearCoord(position.coords.latitude);
+  const lng = redondearCoord(position.coords.longitude);
+  const direccion = await obtenerDireccionAproximada(lat, lng);
+
+  return { lat, lng, direccion };
+}
+
 /* =========================
    LOGIN
 ========================= */
@@ -475,16 +528,24 @@ async function fichar(tipo) {
       return;
     }
 
+    estado.textContent = "Estado: obteniendo ubicación...";
+
+    const ubicacion = await obtenerDatosUbicacion();
+
     estado.textContent = "Estado: guardando...";
 
     await guardarFichaje({
       usuario_id: user.id,
       trabajador: user.nombre || user.usuario || "Sin nombre",
       tipo,
-      nota: ""
+      nota: "",
+      lat: ubicacion.lat,
+      lng: ubicacion.lng,
+      direccion: ubicacion.direccion
     });
 
-    estado.textContent = `Estado: ${tipo} guardada correctamente.`;
+    estado.textContent =
+      `Estado: ${tipo} guardada correctamente.\nUbicación: ${ubicacion.direccion}`;
 
     await verUltimosFichajes();
   } catch (error) {
@@ -556,6 +617,7 @@ async function verUltimosFichajes() {
     lista.innerHTML = data.map((item) => {
       const fh = formatFechaHora(item.created_at);
       const color = colorTipoFichaje(item.tipo);
+      const direccion = item.direccion || "Sin dirección";
 
       return cardBox(`
         <div style="
@@ -603,7 +665,8 @@ async function verUltimosFichajes() {
           font-size:14px;
           line-height:1.6;
         ">
-          Trabajador: ${escapeHtml(item.trabajador || "")}
+          Trabajador: ${escapeHtml(item.trabajador || "")}<br>
+          Dirección: ${escapeHtml(direccion)}
         </div>
       `);
     }).join("");
