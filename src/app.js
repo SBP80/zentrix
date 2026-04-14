@@ -72,7 +72,20 @@ async function getAddress(lat, lng) {
 
     const data = await res.json();
 
-    return `${data.city || data.locality || ""}, ${data.principalSubdivision || ""}, ${data.countryName || ""}`;
+    const partes = [
+      data.locality,
+      data.city,
+      data.principalSubdivision,
+      data.countryName
+    ]
+      .map(v => String(v || "").trim())
+      .filter(v => v !== "");
+
+    if (partes.length > 0) {
+      return [...new Set(partes)].join(", ");
+    }
+
+    return `Lat ${lat}, Lng ${lng}`;
   } catch {
     return `Lat ${lat}, Lng ${lng}`;
   }
