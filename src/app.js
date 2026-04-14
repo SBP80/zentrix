@@ -43,6 +43,10 @@ function formatHora(fecha) {
 function colorTipoFichaje(tipo) {
   if (tipo === "entrada") return "#16a34a";
   if (tipo === "salida") return "#dc2626";
+  if (tipo === "inicio_descanso") return "#f59e0b";
+  if (tipo === "fin_descanso") return "#d97706";
+  if (tipo === "inicio_comida") return "#0891b2";
+  if (tipo === "fin_comida") return "#0e7490";
   return "#475569";
 }
 
@@ -470,12 +474,68 @@ function renderFichajes() {
             Salida
           </button>
 
+          <button id="btn_inicio_descanso" type="button" style="
+            width:100%;
+            height:56px;
+            border:none;
+            border-radius:16px;
+            background:#f59e0b;
+            color:#ffffff;
+            font-size:18px;
+            font-weight:800;
+            cursor:pointer;
+          ">
+            Inicio descanso
+          </button>
+
+          <button id="btn_fin_descanso" type="button" style="
+            width:100%;
+            height:56px;
+            border:none;
+            border-radius:16px;
+            background:#d97706;
+            color:#ffffff;
+            font-size:18px;
+            font-weight:800;
+            cursor:pointer;
+          ">
+            Fin descanso
+          </button>
+
+          <button id="btn_inicio_comida" type="button" style="
+            width:100%;
+            height:56px;
+            border:none;
+            border-radius:16px;
+            background:#0891b2;
+            color:#ffffff;
+            font-size:18px;
+            font-weight:800;
+            cursor:pointer;
+          ">
+            Inicio comida
+          </button>
+
+          <button id="btn_fin_comida" type="button" style="
+            width:100%;
+            height:56px;
+            border:none;
+            border-radius:16px;
+            background:#0e7490;
+            color:#ffffff;
+            font-size:18px;
+            font-weight:800;
+            cursor:pointer;
+          ">
+            Fin comida
+          </button>
+
           <button id="btn_historial" type="button" style="
             width:100%;
             height:56px;
             border:none;
             border-radius:16px;
-            background:#0f766e;
+            background:#334155;
             color:#ffffff;
             font-size:18px;
             font-weight:800;
@@ -489,7 +549,7 @@ function renderFichajes() {
             height:56px;
             border:none;
             border-radius:16px;
-            background:#475569;
+            background:#64748b;
             color:#ffffff;
             font-size:18px;
             font-weight:800;
@@ -518,10 +578,13 @@ function renderFichajes() {
 
   document.getElementById("btn_entrada")?.addEventListener("click", () => fichar("entrada"));
   document.getElementById("btn_salida")?.addEventListener("click", () => fichar("salida"));
+  document.getElementById("btn_inicio_descanso")?.addEventListener("click", () => fichar("inicio_descanso"));
+  document.getElementById("btn_fin_descanso")?.addEventListener("click", () => fichar("fin_descanso"));
+  document.getElementById("btn_inicio_comida")?.addEventListener("click", () => fichar("inicio_comida"));
+  document.getElementById("btn_fin_comida")?.addEventListener("click", () => fichar("fin_comida"));
   document.getElementById("btn_historial")?.addEventListener("click", verHistorial);
   document.getElementById("btn_volver")?.addEventListener("click", renderHome);
 }
-
 async function getUltimoFichaje(usuarioId) {
   const data = await leerUltimosFichajes(usuarioId, 1);
 
@@ -530,6 +593,81 @@ async function getUltimoFichaje(usuarioId) {
   }
 
   return data[0];
+}
+function getTextoTipo(tipo) {
+  if (tipo === "entrada") return "Entrada";
+  if (tipo === "salida") return "Salida";
+  if (tipo === "inicio_descanso") return "Inicio descanso";
+  if (tipo === "fin_descanso") return "Fin descanso";
+  if (tipo === "inicio_comida") return "Inicio comida";
+  if (tipo === "fin_comida") return "Fin comida";
+  return tipo || "";
+}
+
+function getEstadoJornada(ultimo) {
+  if (!ultimo) return "fuera";
+  return ultimo.tipo || "fuera";
+}
+
+function validarNuevoFichaje(nuevoTipo, ultimo) {
+  const estado = getEstadoJornada(ultimo);
+
+  if (nuevoTipo === "entrada") {
+    if (
+      estado === "entrada" ||
+      estado === "inicio_descanso" ||
+      estado === "inicio_comida"
+    ) {
+      return "No se puede registrar otra entrada mientras la jornada sigue abierta.";
+    }
+    return null;
+  }
+
+  if (nuevoTipo === "salida") {
+    if (estado === "fuera") {
+      return "No se puede registrar salida sin entrada previa.";
+    }
+    if (estado === "inicio_descanso") {
+      return "No se puede salir con un descanso abierto.";
+    }
+    if (estado === "inicio_comida") {
+      return "No se puede salir con una comida abierta.";
+    }
+    if (estado === "salida") {
+      return "No se puede registrar otra salida seguida.";
+    }
+    return null;
+  }
+
+  if (nuevoTipo === "inicio_descanso") {
+    if (estado !== "entrada" && estado !== "fin_comida") {
+      return "Solo puedes iniciar descanso estando dentro de la jornada.";
+    }
+    return null;
+  }
+
+  if (nuevoTipo === "fin_descanso") {
+    if (estado !== "inicio_descanso") {
+      return "No hay ningún descanso abierto para cerrar.";
+    }
+    return null;
+  }
+
+  if (nuevoTipo === "inicio_comida") {
+    if (estado !== "entrada" && estado !== "fin_descanso") {
+      return "Solo puedes iniciar comida estando dentro de la jornada.";
+    }
+    return null;
+  }
+
+  if (nuevoTipo === "fin_comida") {
+    if (estado !== "inicio_comida") {
+      return "No hay ninguna comida abierta para cerrar.";
+    }
+    return null;
+  }
+
+  return null;
 }
 
 async function fichar(tipo) {
@@ -546,19 +684,10 @@ async function fichar(tipo) {
 
   try {
     const ultimo = await getUltimoFichaje(user.id);
+    const errorValidacion = validarNuevoFichaje(tipo, ultimo);
 
-    if (tipo === "entrada" && ultimo?.tipo === "entrada") {
-      estado.textContent = "Estado: no se puede registrar otra entrada seguida.";
-      return;
-    }
-
-    if (tipo === "salida" && !ultimo) {
-      estado.textContent = "Estado: no se puede registrar salida sin entrada previa.";
-      return;
-    }
-
-    if (tipo === "salida" && ultimo?.tipo === "salida") {
-      estado.textContent = "Estado: no se puede registrar otra salida seguida.";
+    if (errorValidacion) {
+      estado.textContent = `Estado: ${errorValidacion}`;
       return;
     }
 
@@ -588,7 +717,7 @@ async function fichar(tipo) {
       direccion
     });
 
-    estado.textContent = `Estado: ${tipo} guardada correctamente.\nUbicación: ${direccion}`;
+    estado.textContent = `Estado: ${getTextoTipo(tipo)} guardado correctamente.\nUbicación: ${direccion}`;
 
     if (lista) {
       await verHistorial();
@@ -662,7 +791,7 @@ async function verHistorial() {
               color:${color};
               text-transform:capitalize;
             ">
-              ${item.tipo || ""}
+              ${getTextoTipo(item.tipo)}
             </div>
 
             <div style="
