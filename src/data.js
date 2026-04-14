@@ -178,3 +178,19 @@ export async function leerEventosAgenda(usuarioId, limit = 20) {
 
   return Array.isArray(data) ? data : [];
 }
+export async function leerHorarioUsuario(usuario_id) {
+  const { data, error } = await supabase
+    .from("horarios_usuario")
+    .select("*")
+    .eq("usuario_id", usuario_id)
+    .eq("activo", true)
+    .limit(1)
+    .single();
+
+  if (error) {
+    console.error("Error leyendo horario:", error);
+    return null;
+  }
+
+  return data;
+}
