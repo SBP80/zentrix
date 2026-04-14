@@ -63,13 +63,19 @@ export async function guardarFichaje({
   usuario_id,
   trabajador,
   tipo,
-  nota = ""
+  nota = "",
+  lat = null,
+  lng = null,
+  direccion = ""
 }) {
   const body = {
     usuario_id,
     trabajador,
     tipo,
-    nota
+    nota,
+    lat,
+    lng,
+    direccion
   };
 
   const res = await fetch(getRestUrl("fichajes"), {
