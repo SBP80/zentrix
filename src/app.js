@@ -1,7 +1,8 @@
 import {
   loginUsuario,
   guardarFichaje,
-  leerUltimosFichajes
+  leerUltimosFichajes,
+  LeerHorarioUsuario
 } from "./data.js";
 
 const app = document.getElementById("app");
@@ -400,12 +401,19 @@ function renderHome() {
    FICHAJES
 ========================= */
 
-function renderFichajes() {
+async function renderFichajes() {
   const user = getUser();
 
   if (!user) {
     renderLogin();
     return;
+  }
+
+  let horario = null;
+
+  if (user) {
+    horario = await leerHorarioUsuario(user.id);
+    console.log("Horario cargado:", horario);
   }
 
   app.innerHTML = `
@@ -444,6 +452,24 @@ function renderFichajes() {
           <br>
           ID usuario: ${user.id}
         </div>
+        ${horario ? `
+        <div style="
+          background:#eef2f7;
+          padding:12px;
+          border-radius:10px;
+          margin-bottom:12px;
+          color:#111827;
+          line-height:1.7;
+          font-size:15px;
+          font-weight:700;
+        ">
+    Horario:<br>
+    Entrada: ${horario.hora_entrada}<br>
+    Salida: ${horario.hora_salida}<br>
+    Descanso: ${horario.min_descanso} min<br>
+    Comida: ${horario.min_comida} min
+  </div>
+` : ""}
 
         <div style="display:grid;gap:12px;">
           <button id="btn_entrada" type="button" style="
