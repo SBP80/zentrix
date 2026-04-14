@@ -65,30 +65,93 @@ function getLocation() {
 }
 
 async function getAddress(lat, lng) {
+  const latTxt = Number(lat);
+  const lngTxt = Number(lng);
+
+  // 1) Intento de dirección detallada
   try {
-    const res = await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=es`
-    );
+    const url1 =
+      `https://nominatim.openstreetmap.org/reverse` +
+      `?format=jsonv2` +
+      `&lat=${encodeURIComponent(latTxt)}` +
+      `&lon=${encodeURIComponent(lngTxt)}` +
+      `&addressdetails=1` +
+      `&accept-language=es`;
 
-    const data = await res.json();
+    const res1 = await fetch(url1, {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      }
+    });
 
-    const partes = [
-      data.locality,
-      data.city,
-      data.principalSubdivision,
-      data.countryName
-    ]
-      .map(v => String(v || "").trim())
-      .filter(v => v !== "");
+    if (res1.ok) {
+      const data1 = await res1.json();
 
-    if (partes.length > 0) {
-      return [...new Set(partes)].join(", ");
+      const a = data1.address || {};
+
+      const partesNominatim = [
+        [a.road, a.house_number].filter(Boolean).join(" ").trim(),
+        a.hamlet,
+        a.village,
+        a.town,
+        a.city,
+        a.state,
+        a.postcode,
+        a.country
+      ]
+        .map(v => String(v || "").trim())
+        .filter(v => v !== "");
+
+      if (partesNominatim.length > 0) {
+        return [...new Set(partesNominatim)].join(", ");
+      }
+
+      if (data1.display_name) {
+        return String(data1.display_name).trim();
+      }
     }
-
-    return `Lat ${lat}, Lng ${lng}`;
   } catch {
-    return `Lat ${lat}, Lng ${lng}`;
+    // seguimos al siguiente intento
   }
+
+  // 2) Fallback a BigDataCloud
+  try {
+    const url2 =
+      `https://api.bigdatacloud.net/data/reverse-geocode-client` +
+      `?latitude=${encodeURIComponent(latTxt)}` +
+      `&longitude=${encodeURIComponent(lngTxt)}` +
+      `&localityLanguage=es`;
+
+    const res2 = await fetch(url2, {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    if (res2.ok) {
+      const data2 = await res2.json();
+
+      const partesBigData = [
+        data2.locality,
+        data2.city,
+        data2.principalSubdivision,
+        data2.countryName
+      ]
+        .map(v => String(v || "").trim())
+        .filter(v => v !== "");
+
+      if (partesBigData.length > 0) {
+        return [...new Set(partesBigData)].join(", ");
+      }
+    }
+  } catch {
+    // seguimos al último fallback
+  }
+
+  // 3) Último fallback
+  return `Lat ${latTxt}, Lng ${lngTxt}`;
 }
 /* =========================
    LOGIN
