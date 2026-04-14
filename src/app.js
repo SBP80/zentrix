@@ -40,6 +40,11 @@ function formatHora(fecha) {
   const d = new Date(fecha);
   return d.toLocaleTimeString("es-ES");
 }
+function colorTipoFichaje(tipo) {
+  if (tipo === "entrada") return "#16a34a";
+  if (tipo === "salida") return "#dc2626";
+  return "#475569";
+}
 
 /* =========================
    UBICACIÓN
