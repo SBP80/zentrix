@@ -2,7 +2,7 @@ import {
   loginUsuario,
   guardarFichaje,
   leerUltimosFichajes,
-  LeerHorarioUsuario
+  leerHorarioUsuario
 } from "./data.js";
 
 const app = document.getElementById("app");
